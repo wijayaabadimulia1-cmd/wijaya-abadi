@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight } from 'lucide-react';
+import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
 import { Motor } from '../types';
 import { formatRupiah } from '../services/api';
 
@@ -21,6 +21,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   const [activeCategory, setActiveCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('default');
+  const [selectedImage, setSelectedImage] = useState<{ src: string; alt: string } | null>(null);
 
   // Extract unique categories from actual motors data
   const categories = useMemo(() => {
@@ -36,6 +37,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   // Filter & sort
   const filteredMotors = useMemo(() => {
     return motors
+      .filter((m) => Boolean(m.image && m.image.trim()))
       .filter((m) => {
         const matchesCategory =
           activeCategory === 'Semua' || m.category.toLowerCase().includes(activeCategory.toLowerCase());
@@ -53,7 +55,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         if (sortBy === 'price-desc') return priceB - priceA;
         if (sortBy === 'bestseller') return (b.is_bestseller ? 1 : 0) - (a.is_bestseller ? 1 : 0);
         return 0;
-      });
+      })
+      .slice(0, 10);
   }, [motors, activeCategory, searchQuery, sortBy]);
 
   return (
@@ -158,29 +161,37 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {filteredMotors.map((motor) => {
+            {filteredMotors.map((motor, index) => {
               const selectedForCompare = isCompared(motor.id);
 
               return (
                 <div
                   key={motor.id}
-                  className="group relative bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden hover:border-red-500/50 transition-all duration-500 flex flex-col justify-between"
+                  className="catalog-card group relative bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden hover:border-red-500/50 transition-all duration-500 flex flex-col justify-between"
+                  style={{ animationDelay: `${index * 70}ms` }}
                 >
                   {/* Glowing background on hover */}
                   <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none" />
 
                   {/* Top card area: image and badges */}
                   <div>
-                    <div className="relative h-64 overflow-hidden bg-zinc-950 flex items-center justify-center p-6">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImage({ src: motor.image, alt: motor.name })}
+                      className="relative h-64 w-full overflow-hidden bg-zinc-950 flex items-center justify-center p-6 cursor-zoom-in"
+                      aria-label={`Lihat foto ${motor.name} ukuran penuh`}
+                    >
                       <img
                         src={motor.image}
                         alt={motor.name}
                         className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
                         onError={(e) => {
-                          e.currentTarget.src =
-                            'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?crop=entropy&cs=srgb&fm=jpg&w=700&q=80';
+                          e.currentTarget.closest('.catalog-card')?.classList.add('catalog-card-hidden');
                         }}
                       />
+                      <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        Klik untuk lihat foto
+                      </span>
 
                       {/* Category Pill Tag */}
                       <div className="absolute top-4 right-4 bg-zinc-900/90 backdrop-blur-sm text-zinc-300 border border-white/10 px-3 py-1 rounded-full text-xs font-semibold">
@@ -197,7 +208,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                           <span>Bestseller</span>
                         </div>
                       )}
-                    </div>
+                    </button>
 
                     {/* Content area */}
                     <div className="p-6">
@@ -278,6 +289,33 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </div>
         )}
       </div>
+
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto ${selectedImage.alt}`}
+        >
+          <div className="relative max-h-[92vh] max-w-5xl" onClick={(event) => event.stopPropagation()}>
+            <img
+              src={selectedImage.src}
+              alt={selectedImage.alt}
+              className="max-h-[88vh] max-w-full rounded-2xl object-contain shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setSelectedImage(null)}
+              className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-zinc-900 shadow-xl hover:bg-red-50"
+              aria-label="Tutup foto"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="mt-3 text-center text-sm font-semibold text-white">{selectedImage.alt}</p>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

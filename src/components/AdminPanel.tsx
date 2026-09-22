@@ -179,7 +179,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       price: '20.000.000',
       specs: ['110cc', 'eSP'],
       description: '',
-      image: '/uploads/beat_cbs.png',
+      image: '',
       is_bestseller: false,
     });
     setIsMotorModalOpen(true);
@@ -193,6 +193,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const handleSaveMotor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMotor || !editingMotor.name) return;
+    if (!editingMotor.id && motors.length >= 10) {
+      alert('Maksimal 10 motor dapat ditambahkan ke katalog.');
+      return;
+    }
 
     try {
       if (editingMotor.id) {
@@ -406,15 +410,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         </div>
 
         <div className="flex items-center space-x-3">
-          <a
-            href="/api/export/all"
-            download
+          <button
+            onClick={async () => {
+              try {
+                await api.downloadAdminReport();
+                showToast('Laporan rating, minat, dan histori berhasil diunduh');
+              } catch (error: any) {
+                alert(error.message || 'Gagal mengunduh laporan admin');
+              }
+            }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-md shadow-red-950/40 transition-all border border-red-500/40"
-            title="Download seluruh data showroom (JSON)"
+            title="Download rating, minat calon konsumen, dan histori perubahan"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download Semua Data</span>
-          </a>
+            <span>Download Laporan Admin</span>
+          </button>
           <div className="h-4 w-px bg-white/10 hidden md:block" />
           <span className="text-xs text-zinc-400 hidden md:inline">
             Login: <strong className="text-white">{adminSession.username}</strong>
@@ -649,10 +659,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                   <button
                     onClick={handleOpenAddMotor}
+                    disabled={motors.length >= 10}
                     className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all shrink-0"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Tambah Motor Baru</span>
+                    <span>{motors.length >= 10 ? 'Batas 10 Motor Tercapai' : 'Tambah Motor Baru'}</span>
                   </button>
                 </div>
 

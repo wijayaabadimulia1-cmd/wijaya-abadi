@@ -291,6 +291,20 @@ export const api = {
     window.location.href = '/api/export/all';
   },
 
+  async downloadAdminReport(): Promise<void> {
+    const res = await fetch('/api/admin/report', { headers: adminHeaders() });
+    if (!res.ok) throw new Error('Gagal mengunduh laporan admin');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `laporan-admin-hwa-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
   downloadCsv(type: 'interests' | 'motors' | 'promos' | 'testimonials'): void {
     window.location.href = `/api/export/csv/${type}`;
   },

@@ -535,6 +535,61 @@ body {
   background: linear-gradient(160deg, #ffffff 0%, #fff1f2 100%) !important;
 }
 
+.website-shell.site-mode-light .promo-card {
+  background: linear-gradient(145deg, #ffffff 0%, #fff7f7 100%) !important;
+  border-color: #e4e4e7 !important;
+  box-shadow: 0 16px 36px rgba(24, 24, 27, 0.09) !important;
+}
+
+.website-shell.site-mode-light .promo-card .promo-title {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light .promo-card .promo-description,
+.website-shell.site-mode-light .promo-card .promo-terms {
+  color: #3f3f46 !important;
+}
+
+.website-shell.site-mode-light .promo-card .promo-terms {
+  border-color: #e4e4e7 !important;
+}
+
+.website-shell.site-mode-light .promo-card .promo-action {
+  background: #b91c1c !important;
+  border-color: #991b1b !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(185, 28, 28, 0.2) !important;
+}
+
+.website-shell.site-mode-light .promo-card .promo-action:hover {
+  background: #991b1b !important;
+}
+
+.catalog-card {
+  animation: catalog-card-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.catalog-card-hidden {
+  display: none !important;
+}
+
+@keyframes catalog-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-card {
+    animation: none;
+  }
+}
+
 /* Final light-mode contrast pass for remaining white utility text. */
 .website-shell.site-mode-light [class~="text-white"] {
   color: #18181b !important;

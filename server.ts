@@ -157,13 +157,16 @@ async function startServer() {
 
   app.post('/api/motors', (req, res) => {
     const db = readDb();
+    if ((db.motors || []).length >= 10) {
+      return res.status(400).json({ error: 'Maksimal 10 motor dapat ditampilkan di katalog' });
+    }
     const newMotor = {
       id: req.body.id || `motor-${Date.now()}`,
       name: req.body.name || 'New Honda Motor',
       category: req.body.category || 'Matic',
       price: req.body.price || 'Rp 20.000.000',
       numericPrice: req.body.numericPrice || Number(String(req.body.price).replace(/[^0-9]/g, '')) || 20000000,
-      image: req.body.image || '/uploads/beat_cbs.png',
+      image: String(req.body.image || '').trim(),
       specs: Array.isArray(req.body.specs) ? req.body.specs : (typeof req.body.specs === 'string' ? req.body.specs.split(',').map((s: string) => s.trim()) : ['110cc']),
       description: req.body.description || '',
       is_bestseller: Boolean(req.body.is_bestseller),
@@ -506,6 +509,21 @@ async function startServer() {
   app.get('/api/admin/audit', requireAdmin, (req, res) => {
     const db = readDb();
     res.json(db.auditLogs || []);
+  });
+
+  app.get('/api/admin/report', requireAdmin, (req, res) => {
+    const db = readDb();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const report = {
+      exported_at: new Date().toISOString(),
+      description: 'Laporan admin: rating pelanggan, minat calon konsumen, dan histori perubahan',
+      ratings: db.testimonials || [],
+      customer_interests: db.interests || [],
+      change_history: db.auditLogs || [],
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="laporan-admin-hwa-${dateStr}.json"`);
+    res.json(report);
   });
 
   // Download / Export All Data (JSON)

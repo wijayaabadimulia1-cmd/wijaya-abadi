@@ -37,7 +37,7 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
             return (
               <div
                 key={promo.id || idx}
-                className="group relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:border-red-500/50 transition-all duration-300 shadow-xl overflow-hidden"
+                className="promo-card group relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:border-red-500/50 transition-all duration-300 shadow-xl overflow-hidden"
               >
                 {/* Background glow */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
@@ -56,17 +56,17 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-2xl font-black text-white group-hover:text-red-400 transition-colors">
+                  <h3 className="promo-title text-2xl font-black text-white group-hover:text-red-400 transition-colors">
                     {promo.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="mt-3 text-sm text-zinc-300 leading-relaxed">
+                  <p className="promo-description mt-3 text-sm text-zinc-300 leading-relaxed">
                     {promo.description}
                   </p>
 
                   {/* Terms */}
-                  <div className="mt-6 pt-4 border-t border-white/10 flex items-center gap-2 text-xs text-zinc-400">
+                  <div className="promo-terms mt-6 pt-4 border-t border-white/10 flex items-center gap-2 text-xs text-zinc-400">
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>{promo.terms || 'Syarat & Ketentuan Berlaku'}</span>
                   </div>
@@ -78,7 +78,7 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                     href={waUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-3 px-4 bg-zinc-800 hover:bg-red-600 text-white font-bold text-xs rounded-xl border border-white/10 hover:border-red-500 transition-all flex items-center justify-center gap-2 shadow-md"
+                    className="promo-action w-full py-3 px-4 bg-zinc-800 hover:bg-red-600 text-white font-bold text-xs rounded-xl border border-white/10 hover:border-red-500 transition-all flex items-center justify-center gap-2 shadow-md"
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Klaim Promo via WhatsApp</span>
