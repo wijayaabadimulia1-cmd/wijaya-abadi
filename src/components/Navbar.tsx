@@ -37,7 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-white/10 transition-all">
+    <header className={`site-navbar sticky top-0 z-40 backdrop-blur-md transition-all ${colorMode === 'light' ? 'site-navbar-light' : 'site-navbar-dark'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo Brand */}
@@ -58,13 +58,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
             <div>
-              <div className="text-white font-extrabold text-base sm:text-lg tracking-wide flex items-center gap-1.5">
+              <div className={`${colorMode === 'light' ? 'text-zinc-900' : 'text-white'} font-extrabold text-base sm:text-lg tracking-wide flex items-center gap-1.5`}>
                 <span>{settings.name || 'Honda Wijaya Abadi'}</span>
                 <span className="bg-red-600/30 text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/40">
                   RESMI
                 </span>
               </div>
-              <p className="text-zinc-400 text-xs truncate max-w-[200px] sm:max-w-xs font-normal">
+              <p className={`${colorMode === 'light' ? 'text-zinc-700' : 'text-zinc-400'} text-xs truncate max-w-[200px] sm:max-w-xs font-normal`}>
                 {settings.tagline || 'Partner Terpercaya Berkendara Anda'}
               </p>
             </div>
@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <a
                 key={link.label}
                 href={link.href}
-                className="text-zinc-300 hover:text-red-400 transition-colors py-1 relative hover:after:w-full after:w-0 after:h-0.5 after:bg-red-600 after:absolute after:bottom-0 after:left-0 after:transition-all"
+                className={`${colorMode === 'light' ? 'text-zinc-900 hover:text-red-700' : 'text-zinc-300 hover:text-red-400'} transition-colors py-1 relative hover:after:w-full after:w-0 after:h-0.5 after:bg-red-600 after:absolute after:bottom-0 after:left-0 after:transition-all`}
               >
                 {link.label}
               </a>
@@ -87,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden sm:flex items-center gap-2 lg:gap-3 lg:ml-4 shrink-0">
             <button
               onClick={onToggleColorMode}
-              className="inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-zinc-900/80 px-2.5 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+              className={`inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-xl border border-white/10 px-2.5 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${colorMode === 'light' ? 'bg-white text-zinc-900 hover:bg-zinc-100 hover:text-zinc-900' : 'bg-zinc-900/80 text-zinc-300 hover:bg-zinc-800 hover:text-white'}`}
               title={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
               aria-label={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
             >
@@ -98,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {compareList.length > 0 && (
               <button
                 onClick={onOpenCompare}
-                className="relative flex items-center gap-2 px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl border border-red-500/40 text-xs font-semibold shadow-md transition-all animate-pulse"
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-xl border border-red-500/40 text-xs font-semibold shadow-md transition-all animate-pulse ${colorMode === 'light' ? 'bg-white hover:bg-zinc-100 text-zinc-900' : 'bg-zinc-900 hover:bg-zinc-800 text-white'}`}
                 title="Bandingkan Motor"
               >
                 <Scale className="w-4 h-4 text-red-400" />
@@ -126,7 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-1.5 lg:hidden shrink-0">
             <button
               onClick={onToggleColorMode}
-              className="p-2 rounded-lg border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white shrink-0"
+              className={`p-2 rounded-lg border border-white/10 shrink-0 ${colorMode === 'light' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-zinc-300 hover:text-white'}`}
               title={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
               aria-label={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
             >
@@ -145,7 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-zinc-300 hover:text-white bg-zinc-900 border border-white/10 rounded-lg"
+              className={`p-2 border border-white/10 rounded-lg ${colorMode === 'light' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-zinc-300 hover:text-white'}`}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -162,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={link.label}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors"
+                  className={`${colorMode === 'light' ? 'text-zinc-900 hover:text-red-700 hover:bg-zinc-100' : 'text-zinc-300 hover:text-white hover:bg-zinc-900'} px-3 py-2 rounded-lg text-sm transition-colors`}
                 >
                   {link.label}
                 </a>
@@ -172,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="pt-3 border-t border-zinc-800 flex flex-col gap-2">
               <button
                 onClick={onToggleColorMode}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 text-zinc-300 hover:text-white border border-white/10 rounded-xl text-sm font-semibold"
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 border border-white/10 rounded-xl text-sm font-semibold ${colorMode === 'light' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-zinc-300 hover:text-white'}`}
               >
                 {colorMode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 <span>{colorMode === 'dark' ? 'Gunakan Mode Terang' : 'Gunakan Mode Gelap'}</span>

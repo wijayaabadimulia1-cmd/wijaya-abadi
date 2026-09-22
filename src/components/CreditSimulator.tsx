@@ -62,7 +62,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   };
 
   return (
-    <section id="simulasi" className="py-24 bg-black relative overflow-hidden">
+    <section id="simulasi" className="simulator-section py-24 bg-black relative overflow-hidden">
       {/* Glow Effects */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-orange-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -83,7 +83,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
         </div>
 
         {/* Simulator Container */}
-        <div className="mt-12 bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl max-w-5xl mx-auto">
+        <div className="simulator-container mt-12 bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             
             {/* Left Column: Form Controls */}
@@ -107,7 +107,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
               </div>
 
               {/* Price Indicator */}
-              <div className="flex items-center justify-between p-3.5 bg-zinc-950/80 rounded-xl border border-white/5">
+              <div className="simulator-price flex items-center justify-between p-3.5 bg-zinc-950/80 rounded-xl border border-white/5">
                 <span className="text-xs text-zinc-400 font-medium">Harga OTR Bandung</span>
                 <span className="text-base font-bold text-white">{formatRupiah(motorPrice)}</span>
               </div>
@@ -184,7 +184,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
               </div>
 
               {/* Legal disclaimer */}
-              <div className="flex items-start gap-2 text-[11px] text-zinc-500 bg-zinc-950/40 p-3 rounded-xl border border-white/5">
+              <div className="simulator-disclaimer flex items-start gap-2 text-[11px] text-zinc-500 bg-zinc-950/40 p-3 rounded-xl border border-white/5">
                 <Info className="w-4 h-4 shrink-0 mt-0.5 text-zinc-400" />
                 <span>
                   Simulasi ini bersifat estimasi. Bunga dan cicilan resmi disesuaikan dengan ketentuan leasing rekanan (FIFGROUP, OTO, ADIRA Finance, dll) saat verifikasi berkas.
@@ -193,7 +193,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
             </div>
 
             {/* Right Column: Calculation Result Card */}
-            <div className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-b from-zinc-950 to-zinc-900/90 rounded-2xl p-6 sm:p-7 border border-red-500/20 shadow-xl relative overflow-hidden">
+            <div className="simulator-result lg:col-span-5 flex flex-col justify-between bg-gradient-to-b from-zinc-950 to-zinc-900/90 rounded-2xl p-6 sm:p-7 border border-red-500/20 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
 
               <div>

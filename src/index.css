@@ -273,13 +273,18 @@ body {
 }
 
 .website-shell.site-mode-light .text-white,
-.website-shell.site-mode-light .text-zinc-100 {
-  color: var(--site-text-effective) !important;
+.website-shell.site-mode-light .text-zinc-100,
+.website-shell.site-mode-light .text-zinc-200,
+.website-shell.site-mode-light .text-zinc-300,
+.website-shell.site-mode-light .text-zinc-400,
+.website-shell.site-mode-light .text-zinc-500 {
+  color: #18181b !important;
 }
 
-.website-shell.site-mode-light .text-zinc-300,
-.website-shell.site-mode-light .text-zinc-400 {
-  color: var(--site-muted-effective) !important;
+.website-shell.site-mode-light .text-red-300,
+.website-shell.site-mode-light .text-red-400,
+.website-shell.site-mode-light .text-red-500 {
+  color: var(--custom-primary, #b91c1c) !important;
 }
 
 .website-shell.site-mode-light .border-white\/10,
@@ -314,12 +319,6 @@ body {
   color: #a16207 !important;
 }
 
-.website-shell.site-mode-light .text-red-300,
-.website-shell.site-mode-light .text-red-400,
-.website-shell.site-mode-light .text-red-500 {
-  color: var(--custom-primary, #b91c1c) !important;
-}
-
 .website-shell.site-mode-light input,
 .website-shell.site-mode-light textarea,
 .website-shell.site-mode-light select {
@@ -343,6 +342,210 @@ body {
 .website-shell.site-mode-light a:not([class*='text-']),
 .website-shell.site-mode-light button:not([class*='text-']) {
   color: var(--site-text-effective);
+}
+
+.website-shell.site-mode-light .simulator-section {
+  background: #f4f4f5 !important;
+}
+
+.website-shell.site-mode-light .simulator-container {
+  background: #ffffff !important;
+  border-color: #d4d4d8 !important;
+  box-shadow: 0 24px 60px rgba(24, 24, 27, 0.12) !important;
+}
+
+.website-shell.site-mode-light .simulator-price,
+.website-shell.site-mode-light .simulator-disclaimer,
+.website-shell.site-mode-light .simulator-container select,
+.website-shell.site-mode-light .simulator-container button:not(.bg-red-600) {
+  background: #fafafa !important;
+  border-color: #d4d4d8 !important;
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light .simulator-price span,
+.website-shell.site-mode-light .simulator-disclaimer,
+.website-shell.site-mode-light .simulator-disclaimer span,
+.website-shell.site-mode-light .simulator-container label,
+.website-shell.site-mode-light .simulator-container p {
+  color: #3f3f46 !important;
+}
+
+.website-shell.site-mode-light .simulator-result {
+  background: linear-gradient(160deg, #ffffff 0%, #fff1f2 100%) !important;
+  border-color: rgba(185, 28, 28, 0.25) !important;
+  box-shadow: 0 18px 42px rgba(127, 29, 29, 0.14) !important;
+}
+
+.website-shell.site-mode-light .simulator-result h4,
+.website-shell.site-mode-light .simulator-result .text-white,
+.website-shell.site-mode-light .simulator-result .text-zinc-200,
+.website-shell.site-mode-light .simulator-result .text-zinc-300,
+.website-shell.site-mode-light .simulator-result .text-zinc-400 {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light .simulator-result .border-white\/10 {
+  border-color: #e4e4e7 !important;
+}
+
+.website-shell.site-mode-light .simulator-result .bg-zinc-900 {
+  background: #f4f4f5 !important;
+  border-color: #d4d4d8 !important;
+}
+
+/* Keep every public section readable in light mode. */
+.website-shell.site-mode-light [class*="bg-black"],
+.website-shell.site-mode-light [class*="bg-zinc-950"] {
+  background-color: var(--site-bg-effective) !important;
+}
+
+.website-shell.site-mode-light [class*="bg-zinc-900"],
+.website-shell.site-mode-light [class*="bg-zinc-800"] {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell.site-mode-light [class*="text-white"],
+.website-shell.site-mode-light [class*="text-zinc-100"],
+.website-shell.site-mode-light [class*="text-zinc-200"],
+.website-shell.site-mode-light [class*="text-zinc-300"],
+.website-shell.site-mode-light [class*="text-zinc-400"],
+.website-shell.site-mode-light [class*="text-zinc-500"] {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light [class*="border-white"] {
+  border-color: rgba(24, 24, 27, 0.14) !important;
+}
+
+.website-shell.site-mode-light [class*="hover:bg-zinc-800"]:hover,
+.website-shell.site-mode-light [class*="hover:bg-zinc-900"]:hover {
+  background-color: #e4e4e7 !important;
+}
+
+.website-shell.site-mode-light [class*="bg-red-600"],
+.website-shell.site-mode-light [class*="bg-red-700"],
+.website-shell.site-mode-light [class*="bg-gradient-to-r"] {
+  color: #ffffff !important;
+}
+
+.website-shell.site-mode-light .site-navbar-light {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid #d4d4d8 !important;
+  box-shadow: 0 4px 18px rgba(24, 24, 27, 0.08);
+}
+
+.website-shell.site-mode-light .site-navbar-light nav a,
+.website-shell.site-mode-light .site-navbar-light nav a.text-zinc-300,
+.website-shell.site-mode-light .site-navbar-light nav a.text-zinc-900 {
+  color: #18181b !important;
+  font-weight: 700;
+}
+
+.website-shell.site-mode-light .site-navbar-light nav a:hover {
+  color: #b91c1c !important;
+}
+
+.website-shell.site-mode-light .site-navbar-light p {
+  color: #3f3f46 !important;
+}
+
+.website-shell.site-mode-light .site-navbar-light button:not([class*="bg-red-"]):not([class*="bg-emerald-"]),
+.website-shell.site-mode-light .site-navbar-light button:not([class*="bg-red-"]):not([class*="bg-emerald-"]) span {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light .site-navbar-light a.bg-emerald-600\/20 {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
+}
+
+.website-shell.site-mode-light header a:not([class*="bg-"]),
+.website-shell.site-mode-light header nav a,
+.website-shell.site-mode-light header .text-zinc-300,
+.website-shell.site-mode-light header .text-zinc-400,
+.website-shell.site-mode-light header .text-white {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light header nav a:hover {
+  color: var(--custom-primary, #b91c1c) !important;
+}
+
+.website-shell.site-mode-light header p {
+  color: #3f3f46 !important;
+}
+
+.website-shell.site-mode-light header button:not([class*="bg-red-"]):not([class*="bg-emerald-"]) {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light [class*="text-red-300"],
+.website-shell.site-mode-light [class*="text-red-400"],
+.website-shell.site-mode-light [class*="text-red-500"] {
+  color: var(--custom-primary, #b91c1c) !important;
+}
+
+.website-shell.site-mode-light [class*="text-emerald-300"],
+.website-shell.site-mode-light [class*="text-emerald-400"],
+.website-shell.site-mode-light [class*="text-emerald-500"] {
+  color: #047857 !important;
+}
+
+.website-shell.site-mode-light [class*="text-yellow-300"],
+.website-shell.site-mode-light [class*="text-yellow-400"],
+.website-shell.site-mode-light [class*="text-amber-300"],
+.website-shell.site-mode-light [class*="text-amber-400"] {
+  color: #a16207 !important;
+}
+
+.website-shell.site-mode-light [class*="bg-emerald-600"],
+.website-shell.site-mode-light [class*="bg-red-600"],
+.website-shell.site-mode-light [class*="bg-gradient-to-r"] {
+  color: #ffffff !important;
+}
+
+.website-shell.site-mode-light input,
+.website-shell.site-mode-light textarea,
+.website-shell.site-mode-light select {
+  background-color: #ffffff !important;
+  color: #18181b !important;
+  border-color: #d4d4d8 !important;
+}
+
+.website-shell.site-mode-light input::placeholder,
+.website-shell.site-mode-light textarea::placeholder {
+  color: #71717a !important;
+}
+
+.website-shell.site-mode-light .simulator-container {
+  background: #ffffff !important;
+}
+
+.website-shell.site-mode-light .simulator-price,
+.website-shell.site-mode-light .simulator-disclaimer,
+.website-shell.site-mode-light .simulator-container select,
+.website-shell.site-mode-light .simulator-container button:not([class*="bg-red-600"]) {
+  background: #fafafa !important;
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light .simulator-result {
+  background: linear-gradient(160deg, #ffffff 0%, #fff1f2 100%) !important;
+}
+
+/* Final light-mode contrast pass for remaining white utility text. */
+.website-shell.site-mode-light [class~="text-white"] {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light button[class*="bg-red-"],
+.website-shell.site-mode-light a[class*="bg-red-"],
+.website-shell.site-mode-light button[class*="bg-emerald-"],
+.website-shell.site-mode-light a[class*="bg-emerald-"],
+.website-shell.site-mode-light [class*="bg-gradient-to-r"] {
+  color: #ffffff !important;
 }
 
 /* Custom scrollbars */
