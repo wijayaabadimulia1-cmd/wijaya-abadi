@@ -604,7 +604,7 @@ async function startServer() {
           `"${(i.note || '').replace(/"/g, '""')}"`,
           `"${(i.status || '').replace(/"/g, '""')}"`
         ]);
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="data-peminat-honda-hwa-${dateStr}.csv"`);
         return res.send(csvContent);
@@ -622,7 +622,7 @@ async function startServer() {
           `"${m.is_bestseller ? 'Ya' : 'Tidak'}"`,
           `"${(m.description || '').replace(/"/g, '""')}"`
         ]);
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="katalog-motor-honda-hwa-${dateStr}.csv"`);
         return res.send(csvContent);
@@ -638,7 +638,7 @@ async function startServer() {
           `"${(p.description || '').replace(/"/g, '""')}"`,
           `"${(p.terms || '').replace(/"/g, '""')}"`
         ]);
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="promo-honda-hwa-${dateStr}.csv"`);
         return res.send(csvContent);
@@ -654,7 +654,7 @@ async function startServer() {
           `"${t.rating || 5}"`,
           `"${(t.comment || '').replace(/"/g, '""')}"`
         ]);
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="testimoni-pelanggan-hwa-${dateStr}.csv"`);
         return res.send(csvContent);

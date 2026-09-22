@@ -302,7 +302,7 @@ export const api = {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
   downloadCsv(type: 'interests' | 'motors' | 'promos' | 'testimonials'): void {
