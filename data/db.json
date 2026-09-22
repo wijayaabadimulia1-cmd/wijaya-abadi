@@ -1,0 +1,329 @@
+{
+  "settings": {
+    "id": "hwa-settings-01",
+    "name": "Honda Wijaya Abadi Mulia Motor",
+    "tagline": "Partner Terpercaya Berkendara Anda",
+    "phone": "6282129358899",
+    "address": "Jl. Gegerkalong Hilir No.68, Gegerkalong, Kec. Sukasari, Kota Bandung, Jawa Barat 40152",
+    "email": "wijayaabadimulia1@gmail.com",
+    "workingHours": "Senin - Sabtu: 08.00 - 17.00 WIB",
+    "logo": "/uploads/logo.jpeg",
+    "heroImage": "/uploads/hero.jpeg",
+    "heroTitle": "Dealer resmi Sepeda Motor Honda Bandung",
+    "heroTitleHighlight": "Honda Wijaya Abadi",
+    "heroSubtitle": "Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.",
+    "footerText": "Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.",
+    "updated_at": "2026-09-22T03:07:02.313Z",
+    "websiteTemplate": "premium"
+  },
+  "motors": [
+    {
+      "id": "motor-beat-deluxe",
+      "name": "New Beat Deluxe CBS ISS",
+      "category": "Matic",
+      "price": "20.775.000",
+      "numericPrice": 20775000,
+      "image": "/uploads/beat_deluxe.png",
+      "specs": [
+        "110cc",
+        "eSP",
+        "Idling Stop",
+        "Power Charger"
+      ],
+      "description": "Tampil modis dan gesit dengan striping elegan serta fitur Idling Stop System yang super irit.",
+      "created_at": "2026-09-08T09:43:59.000Z",
+      "updated_at": "2026-09-08T09:43:59.000Z",
+      "interest_count": 14,
+      "is_bestseller": true
+    },
+    {
+      "id": "motor-beat-cbs",
+      "name": "New Beat CBS",
+      "category": "Matic",
+      "price": "19.675.000",
+      "numericPrice": 19675000,
+      "image": "/uploads/beat_cbs.png",
+      "specs": [
+        "110cc",
+        "eSP",
+        "Combi Brake",
+        "Tubeless Tire"
+      ],
+      "description": "Motor matic paling irit dan lincah untuk mobilitas harian dengan konsumsi BBM terbaik di kelasnya.",
+      "created_at": "2026-09-08T08:07:50.000Z",
+      "updated_at": "2026-09-08T09:42:21.000Z",
+      "interest_count": 9,
+      "is_bestseller": false
+    },
+    {
+      "id": "motor-vario-160",
+      "name": "Honda Vario 160 ABS",
+      "category": "Matic",
+      "price": "27.350.000",
+      "numericPrice": 27350000,
+      "image": "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "160cc eSP+",
+        "ABS",
+        "Honda Smart Key",
+        "Full Digital Panel"
+      ],
+      "description": "Matic premium dengan performa bertenaga 4 katup eSP+ dan pengereman ABS yang aman maksimal.",
+      "created_at": "2026-09-08T08:07:50.000Z",
+      "updated_at": "2026-09-08T08:07:50.000Z",
+      "interest_count": 22,
+      "is_bestseller": true
+    },
+    {
+      "id": "motor-pcx-160",
+      "name": "Honda PCX 160 ABS",
+      "category": "Matic Premium",
+      "price": "36.080.000",
+      "numericPrice": 36080000,
+      "image": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "160cc 4-Valves",
+        "ABS & HSTC",
+        "Bagasi 30L",
+        "Smart Key System"
+      ],
+      "description": "Skutik premium kemewahan tak tertandingi dengan kenyamanan posisi riding istimewa dan kontrol HSTC.",
+      "created_at": "2026-09-08T08:07:50.000Z",
+      "updated_at": "2026-09-08T08:07:50.000Z",
+      "interest_count": 18,
+      "is_bestseller": true
+    },
+    {
+      "id": "motor-adv-160",
+      "name": "Honda ADV 160 ABS",
+      "category": "Adventure",
+      "price": "39.400.000",
+      "numericPrice": 39400000,
+      "image": "https://images.unsplash.com/photo-1571188654248-7a89213915f7?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "160cc eSP+",
+        "Sub-Tank Rear Sus",
+        "Windscreen Adjustable",
+        "HSTC"
+      ],
+      "description": "Eksplorasi tanpa batas dengan skuter petualang berkarakter maskulin, suspensi tabung, dan windshield aerodinamis.",
+      "created_at": "2026-09-08T08:07:50.000Z",
+      "updated_at": "2026-09-08T08:07:50.000Z",
+      "interest_count": 15,
+      "is_bestseller": false
+    },
+    {
+      "id": "motor-cbr150r",
+      "name": "Honda CBR150R ABS",
+      "category": "Sport",
+      "price": "41.800.000",
+      "numericPrice": 41800000,
+      "image": "https://images.unsplash.com/photo-1609630875171-b1321377ee65?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "150cc DOHC 6-Speed",
+        "Inverted Front Fork",
+        "Assist/Slipper Clutch",
+        "ABS"
+      ],
+      "description": "Motor sport murni dengan DNA sirkuit balap Honda, suspensi upside-down, dan assist slipper clutch.",
+      "created_at": "2026-09-08T08:07:50.000Z",
+      "updated_at": "2026-09-08T08:07:50.000Z",
+      "interest_count": 27,
+      "is_bestseller": true
+    },
+    {
+      "id": "motor-cb150x",
+      "name": "Honda CB150X",
+      "category": "Adventure",
+      "price": "34.520.000",
+      "numericPrice": 34520000,
+      "image": "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "150cc DOHC Liquid Cooled",
+        "Tapered Handlebar",
+        "High Ground Clearance",
+        "Adventure Cockpit"
+      ],
+      "description": "Pelopor motor sport adventure touring 150cc di Indonesia untuk menaklukkan rute perkotaan dan jalanan terjal.",
+      "created_at": "2026-09-08T08:07:50.000Z",
+      "updated_at": "2026-09-08T08:07:50.000Z",
+      "interest_count": 8,
+      "is_bestseller": false
+    },
+    {
+      "id": "motor-scoopy-prestige",
+      "name": "Honda Scoopy Prestige",
+      "category": "Matic",
+      "price": "22.875.000",
+      "numericPrice": 22875000,
+      "image": "https://images.unsplash.com/photo-1525160354320-d8e92641c563?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "110cc eSP",
+        "Smart Key System",
+        "USB Charger",
+        "Iconic LED Headlamp"
+      ],
+      "description": "Ikon gaya retro modern unik dengan fitur smart key tanpa anak kunci dan aksen velg bernuansa premium.",
+      "created_at": "2026-09-10T10:00:00.000Z",
+      "updated_at": "2026-09-10T10:00:00.000Z",
+      "interest_count": 31,
+      "is_bestseller": true
+    },
+    {
+      "id": "motor-crf150l",
+      "name": "Honda CRF150L",
+      "category": "Sport",
+      "price": "36.850.000",
+      "numericPrice": 36850000,
+      "image": "https://images.unsplash.com/photo-1579294800821-694d95e86143?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+      "specs": [
+        "150cc SOHC PGM-FI",
+        "Upside Down Suspension",
+        "Wavy Disc Brake",
+        "Aluminium Rim"
+      ],
+      "description": "Motor on-off sport sejati siap trabas segala medan jalanan bebatuan maupun aspal kota dengan tangguh.",
+      "created_at": "2026-09-11T12:00:00.000Z",
+      "updated_at": "2026-09-11T12:00:00.000Z",
+      "interest_count": 11,
+      "is_bestseller": false
+    }
+  ],
+  "promos": [
+    {
+      "id": "promo-01",
+      "title": "Kredit DP 0%",
+      "description": "Dapatkan motor impian Anda dengan program DP 0% untuk tenor tertentu dan proses pengajuan cepat.",
+      "terms": "S&K Berlaku khusus unit terpilih",
+      "badge": "Hot Deal",
+      "discountValue": "DP 0%",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "promo-02",
+      "title": "Cashback 2 Juta",
+      "description": "Cashback langsung hingga Rp 2.000.000 untuk pembelian cash dan potongan angsuran sampai 3x.",
+      "terms": "Promo Terbatas Bulan Ini",
+      "badge": "Hemat",
+      "discountValue": "Rp 2.000.000",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "promo-03",
+      "title": "Cicilan Mulai 500rb",
+      "description": "Angsuran sangat ringan mulai dari Rp 500.000 per bulan dengan bunga kompetitif dan approval instan.",
+      "terms": "Bunga Kompetitif Leasing Resmi",
+      "badge": "Terlaris",
+      "discountValue": "500rb/bln",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "testi-01",
+      "name": "Rudi",
+      "motor": "Honda CRF150L",
+      "rating": 5,
+      "comment": "Pelayanan sangat memuaskan! Proses cepat dan staff ramah. Motor sudah sampai dengan kondisi sempurna dan surat-surat aman.",
+      "date": "2 hari lalu",
+      "created_at": "2026-09-08T09:35:36.000Z"
+    },
+    {
+      "id": "testi-02",
+      "name": "Budi Santoso",
+      "motor": "Honda Vario 160",
+      "rating": 5,
+      "comment": "Pelayanan sangat memuaskan! Proses kredit disetujui hanya 1 hari kerja, sales sangat ramah dan edukatif membantu berkas.",
+      "date": "2 minggu lalu",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "testi-03",
+      "name": "Siti Nurhaliza",
+      "motor": "Honda Beat Deluxe",
+      "rating": 5,
+      "comment": "Dealer resmi terpercaya! Harga bersaing, dapat bonus helm dan jaket eksklusif, admin WhatsApp super responsif.",
+      "date": "1 bulan lalu",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "testi-04",
+      "name": "Ahmad Wijaya",
+      "motor": "Honda PCX 160",
+      "rating": 5,
+      "comment": "Beli PCX di Honda Wijaya Abadi worth it banget! Dapat promo cashback dan service gratis pertama di AHASS. Rekomen!",
+      "date": "3 minggu lalu",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "testi-05",
+      "name": "Dewi Lestari",
+      "motor": "Honda ADV 160",
+      "rating": 5,
+      "comment": "Proses kredit mudah dan cepat. Sales profesional, tidak ada biaya tersembunyi. Pengiriman unit tepat waktu!",
+      "date": "1 minggu lalu",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    }
+  ],
+  "manifesto": [
+    {
+      "id": "mani-01",
+      "number": "01",
+      "title": "Kepercayaan",
+      "description": "Membangun kepercayaan melalui layanan terbaik dan transparansi penuh dalam setiap transaksi pembelian maupun kredit.",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "mani-02",
+      "number": "02",
+      "title": "Kualitas",
+      "description": "Hanya menyediakan produk Honda original AHM dengan garansi resmi pabrik, part asli, dan standar uji kelayakan terjamin.",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "mani-03",
+      "number": "03",
+      "title": "Inovasi",
+      "description": "Terus berinovasi dalam memberikan pengalaman pembelian digital yang mudah, simulasi kredit interaktif, dan respon kilat.",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    },
+    {
+      "id": "mani-04",
+      "number": "04",
+      "title": "Kepuasan",
+      "description": "Kepuasan pelanggan adalah prioritas utama kami dengan dukungan bengkel resmi AHASS dan teknisi tersertifikasi.",
+      "created_at": "2026-09-08T08:07:50.000Z"
+    }
+  ],
+  "interests": [
+    {
+      "id": "int-101",
+      "motor_id": "motor-beat-deluxe",
+      "motor_name": "New Beat Deluxe CBS ISS",
+      "customer_name": "Reza Pratama",
+      "phone": "081234567890",
+      "payment_method": "Kredit",
+      "dp_estimate": "Rp 3.500.000 (Tenor 35 bln)",
+      "note": "Mau tanya promo DP minim dan angsuran paling ringan.",
+      "status": "Baru",
+      "created_at": "2026-09-20T10:15:00.000Z"
+    },
+    {
+      "id": "int-102",
+      "motor_id": "motor-vario-160",
+      "motor_name": "Honda Vario 160 ABS",
+      "customer_name": "Farhan Alamsyah",
+      "phone": "081987654321",
+      "payment_method": "Cash",
+      "dp_estimate": "-",
+      "note": "Apakah warna Matte Black ready stock untuk pengiriman ke Pasteur?",
+      "status": "Dihubungi",
+      "created_at": "2026-09-19T14:30:00.000Z"
+    }
+  ],
+  "analytics": {
+    "totalViews": 4520,
+    "simulatorUsed": 842,
+    "compareUsed": 519
+  }
+}

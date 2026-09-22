@@ -1,0 +1,6 @@
+{
+  "name": "Honda Wijaya Abadi Motor",
+  "description": "Website resmi dealer Honda Wijaya Abadi Mulia Motor Bandung dengan katalog motor responsif, simulasi kredit, komparasi motor, dan CMS terintegrasi database.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

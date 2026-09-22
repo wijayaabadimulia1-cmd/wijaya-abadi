@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+:root {
+  --site-bg: #000000;
+  --site-panel: #111827;
+  --site-card: #18181b;
+  --site-text: #f4f4f5;
+  --site-muted: #a1a1aa;
+  --site-accent: #dc2626;
+  --site-accent-soft: rgba(220, 38, 38, 0.15);
+  --site-border: rgba(255, 255, 255, 0.1);
+}
+
+.website-template-classic {
+  --site-bg: #000000;
+  --site-panel: #111827;
+  --site-card: #18181b;
+  --site-text: #f4f4f5;
+  --site-muted: #a1a1aa;
+  --site-accent: #dc2626;
+  --site-accent-soft: rgba(220, 38, 38, 0.15);
+  --site-border: rgba(255, 255, 255, 0.1);
+}
+
+.website-template-premium {
+  --site-bg: #0b1020;
+  --site-panel: #111827;
+  --site-card: #172033;
+  --site-text: #e7e5e4;
+  --site-muted: #cbd5e1;
+  --site-accent: #f59e0b;
+  --site-accent-soft: rgba(245, 158, 11, 0.15);
+  --site-border: rgba(245, 158, 11, 0.2);
+}
+
+.website-template-minimal {
+  --site-bg: #f5f5f4;
+  --site-panel: #ffffff;
+  --site-card: #f2f2f0;
+  --site-text: #111827;
+  --site-muted: #4b5563;
+  --site-accent: #111827;
+  --site-accent-soft: rgba(17, 24, 39, 0.08);
+  --site-border: rgba(17, 24, 39, 0.12);
+}
+
+.website-template-luxury {
+  --site-bg: #17130f;
+  --site-panel: #201a17;
+  --site-card: #2a201d;
+  --site-text: #f5e7d3;
+  --site-muted: #d6c0a5;
+  --site-accent: #d4af69;
+  --site-accent-soft: rgba(212, 175, 105, 0.15);
+  --site-border: rgba(212, 175, 105, 0.25);
+}
+
+.website-template-sport {
+  --site-bg: #07161d;
+  --site-panel: #0d2430;
+  --site-card: #103244;
+  --site-text: #e0f2fe;
+  --site-muted: #bae6fd;
+  --site-accent: #38bdf8;
+  --site-accent-soft: rgba(56, 189, 248, 0.12);
+  --site-border: rgba(56, 189, 248, 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+  background-color: var(--site-bg);
+  color: var(--site-text);
+  overflow-x: hidden;
+}
+
+.website-shell {
+  background: var(--site-bg);
+  color: var(--site-text);
+}
+
+.website-template-premium .bg-black,
+.website-template-premium .bg-zinc-950,
+.website-template-minimal .bg-black,
+.website-template-minimal .bg-zinc-950,
+.website-template-luxury .bg-black,
+.website-template-luxury .bg-zinc-950,
+.website-template-sport .bg-black,
+.website-template-sport .bg-zinc-950 {
+  background-color: var(--site-bg) !important;
+}
+
+.website-template-premium .text-zinc-300,
+.website-template-premium .text-zinc-400,
+.website-template-minimal .text-zinc-300,
+.website-template-minimal .text-zinc-400,
+.website-template-luxury .text-zinc-300,
+.website-template-luxury .text-zinc-400,
+.website-template-sport .text-zinc-300,
+.website-template-sport .text-zinc-400 {
+  color: var(--site-muted) !important;
+}
+
+.website-template-premium .border-white\/10,
+.website-template-premium .border-white\/15,
+.website-template-minimal .border-white\/10,
+.website-template-minimal .border-white\/15,
+.website-template-luxury .border-white\/10,
+.website-template-luxury .border-white\/15,
+.website-template-sport .border-white\/10,
+.website-template-sport .border-white\/15 {
+  border-color: var(--site-border) !important;
+}
+
+.website-template-premium .bg-red-600,
+.website-template-premium .hover\:bg-red-500,
+.website-template-minimal .bg-red-600,
+.website-template-minimal .hover\:bg-red-500,
+.website-template-luxury .bg-red-600,
+.website-template-luxury .hover\:bg-red-500,
+.website-template-sport .bg-red-600,
+.website-template-sport .hover\:bg-red-500 {
+  background-color: var(--site-accent) !important;
+}
+
+.website-template-premium .text-red-400,
+.website-template-premium .text-red-500,
+.website-template-minimal .text-red-400,
+.website-template-minimal .text-red-500,
+.website-template-luxury .text-red-400,
+.website-template-luxury .text-red-500,
+.website-template-sport .text-red-400,
+.website-template-sport .text-red-500 {
+  color: var(--site-accent) !important;
+}
+
+.website-template-minimal .bg-zinc-900,
+.website-template-minimal .bg-zinc-800,
+.website-template-minimal .bg-zinc-100,
+.website-template-luxury .bg-zinc-900,
+.website-template-luxury .bg-zinc-800,
+.website-template-luxury .bg-zinc-100,
+.website-template-sport .bg-zinc-900,
+.website-template-sport .bg-zinc-800,
+.website-template-sport .bg-zinc-100 {
+  background-color: var(--site-panel) !important;
+}
+
+.website-template-minimal .text-white,
+.website-template-minimal .text-zinc-100,
+.website-template-luxury .text-white,
+.website-template-luxury .text-zinc-100,
+.website-template-sport .text-white,
+.website-template-sport .text-zinc-100 {
+  color: var(--site-text) !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--site-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--site-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--site-accent);
+}
