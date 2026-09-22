@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
+import * as XLSX from 'xlsx';
 
 const PORT = 3000;
 const DB_FILE = path.join(process.cwd(), 'data', 'db.json');
@@ -526,16 +527,46 @@ async function startServer() {
   app.get('/api/admin/report', requireAdmin, (req, res) => {
     const db = readDb();
     const dateStr = new Date().toISOString().split('T')[0];
-    const report = {
-      exported_at: new Date().toISOString(),
-      description: 'Laporan admin: rating pelanggan, minat calon konsumen, dan histori perubahan',
-      ratings: db.testimonials || [],
-      customer_interests: db.interests || [],
-      change_history: db.auditLogs || [],
-    };
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="laporan-admin-hwa-${dateStr}.json"`);
-    res.json(report);
+    const workbook = XLSX.utils.book_new();
+    const ratings = (db.testimonials || []).map((item: any) => ({
+      ID: item.id,
+      Nama: item.name,
+      Motor: item.motor,
+      Rating: item.rating,
+      Komentar: item.comment,
+      Status: item.approved === false ? 'Pending' : 'Approved',
+      Email: item.email || '',
+      Telepon: item.phone || '',
+      Tanggal: item.date || item.created_at || '',
+    }));
+    const interests = (db.interests || []).map((item: any) => ({
+      ID: item.id,
+      Tanggal: item.created_at || '',
+      Nama: item.customer_name,
+      WhatsApp: item.phone,
+      'Unit Diminati': item.motor_name,
+      Pembayaran: item.payment_method,
+      'Estimasi DP': item.dp_estimate || '',
+      Catatan: item.note || '',
+      Status: item.status,
+    }));
+    const history = (db.auditLogs || []).map((item: any) => ({
+      ID: item.id,
+      Waktu: item.created_at,
+      Aktor: item.actor,
+      Aksi: item.action,
+      Resource: item.resource,
+      Detail: item.details,
+    }));
+
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(ratings), 'Rating');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(interests), 'Minat Konsumen');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(history), 'Histori Perubahan');
+
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="laporan-admin-hwa-${dateStr}.xlsx"`);
+    res.send(buffer);
   });
 
   // Download / Export All Data (JSON)
