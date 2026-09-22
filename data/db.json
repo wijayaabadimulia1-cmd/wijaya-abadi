@@ -13,8 +13,8 @@
     "heroTitleHighlight": "Honda Wijaya Abadi",
     "heroSubtitle": "Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.",
     "footerText": "Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.",
-    "updated_at": "2026-09-22T03:54:42.097Z",
-    "websiteTemplate": "premium"
+    "updated_at": "2026-09-22T04:23:25.075Z",
+    "websiteTemplate": "classic"
   },
   "motors": [
     {
@@ -375,6 +375,22 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit-1790051005034-d43bf2",
+      "created_at": "2026-09-22T04:23:25.044Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1790050985356-27ed29",
+      "created_at": "2026-09-22T04:23:05.356Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
     {
       "id": "audit-1790049328898-9fd8d6",
       "created_at": "2026-09-22T03:55:28.898Z",

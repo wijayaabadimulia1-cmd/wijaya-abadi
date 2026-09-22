@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, MessageSquare, Scale, Menu, X, Bike, Sparkles } from 'lucide-react';
+import { Phone, MessageSquare, Scale, Menu, X, Bike, Sparkles, Sun, Moon } from 'lucide-react';
 import { DealerSettings, Motor } from '../types';
 
 interface NavbarProps {
@@ -7,6 +7,8 @@ interface NavbarProps {
   compareList: Motor[];
   onOpenCompare: () => void;
   onOpenInterest: (motor?: Motor) => void;
+  colorMode: 'light' | 'dark';
+  onToggleColorMode: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,6 +16,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   compareList,
   onOpenCompare,
   onOpenInterest,
+  colorMode,
+  onToggleColorMode,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -80,7 +84,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden sm:flex items-center space-x-3">
+          <div className="hidden sm:flex items-center gap-2 lg:gap-3 lg:ml-4 shrink-0">
+            <button
+              onClick={onToggleColorMode}
+              className="inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-zinc-900/80 px-2.5 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+              title={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+              aria-label={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+            >
+              {colorMode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span>{colorMode === 'dark' ? 'Mode Terang' : 'Mode Gelap'}</span>
+            </button>
             {/* Compare Drawer Trigger */}
             {compareList.length > 0 && (
               <button
@@ -110,7 +123,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Mobile menu trigger */}
-          <div className="flex items-center space-x-2 lg:hidden">
+          <div className="flex items-center gap-1.5 lg:hidden shrink-0">
+            <button
+              onClick={onToggleColorMode}
+              className="p-2 rounded-lg border border-white/10 bg-zinc-900 text-zinc-300 hover:text-white shrink-0"
+              title={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+              aria-label={colorMode === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+            >
+              {colorMode === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
             {compareList.length > 0 && (
               <button
                 onClick={onOpenCompare}
@@ -149,6 +170,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <div className="pt-3 border-t border-zinc-800 flex flex-col gap-2">
+              <button
+                onClick={onToggleColorMode}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 text-zinc-300 hover:text-white border border-white/10 rounded-xl text-sm font-semibold"
+              >
+                {colorMode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                <span>{colorMode === 'dark' ? 'Gunakan Mode Terang' : 'Gunakan Mode Gelap'}</span>
+              </button>
               <a
                 href={whatsappUrl}
                 target="_blank"

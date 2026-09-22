@@ -66,6 +66,9 @@ export default function App() {
 
   // Admin CMS toggle state
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(isAdminRoute);
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => {
+    return localStorage.getItem('hwa-color-mode') === 'light' ? 'light' : 'dark';
+  });
 
   // Fetch initial data from dynamic database
   const loadData = async () => {
@@ -103,6 +106,10 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('hwa-color-mode', colorMode);
+  }, [colorMode]);
 
   // Comparison toggle handler
   const handleToggleCompare = (motor: Motor) => {
@@ -159,7 +166,7 @@ export default function App() {
     '--custom-text': customization.textColor || undefined,
     '--custom-muted': customization.mutedColor || undefined,
   } as React.CSSProperties;
-  const customizationClass = `site-font-${customization.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'}`;
+  const customizationClass = `site-font-${customization.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
   const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
   )}`;
@@ -185,6 +192,8 @@ export default function App() {
         compareList={compareList}
         onOpenCompare={() => setIsCompareOpen(true)}
         onOpenInterest={handleOpenInterest}
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((current) => current === 'dark' ? 'light' : 'dark')}
       />
 
       {/* Main Content */}

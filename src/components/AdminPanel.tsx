@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
 import { api, formatRupiah } from '../services/api';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface AdminPanelProps {
   onBackToWebsite: () => void;
@@ -554,10 +555,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     ) : (
                       <div className="divide-y divide-white/5 space-y-3 pt-2">
                         {leads.slice(0, 4).map((lead) => {
-                          const cleanPhone = lead.phone.replace(/[^0-9]/g, '');
-                          const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                          const waUrl = createWhatsAppUrl(
+                            lead.phone,
                             `Halo Kak ${lead.customer_name}, terima kasih telah menghubungi Honda Wijaya Abadi mengenai unit ${lead.motor_name}. Apakah ada yang bisa kami bantu?`
-                          )}`;
+                          );
 
                           return (
                             <div key={lead.id} className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -587,7 +588,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                   className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                                 >
                                   <MessageSquare className="w-3.5 h-3.5" />
-                                  <span>Hubungi</span>
+                                  <span>Kirim WhatsApp</span>
                                 </a>
                               </div>
                             </div>
@@ -784,10 +785,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {leads.map((lead) => {
-                            const cleanPhone = lead.phone.replace(/[^0-9]/g, '');
-                            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                            const waUrl = createWhatsAppUrl(
+                              lead.phone,
                               `Halo Kak ${lead.customer_name}, kami dari dealer resmi Honda Wijaya Abadi. Terkait pemesanan motor ${lead.motor_name}, ada yang ingin ditanyakan mengenai promo dan simulasi kredit?`
-                            )}`;
+                            );
 
                             return (
                               <tr key={lead.id} className="hover:bg-white/[0.02]">
@@ -811,7 +812,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                     className="text-emerald-400 hover:underline font-medium flex items-center gap-1"
                                   >
                                     <MessageSquare className="w-3 h-3" />
-                                    <span>{lead.phone}</span>
+                                    <span>Kirim WhatsApp ({lead.phone})</span>
                                   </a>
                                 </td>
 
@@ -850,7 +851,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg transition-colors"
-                                      title="Kirim Pesan WhatsApp"
+                                      title={`Kirim WhatsApp ke ${lead.customer_name}`}
                                     >
                                       <MessageSquare className="w-4 h-4" />
                                     </a>
