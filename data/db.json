@@ -109,7 +109,7 @@
       "description": "Eksplorasi tanpa batas dengan skuter petualang berkarakter maskulin, suspensi tabung, dan windshield aerodinamis.",
       "created_at": "2026-09-08T08:07:50.000Z",
       "updated_at": "2026-09-08T08:07:50.000Z",
-      "interest_count": 15,
+      "interest_count": 16,
       "is_bestseller": false
     },
     {
@@ -287,6 +287,18 @@
     }
   ],
   "interests": [
+    {
+      "id": "lead-1790050117469",
+      "motor_id": "motor-adv-160",
+      "motor_name": "Honda ADV 160 ABS",
+      "customer_name": "tess",
+      "phone": "087",
+      "payment_method": "Kredit",
+      "dp_estimate": "Estimasi DP Standar 20%",
+      "note": "warna ungu",
+      "status": "Baru",
+      "created_at": "2026-09-22T04:08:37.469Z"
+    },
     {
       "id": "int-101",
       "motor_id": "motor-beat-deluxe",
