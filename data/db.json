@@ -33,7 +33,7 @@
       "description": "Tampil modis dan gesit dengan striping elegan serta fitur Idling Stop System yang super irit.",
       "created_at": "2026-09-08T09:43:59.000Z",
       "updated_at": "2026-09-08T09:43:59.000Z",
-      "interest_count": 14,
+      "interest_count": 15,
       "is_bestseller": true
     },
     {
@@ -90,7 +90,7 @@
       "description": "Skutik premium kemewahan tak tertandingi dengan kenyamanan posisi riding istimewa dan kontrol HSTC.",
       "created_at": "2026-09-08T08:07:50.000Z",
       "updated_at": "2026-09-08T08:07:50.000Z",
-      "interest_count": 18,
+      "interest_count": 19,
       "is_bestseller": true
     },
     {
@@ -166,7 +166,7 @@
       "description": "Ikon gaya retro modern unik dengan fitur smart key tanpa anak kunci dan aksen velg bernuansa premium.",
       "created_at": "2026-09-10T10:00:00.000Z",
       "updated_at": "2026-09-10T10:00:00.000Z",
-      "interest_count": 31,
+      "interest_count": 32,
       "is_bestseller": true
     },
     {
@@ -287,6 +287,42 @@
     }
   ],
   "interests": [
+    {
+      "id": "lead-1790050634126",
+      "motor_id": "motor-scoopy-prestige",
+      "motor_name": "Honda Scoopy Prestige",
+      "customer_name": "anda",
+      "phone": "08777777777",
+      "payment_method": "Kredit",
+      "dp_estimate": "Estimasi DP Standar 20%",
+      "note": "warna ungu",
+      "status": "Baru",
+      "created_at": "2026-09-22T04:17:14.126Z"
+    },
+    {
+      "id": "lead-1790050527098",
+      "motor_id": "motor-pcx-160",
+      "motor_name": "Honda PCX 160 ABS",
+      "customer_name": "tesss",
+      "phone": "08788833",
+      "payment_method": "Kredit",
+      "dp_estimate": "Estimasi DP Standar 20%",
+      "note": "saya ingin warna ungu",
+      "status": "Baru",
+      "created_at": "2026-09-22T04:15:27.098Z"
+    },
+    {
+      "id": "lead-1790050486234",
+      "motor_id": "motor-beat-deluxe",
+      "motor_name": "New Beat Deluxe CBS ISS",
+      "customer_name": "tess",
+      "phone": "087",
+      "payment_method": "Kredit",
+      "dp_estimate": "Estimasi DP Standar 20%",
+      "note": "warna ungu",
+      "status": "Baru",
+      "created_at": "2026-09-22T04:14:46.234Z"
+    },
     {
       "id": "lead-1790050117469",
       "motor_id": "motor-adv-160",

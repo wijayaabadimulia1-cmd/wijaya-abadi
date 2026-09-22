@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, MessageSquare, CheckCircle, Bike, ShieldCheck } from 'lucide-react';
 import { Motor, DealerSettings } from '../types';
 import { api, formatRupiah } from '../services/api';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface InterestModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const InterestModal: React.FC<InterestModalProps> = ({
     if (!customerName || !phone) return;
 
     setIsSubmitting(true);
+    const whatsappWindow = window.open('', '_blank');
     try {
       const dpDetail = initialDpSummary
         ? `${initialDpSummary} | ${initialInstallmentSummary || ''}`
@@ -68,7 +70,6 @@ export const InterestModal: React.FC<InterestModalProps> = ({
       setIsSuccess(true);
 
       // 2. Format WhatsApp link and redirect
-      const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
       const textMsg = `Halo Honda Wijaya Abadi,
 Saya tertarik untuk pemesanan/konsultasi unit motor Honda:
 • Nama: ${customerName}
@@ -80,16 +81,21 @@ ${note ? `• Catatan: ${note}` : ''}
 
 Mohon informasi ketersediaan unit dan proses pengajuannya. Terima kasih!`;
 
-      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(textMsg)}`;
-      
-      setTimeout(() => {
-        window.open(waUrl, '_blank');
-      }, 600);
+      const waUrl = createWhatsAppUrl(settings.phone, textMsg);
+      if (whatsappWindow) {
+        whatsappWindow.location.href = waUrl;
+      } else {
+        window.location.href = waUrl;
+      }
     } catch (err) {
       console.error('Error submitting interest:', err);
       alert('Terjadi kesalahan saat menyimpan data. Anda akan langsung dialihkan ke WhatsApp.');
-      const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
-      window.open(`https://wa.me/${cleanPhone}`, '_blank');
+      const waUrl = createWhatsAppUrl(settings.phone);
+      if (whatsappWindow) {
+        whatsappWindow.location.href = waUrl;
+      } else {
+        window.location.href = waUrl;
+      }
     } finally {
       setIsSubmitting(false);
     }
