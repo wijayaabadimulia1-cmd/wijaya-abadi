@@ -82,6 +82,99 @@ body {
   color: var(--site-text);
 }
 
+.website-shell {
+  --site-bg-effective: var(--custom-bg, #000000);
+  --site-panel-effective: var(--custom-panel, #111827);
+  --site-text-effective: var(--custom-text, #f4f4f5);
+  --site-muted-effective: var(--custom-muted, #a1a1aa);
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.website-shell .bg-black,
+.website-shell .bg-zinc-950 {
+  background-color: var(--site-bg-effective) !important;
+}
+
+.website-shell .bg-zinc-900,
+.website-shell .bg-zinc-800 {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell .text-white,
+.website-shell .text-zinc-100 {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell .text-zinc-300,
+.website-shell .text-zinc-400 {
+  color: var(--site-muted-effective) !important;
+}
+
+.website-shell .bg-red-600 {
+  background-color: var(--custom-primary, var(--site-accent)) !important;
+}
+
+.website-shell .text-red-400,
+.website-shell .text-red-500 {
+  color: var(--custom-primary, var(--site-accent)) !important;
+}
+
+.website-shell.site-font-serif {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.website-shell.site-font-mono {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.website-shell.site-font-system {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.website-shell .bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--custom-primary, var(--site-accent)), var(--custom-accent, var(--site-accent)));
+}
+
+.website-shell.card-radius-sharp * {
+  border-radius: 0.35rem !important;
+}
+
+.website-shell.card-radius-soft * {
+  border-radius: 0.75rem !important;
+}
+
+.website-shell.card-radius-round * {
+  border-radius: 1.5rem;
+}
+
+.website-shell.hero-align-left #home .lg\:text-left {
+  text-align: left;
+}
+
+.website-shell.hero-align-center #home .lg\:text-left {
+  text-align: center;
+}
+
+.website-shell.hero-align-right #home .lg\:text-left {
+  text-align: right;
+}
+
+.website-shell.hero-align-center #home .lg\:justify-start,
+.website-shell.hero-align-right #home .lg\:justify-start {
+  justify-content: center;
+}
+
+.website-shell.hero-align-right #home .lg\:col-span-7 {
+  order: 2;
+}
+
+.website-shell.hero-align-right #home .lg\:col-span-5 {
+  order: 1;
+}
+
 .website-template-premium .bg-black,
 .website-template-premium .bg-zinc-950,
 .website-template-minimal .bg-black,

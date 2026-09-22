@@ -15,6 +15,7 @@ import { InterestModal } from './components/InterestModal';
 import { AdminPanel } from './components/AdminPanel';
 
 export default function App() {
+  const isAdminRoute = window.location.pathname === '/admin';
   const [settings, setSettings] = useState<DealerSettings>({
     id: 'hwa-settings-01',
     name: 'Honda Wijaya Abadi Mulia Motor',
@@ -31,6 +32,17 @@ export default function App() {
     footerText:
       'Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.',
     websiteTemplate: 'classic',
+    customization: {
+      primaryColor: '#dc2626',
+      accentColor: '#f97316',
+      backgroundColor: '#000000',
+      panelColor: '#111827',
+      textColor: '#f4f4f5',
+      mutedColor: '#a1a1aa',
+      font: 'jakarta',
+      heroAlignment: 'left',
+      cardRadius: 'round',
+    },
   });
 
   const [motors, setMotors] = useState<Motor[]>([]);
@@ -53,7 +65,7 @@ export default function App() {
   const [simulatorMotor, setSimulatorMotor] = useState<Motor | null>(null);
 
   // Admin CMS toggle state
-  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(isAdminRoute);
 
   // Fetch initial data from dynamic database
   const loadData = async () => {
@@ -138,6 +150,16 @@ export default function App() {
 
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
+  const customization = settings.customization || {};
+  const customizationStyle = {
+    '--custom-primary': customization.primaryColor || undefined,
+    '--custom-accent': customization.accentColor || undefined,
+    '--custom-bg': customization.backgroundColor || undefined,
+    '--custom-panel': customization.panelColor || undefined,
+    '--custom-text': customization.textColor || undefined,
+    '--custom-muted': customization.mutedColor || undefined,
+  } as React.CSSProperties;
+  const customizationClass = `site-font-${customization.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'}`;
   const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
   )}`;
@@ -146,21 +168,22 @@ export default function App() {
   if (isAdminOpen) {
     return (
       <AdminPanel
-        onBackToWebsite={() => setIsAdminOpen(false)}
+        onBackToWebsite={() => {
+          window.history.pushState({}, '', '/');
+          setIsAdminOpen(false);
+        }}
         onRefreshData={loadData}
       />
     );
   }
 
   return (
-    <div className={`website-shell ${templateClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+    <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
       {/* Navbar */}
       <Navbar
         settings={settings}
         compareList={compareList}
         onOpenCompare={() => setIsCompareOpen(true)}
-        isAdmin={isAdminOpen}
-        onToggleAdmin={() => setIsAdminOpen(!isAdminOpen)}
         onOpenInterest={handleOpenInterest}
       />
 
@@ -207,7 +230,7 @@ export default function App() {
       </main>
 
       {/* Footer & Contact */}
-      <FooterSection settings={settings} onOpenAdmin={() => setIsAdminOpen(true)} />
+      <FooterSection settings={settings} />
 
       {/* Comparison Modal */}
       <CompareModal

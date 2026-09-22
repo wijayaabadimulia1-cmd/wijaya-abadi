@@ -13,7 +13,7 @@
     "heroTitleHighlight": "Honda Wijaya Abadi",
     "heroSubtitle": "Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.",
     "footerText": "Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.",
-    "updated_at": "2026-09-22T03:07:02.313Z",
+    "updated_at": "2026-09-22T03:54:42.097Z",
     "websiteTemplate": "premium"
   },
   "motors": [
@@ -254,15 +254,6 @@
       "comment": "Beli PCX di Honda Wijaya Abadi worth it banget! Dapat promo cashback dan service gratis pertama di AHASS. Rekomen!",
       "date": "3 minggu lalu",
       "created_at": "2026-09-08T08:07:50.000Z"
-    },
-    {
-      "id": "testi-05",
-      "name": "Dewi Lestari",
-      "motor": "Honda ADV 160",
-      "rating": 5,
-      "comment": "Proses kredit mudah dan cepat. Sales profesional, tidak ada biaya tersembunyi. Pengiriman unit tepat waktu!",
-      "date": "1 minggu lalu",
-      "created_at": "2026-09-08T08:07:50.000Z"
     }
   ],
   "manifesto": [
@@ -325,5 +316,72 @@
     "totalViews": 4520,
     "simulatorUsed": 842,
     "compareUsed": 519
-  }
+  },
+  "adminUsers": [
+    {
+      "id": "admin-abadi",
+      "username": "@Abadi",
+      "passwordHash": "502695712effc0b46dd53e146d87ba08:35f962248364918eb7f5f1ab8f43bebdf1a8006dedbae3be5c39c295359b8bd851f0ab152aa6c7aaee3ae6695d89efbba6f1a07ec1bbd6fd9a44f39fdb8a8145",
+      "role": "Super Admin",
+      "created_at": "2026-09-22T03:41:18.655Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "audit-1790049328898-9fd8d6",
+      "created_at": "2026-09-22T03:55:28.898Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
+      "id": "audit-1790049282083-7c08e7",
+      "created_at": "2026-09-22T03:54:42.083Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1790049277572-22887b",
+      "created_at": "2026-09-22T03:54:37.573Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1790049051079-20e305",
+      "created_at": "2026-09-22T03:50:51.079Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1790048650152-23fd93",
+      "created_at": "2026-09-22T03:44:10.153Z",
+      "actor": "@Abadi",
+      "action": "DELETE /testimonials/testi-05",
+      "resource": "/testimonials/testi-05",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1790048516139-54b348",
+      "created_at": "2026-09-22T03:41:56.139Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
+      "id": "audit-1790048478766-b2f465",
+      "created_at": "2026-09-22T03:41:18.766Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    }
+  ]
 }

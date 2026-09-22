@@ -1,6 +1,74 @@
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog } from '../types';
+
+const ADMIN_TOKEN_KEY = 'hwa-admin-token';
+
+function adminHeaders() {
+  const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+  return { 'Content-Type': 'application/json', ...(token ? { 'x-admin-token': token } : {}) };
+}
 
 export const api = {
+  // Admin authentication
+  async loginAdmin(username: string, password: string): Promise<{ token: string; user: AdminSession }> {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login admin gagal');
+    localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+    return data;
+  },
+
+  async getAdminMe(): Promise<AdminSession> {
+    const res = await fetch('/api/admin/me', { headers: adminHeaders() });
+    if (!res.ok) throw new Error('Sesi admin tidak valid');
+    return res.json();
+  },
+
+  async logoutAdmin(): Promise<void> {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST', headers: adminHeaders() });
+    } finally {
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+  },
+
+  async getAdminUsers(): Promise<AdminUser[]> {
+    const res = await fetch('/api/admin/users', { headers: adminHeaders() });
+    if (!res.ok) throw new Error('Gagal mengambil daftar admin');
+    return res.json();
+  },
+
+  async createAdminUser(data: { username: string; password: string; role?: string }): Promise<AdminUser> {
+    const res = await fetch('/api/admin/users', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(data) });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Gagal membuat admin');
+    return result;
+  },
+
+  async updateAdminUser(id: string, data: { username?: string; password?: string; role?: string }): Promise<AdminUser> {
+    const res = await fetch(`/api/admin/users/${id}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify(data) });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Gagal mengubah admin');
+    return result;
+  },
+
+  async deleteAdminUser(id: string): Promise<void> {
+    const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: adminHeaders() });
+    if (!res.ok) {
+      const result = await res.json();
+      throw new Error(result.error || 'Gagal menghapus admin');
+    }
+  },
+
+  async getAuditLogs(): Promise<AuditLog[]> {
+    const res = await fetch('/api/admin/audit', { headers: adminHeaders() });
+    if (!res.ok) throw new Error('Gagal mengambil histori perubahan');
+    return res.json();
+  },
+
   // Settings
   async getSettings(): Promise<DealerSettings> {
     const res = await fetch('/api/settings');
@@ -11,7 +79,7 @@ export const api = {
   async updateSettings(data: Partial<DealerSettings>): Promise<DealerSettings> {
     const res = await fetch('/api/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Gagal memperbarui pengaturan dealer');
@@ -28,7 +96,7 @@ export const api = {
   async createMotor(data: Partial<Motor>): Promise<Motor> {
     const res = await fetch('/api/motors', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Gagal menambah motor');
@@ -38,7 +106,7 @@ export const api = {
   async updateMotor(id: string, data: Partial<Motor>): Promise<Motor> {
     const res = await fetch(`/api/motors/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Gagal mengubah data motor');
@@ -48,6 +116,7 @@ export const api = {
   async deleteMotor(id: string): Promise<boolean> {
     const res = await fetch(`/api/motors/${id}`, {
       method: 'DELETE',
+      headers: adminHeaders(),
     });
     if (!res.ok) throw new Error('Gagal menghapus motor');
     return true;
@@ -63,7 +132,7 @@ export const api = {
   async createPromo(data: Partial<Promo>): Promise<Promo> {
     const res = await fetch('/api/promos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Gagal menambah promo');
@@ -73,7 +142,7 @@ export const api = {
   async updatePromo(id: string, data: Partial<Promo>): Promise<Promo> {
     const res = await fetch(`/api/promos/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Gagal memperbarui promo');
@@ -83,6 +152,7 @@ export const api = {
   async deletePromo(id: string): Promise<boolean> {
     const res = await fetch(`/api/promos/${id}`, {
       method: 'DELETE',
+      headers: adminHeaders(),
     });
     return res.ok;
   },
@@ -107,7 +177,7 @@ export const api = {
   async updateTestimonial(id: string, data: Partial<Testimonial>): Promise<Testimonial> {
     const res = await fetch(`/api/testimonials/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     return res.json();
@@ -116,6 +186,7 @@ export const api = {
   async deleteTestimonial(id: string): Promise<boolean> {
     const res = await fetch(`/api/testimonials/${id}`, {
       method: 'DELETE',
+      headers: adminHeaders(),
     });
     return res.ok;
   },
@@ -130,7 +201,7 @@ export const api = {
   async updateManifesto(id: string, data: Partial<ManifestoItem>): Promise<ManifestoItem> {
     const res = await fetch(`/api/manifesto/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(data),
     });
     return res.json();
@@ -156,7 +227,7 @@ export const api = {
   async updateInterestStatus(id: string, status: LeadInterest['status']): Promise<LeadInterest> {
     const res = await fetch(`/api/interests/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify({ status }),
     });
     return res.json();
@@ -165,6 +236,7 @@ export const api = {
   async deleteInterest(id: string): Promise<boolean> {
     const res = await fetch(`/api/interests/${id}`, {
       method: 'DELETE',
+      headers: adminHeaders(),
     });
     return res.ok;
   },
@@ -185,7 +257,7 @@ export const api = {
           const base64Data = reader.result as string;
           const res = await fetch('/api/upload', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               filename: file.name,
               base64Data,
@@ -226,7 +298,7 @@ export const api = {
   async importDatabase(jsonData: any): Promise<any> {
     const res = await fetch('/api/import/all', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminHeaders(),
       body: JSON.stringify(jsonData),
     });
     if (!res.ok) {

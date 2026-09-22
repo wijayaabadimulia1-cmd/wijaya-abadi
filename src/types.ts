@@ -50,6 +50,21 @@ export interface ManifestoItem {
 }
 
 export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport';
+export type HeroAlignment = 'left' | 'center' | 'right';
+export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system';
+export type CardRadius = 'sharp' | 'soft' | 'round';
+
+export interface WebsiteCustomization {
+  primaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  panelColor?: string;
+  textColor?: string;
+  mutedColor?: string;
+  font?: SiteFont;
+  heroAlignment?: HeroAlignment;
+  cardRadius?: CardRadius;
+}
 
 export interface DealerSettings {
   id: string;
@@ -66,7 +81,32 @@ export interface DealerSettings {
   heroSubtitle: string;
   footerText: string;
   websiteTemplate?: WebsiteTemplate;
+  customization?: WebsiteCustomization;
   updated_at?: string;
+}
+
+export interface AdminSession {
+  id: string;
+  username: string;
+  role: string;
+  createdAt?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  role: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actor: string;
+  action: string;
+  resource: string;
+  details: string;
+  created_at: string;
 }
 
 export interface LeadInterest {

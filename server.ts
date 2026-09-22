@@ -1,11 +1,13 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 
 const PORT = 3000;
 const DB_FILE = path.join(process.cwd(), 'data', 'db.json');
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
+const sessions = new Map<string, { id: string; username: string; role: string; createdAt: string }>();
 
 // Ensure directories exist
 if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
@@ -45,10 +47,85 @@ function writeDb(data: any) {
   }
 }
 
+function hashPassword(password: string, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, storedHash: string) {
+  const [salt, expectedHash] = String(storedHash || '').split(':');
+  if (!salt || !expectedHash) return false;
+  const actualHash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(actualHash, 'hex'), Buffer.from(expectedHash, 'hex'));
+}
+
+function ensureAdminUsers(db: any) {
+  if (!Array.isArray(db.adminUsers) || db.adminUsers.length === 0) {
+    db.adminUsers = [{
+      id: 'admin-abadi',
+      username: '@Abadi',
+      passwordHash: hashPassword('@MuliaB2026'),
+      role: 'Super Admin',
+      created_at: new Date().toISOString(),
+    }];
+    writeDb(db);
+  }
+  return db.adminUsers;
+}
+
+function publicAdminUser(user: any) {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
+}
+
+function getSession(req: express.Request) {
+  const token = req.header('x-admin-token');
+  return token ? sessions.get(token) : undefined;
+}
+
+function appendAudit(db: any, entry: Record<string, unknown>) {
+  db.auditLogs = [
+    { id: `audit-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`, created_at: new Date().toISOString(), ...entry },
+    ...(db.auditLogs || []),
+  ].slice(0, 500);
+}
+
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+  (req as any).adminSession = session;
+  next();
+}
+
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
+  // Public reads remain available; all writes require an authenticated admin.
+  app.use('/api', (req, res, next) => {
+    const isPublicWrite =
+      req.method === 'POST' &&
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests');
+    if (req.method === 'GET' || isPublicWrite) return next();
+    return requireAdmin(req, res, () => {
+      const session = (req as any).adminSession;
+      const db = readDb();
+      appendAudit(db, {
+        actor: session.username,
+        action: `${req.method} ${req.path}`,
+        resource: req.path,
+        details: 'Perubahan data melalui admin panel',
+      });
+      writeDb(db);
+      next();
+    });
+  });
 
   // Serve uploaded files
   app.use('/uploads', express.static(UPLOADS_DIR));
@@ -344,18 +421,91 @@ async function startServer() {
     }
   });
 
-  // Admin login check
+  // Admin authentication and management
   app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
-    // Simple secure auth for showroom management
-    if ((username === 'admin' && password === 'admin123') || (username === 'admin' && !password)) {
-      return res.json({ success: true, token: 'hwa-session-token-valid', user: { name: 'Admin Honda Wijaya Abadi', role: 'Super Admin' } });
+    const { username, password } = req.body || {};
+    const db = readDb();
+    const users = ensureAdminUsers(db);
+    const user = users.find((item: any) => item.username === String(username || '').trim());
+    if (!user || !verifyPassword(String(password || ''), user.passwordHash)) {
+      return res.status(401).json({ error: 'Username atau password tidak valid' });
     }
-    // Also allow any login in preview demo if username is provided
-    if (username) {
-      return res.json({ success: true, token: 'hwa-session-token-valid', user: { name: username, role: 'Staff Dealer' } });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const session = { id: user.id, username: user.username, role: user.role, createdAt: new Date().toISOString() };
+    sessions.set(token, session);
+    appendAudit(db, { actor: user.username, action: 'LOGIN', resource: 'admin-session', details: 'Login admin berhasil' });
+    writeDb(db);
+    return res.json({ success: true, token, user: { name: user.username, role: user.role, id: user.id } });
+  });
+
+  app.post('/api/admin/logout', requireAdmin, (req, res) => {
+    const token = req.header('x-admin-token');
+    if (token) sessions.delete(token);
+    res.json({ success: true });
+  });
+
+  app.get('/api/admin/me', requireAdmin, (req, res) => {
+    res.json((req as any).adminSession);
+  });
+
+  app.get('/api/admin/users', requireAdmin, (req, res) => {
+    const db = readDb();
+    res.json(ensureAdminUsers(db).map(publicAdminUser));
+  });
+
+  app.post('/api/admin/users', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (session.role !== 'Super Admin') return res.status(403).json({ error: 'Hanya Super Admin yang dapat membuat admin' });
+    const db = readDb();
+    const users = ensureAdminUsers(db);
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    if (!username || password.length < 8) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
+    if (users.some((item: any) => item.username.toLowerCase() === username.toLowerCase())) {
+      return res.status(409).json({ error: 'Username sudah digunakan' });
     }
-    return res.status(401).json({ error: 'Kredensial tidak valid' });
+    const newUser = { id: `admin-${Date.now()}`, username, passwordHash: hashPassword(password), role: req.body?.role === 'Super Admin' ? 'Super Admin' : 'Staff Admin', created_at: new Date().toISOString() };
+    db.adminUsers.push(newUser);
+    appendAudit(db, { actor: session.username, action: 'CREATE_ADMIN', resource: newUser.id, details: `Membuat admin ${username}` });
+    writeDb(db);
+    res.status(201).json(publicAdminUser(newUser));
+  });
+
+  app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    const users = ensureAdminUsers(db);
+    const index = users.findIndex((item: any) => item.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Admin tidak ditemukan' });
+    if (session.role !== 'Super Admin' && session.id !== req.params.id) return res.status(403).json({ error: 'Tidak memiliki izin mengubah admin lain' });
+    const current = users[index];
+    const username = String(req.body?.username ?? current.username).trim();
+    const password = req.body?.password ? String(req.body.password) : '';
+    if (!username || (password && password.length < 8)) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
+    users[index] = { ...current, username, ...(password ? { passwordHash: hashPassword(password) } : {}), ...(session.role === 'Super Admin' && req.body?.role ? { role: req.body.role } : {}), updated_at: new Date().toISOString() };
+    appendAudit(db, { actor: session.username, action: 'UPDATE_ADMIN', resource: current.id, details: `Mengubah akun ${current.username}` });
+    writeDb(db);
+    res.json(publicAdminUser(users[index]));
+  });
+
+  app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (session.role !== 'Super Admin') return res.status(403).json({ error: 'Hanya Super Admin yang dapat menghapus admin' });
+    const db = readDb();
+    const users = ensureAdminUsers(db);
+    if (users.length <= 1) return res.status(400).json({ error: 'Minimal harus ada satu admin' });
+    const deleted = users.find((item: any) => item.id === req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Admin tidak ditemukan' });
+    db.adminUsers = users.filter((item: any) => item.id !== req.params.id);
+    appendAudit(db, { actor: session.username, action: 'DELETE_ADMIN', resource: deleted.id, details: `Menghapus akun ${deleted.username}` });
+    writeDb(db);
+    res.json({ success: true });
+  });
+
+  app.get('/api/admin/audit', requireAdmin, (req, res) => {
+    const db = readDb();
+    res.json(db.auditLogs || []);
   });
 
   // Download / Export All Data (JSON)

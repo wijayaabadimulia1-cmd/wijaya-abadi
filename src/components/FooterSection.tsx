@@ -1,13 +1,12 @@
 import React from 'react';
-import { MapPin, Phone, Mail, Clock, MessageSquare, Shield, Bike, ArrowUp } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageSquare, Bike, ArrowUp } from 'lucide-react';
 import { DealerSettings } from '../types';
 
 interface FooterSectionProps {
   settings: DealerSettings;
-  onOpenAdmin: () => void;
 }
 
-export const FooterSection: React.FC<FooterSectionProps> = ({ settings, onOpenAdmin }) => {
+export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.'
@@ -131,15 +130,6 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings, onOpenAd
           <div>
             <h4 className="text-white font-bold uppercase tracking-wider mb-3">Administrasi</h4>
             <ul className="space-y-2">
-              <li>
-                <button
-                  onClick={onOpenAdmin}
-                  className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1.5"
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Admin CMS Panel</span>
-                </button>
-              </li>
               <li><span className="text-zinc-500">Authorized Honda Dealer #HWA-BDO</span></li>
               <li><span className="text-zinc-500">PT Astra Honda Motor Partner</span></li>
             </ul>

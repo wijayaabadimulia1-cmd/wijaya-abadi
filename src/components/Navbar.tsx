@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Phone, MessageSquare, Scale, Menu, X, Shield, Lock, Bike, Sparkles } from 'lucide-react';
+import { Phone, MessageSquare, Scale, Menu, X, Bike, Sparkles } from 'lucide-react';
 import { DealerSettings, Motor } from '../types';
 
 interface NavbarProps {
   settings: DealerSettings;
   compareList: Motor[];
   onOpenCompare: () => void;
-  isAdmin: boolean;
-  onToggleAdmin: () => void;
   onOpenInterest: (motor?: Motor) => void;
 }
 
@@ -15,8 +13,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   settings,
   compareList,
   onOpenCompare,
-  isAdmin,
-  onToggleAdmin,
   onOpenInterest,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -111,18 +107,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>WhatsApp Sales</span>
             </a>
 
-            {/* Admin CMS Toggle */}
-            <button
-              onClick={onToggleAdmin}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
-                isAdmin
-                  ? 'bg-red-600 text-white border-red-500 shadow-lg shadow-red-900/30'
-                  : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-white/10 hover:border-red-500/30'
-              }`}
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>{isAdmin ? 'Tutup CMS' : 'Admin CMS'}</span>
-            </button>
           </div>
 
           {/* Mobile menu trigger */}
@@ -175,16 +159,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Hubungi Sales via WhatsApp</span>
               </a>
 
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onToggleAdmin();
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 text-zinc-300 hover:text-white border border-white/10 rounded-xl text-sm font-semibold"
-              >
-                <Lock className="w-4 h-4" />
-                <span>{isAdmin ? 'Tutup Panel CMS' : 'Buka Admin CMS'}</span>
-              </button>
             </div>
           </div>
         )}
