@@ -160,13 +160,18 @@ async function startServer() {
     if ((db.motors || []).length >= 10) {
       return res.status(400).json({ error: 'Maksimal 10 motor dapat ditampilkan di katalog' });
     }
+    const images = (Array.isArray(req.body.images) ? req.body.images : [req.body.image])
+      .map((image: unknown) => String(image || '').trim())
+      .filter(Boolean)
+      .slice(0, 10);
     const newMotor = {
       id: req.body.id || `motor-${Date.now()}`,
       name: req.body.name || 'New Honda Motor',
       category: req.body.category || 'Matic',
       price: req.body.price || 'Rp 20.000.000',
       numericPrice: req.body.numericPrice || Number(String(req.body.price).replace(/[^0-9]/g, '')) || 20000000,
-      image: String(req.body.image || '').trim(),
+      image: images[0] || '',
+      images,
       specs: Array.isArray(req.body.specs) ? req.body.specs : (typeof req.body.specs === 'string' ? req.body.specs.split(',').map((s: string) => s.trim()) : ['110cc']),
       description: req.body.description || '',
       is_bestseller: Boolean(req.body.is_bestseller),
@@ -185,9 +190,16 @@ async function startServer() {
     if (index === -1) {
       return res.status(404).json({ error: 'Motor not found' });
     }
+    const existingImages = Array.isArray(db.motors[index].images) ? db.motors[index].images : [db.motors[index].image];
+    const images = (Array.isArray(req.body.images) ? req.body.images : existingImages)
+      .map((image: unknown) => String(image || '').trim())
+      .filter(Boolean)
+      .slice(0, 10);
     const updated = {
       ...db.motors[index],
       ...req.body,
+      image: images[0] || '',
+      images,
       numericPrice: req.body.numericPrice || (req.body.price ? Number(String(req.body.price).replace(/[^0-9]/g, '')) : db.motors[index].numericPrice),
       specs: Array.isArray(req.body.specs) ? req.body.specs : (typeof req.body.specs === 'string' ? req.body.specs.split(',').map((s: string) => s.trim()) : db.motors[index].specs),
       updated_at: new Date().toISOString()

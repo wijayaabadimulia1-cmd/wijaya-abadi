@@ -21,7 +21,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   const [activeCategory, setActiveCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('default');
-  const [selectedImage, setSelectedImage] = useState<{ src: string; alt: string } | null>(null);
+  const [selectedGallery, setSelectedGallery] = useState<{ images: string[]; index: number; alt: string } | null>(null);
 
   // Extract unique categories from actual motors data
   const categories = useMemo(() => {
@@ -37,7 +37,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   // Filter & sort
   const filteredMotors = useMemo(() => {
     return motors
-      .filter((m) => Boolean(m.image && m.image.trim()))
+      .filter((m) => Boolean((m.images?.filter(Boolean)[0] || m.image || '').trim()))
       .filter((m) => {
         const matchesCategory =
           activeCategory === 'Semua' || m.category.toLowerCase().includes(activeCategory.toLowerCase());
@@ -177,7 +177,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                   <div>
                     <button
                       type="button"
-                      onClick={() => setSelectedImage({ src: motor.image, alt: motor.name })}
+                      onClick={() => setSelectedGallery({ images: (motor.images?.filter(Boolean).length ? motor.images.filter(Boolean) : [motor.image]), index: 0, alt: motor.name })}
                       className="relative h-64 w-full overflow-hidden bg-zinc-950 flex items-center justify-center p-6 cursor-zoom-in"
                       aria-label={`Lihat foto ${motor.name} ukuran penuh`}
                     >
@@ -290,29 +290,49 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         )}
       </div>
 
-      {selectedImage && (
+      {selectedGallery && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-          onClick={() => setSelectedImage(null)}
+          onClick={() => setSelectedGallery(null)}
           role="dialog"
           aria-modal="true"
-          aria-label={`Foto ${selectedImage.alt}`}
+          aria-label={`Galeri foto ${selectedGallery.alt}`}
         >
-          <div className="relative max-h-[92vh] max-w-5xl" onClick={(event) => event.stopPropagation()}>
+          <div className="relative flex max-h-[92vh] max-w-5xl items-center gap-3" onClick={(event) => event.stopPropagation()}>
+            {selectedGallery.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index - 1 + selectedGallery.images.length) % selectedGallery.images.length })}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-2xl text-zinc-900 shadow-xl hover:bg-red-50"
+                aria-label="Foto sebelumnya"
+              >
+                ‹
+              </button>
+            )}
             <img
-              src={selectedImage.src}
-              alt={selectedImage.alt}
+              src={selectedGallery.images[selectedGallery.index]}
+              alt={`${selectedGallery.alt} foto ${selectedGallery.index + 1}`}
               className="max-h-[88vh] max-w-full rounded-2xl object-contain shadow-2xl"
             />
             <button
               type="button"
-              onClick={() => setSelectedImage(null)}
+              onClick={() => setSelectedGallery(null)}
               className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-zinc-900 shadow-xl hover:bg-red-50"
               aria-label="Tutup foto"
             >
               <X className="h-5 w-5" />
             </button>
-            <p className="mt-3 text-center text-sm font-semibold text-white">{selectedImage.alt}</p>
+            {selectedGallery.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index + 1) % selectedGallery.images.length })}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-2xl text-zinc-900 shadow-xl hover:bg-red-50"
+                aria-label="Foto berikutnya"
+              >
+                ›
+              </button>
+            )}
+            <p className="absolute -bottom-8 left-0 right-0 text-center text-sm font-semibold text-white">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</p>
           </div>
         </div>
       )}

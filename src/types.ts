@@ -10,6 +10,7 @@ export interface Motor {
   price: string;
   numericPrice?: number;
   image: string;
+  images?: string[];
   specs: string[];
   description: string;
   created_at?: string;

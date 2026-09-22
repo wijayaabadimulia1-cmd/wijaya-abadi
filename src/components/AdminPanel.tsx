@@ -180,13 +180,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       specs: ['110cc', 'eSP'],
       description: '',
       image: '',
+      images: Array(10).fill(''),
       is_bestseller: false,
     });
     setIsMotorModalOpen(true);
   };
 
   const handleOpenEditMotor = (motor: Motor) => {
-    setEditingMotor({ ...motor });
+    setEditingMotor({ ...motor, images: [...(motor.images || [motor.image]), ...Array(10).fill('')].slice(0, 10) });
     setIsMotorModalOpen(true);
   };
 
@@ -227,13 +228,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
-  const handleFileUploadMotor = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUploadMotor = async (e: React.ChangeEvent<HTMLInputElement>, imageIndex: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       showToast('Mengunggah gambar...');
       const url = await api.uploadImage(file);
-      setEditingMotor((prev) => (prev ? { ...prev, image: url } : null));
+      setEditingMotor((prev) => {
+        if (!prev) return null;
+        const images = [...(prev.images || Array(10).fill(''))];
+        images[imageIndex] = url;
+        return { ...prev, image: images[0] || '', images };
+      });
       showToast('Gambar berhasil diunggah!');
     } catch (err: any) {
       alert('Gagal upload gambar: ' + err.message);
@@ -1424,36 +1430,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
               </div>
 
-              {/* Image Input & Upload */}
+              {/* Image Gallery Inputs & Upload */}
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">
-                  Gambar Motor (URL atau Upload File)
+                  Gambar Motor (maksimal 10 foto, URL atau Upload File)
                 </label>
+                <p className="mb-2 text-[11px] text-zinc-500">Foto pertama menjadi cover kartu katalog. Foto kosong tidak ditampilkan di website.</p>
                 <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={editingMotor.image || ''}
-                    onChange={(e) => setEditingMotor({ ...editingMotor, image: e.target.value })}
-                    placeholder="https://... atau /uploads/..."
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500 focus:outline-none"
-                  />
-                  <div className="flex items-center gap-3">
-                    <label className="cursor-pointer px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs flex items-center gap-1.5 border border-white/10">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Foto dari Perangkat</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUploadMotor}
-                        className="hidden"
-                      />
-                    </label>
-                    {editingMotor.image && (
-                      <span className="text-zinc-500 text-[11px] truncate max-w-xs">
-                        {editingMotor.image}
-                      </span>
-                    )}
-                  </div>
+                  {Array.from({ length: 10 }, (_, imageIndex) => {
+                    const images = editingMotor.images || [editingMotor.image || ''];
+                    const imageValue = images[imageIndex] || '';
+                    return (
+                      <div key={imageIndex} className="flex items-center gap-2">
+                        <span className="w-5 text-[10px] font-bold text-zinc-500">{imageIndex + 1}</span>
+                        <input
+                          type="text"
+                          value={imageValue}
+                          onChange={(e) => {
+                            const nextImages = [...(editingMotor.images || Array(10).fill(''))];
+                            nextImages[imageIndex] = e.target.value;
+                            setEditingMotor({ ...editingMotor, image: nextImages[0] || '', images: nextImages });
+                          }}
+                          placeholder="https://... atau /uploads/..."
+                          className="min-w-0 flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500 focus:outline-none"
+                        />
+                        <label className="cursor-pointer rounded-lg border border-white/10 bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700" title={`Upload foto ${imageIndex + 1}`}>
+                          <Upload className="h-3.5 w-3.5" />
+                          <input type="file" accept="image/*" onChange={(e) => handleFileUploadMotor(e, imageIndex)} className="hidden" />
+                        </label>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
