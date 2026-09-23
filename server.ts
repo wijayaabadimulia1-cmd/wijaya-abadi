@@ -5,7 +5,8 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = '0.0.0.0';
 const DB_FILE = path.join(process.cwd(), 'data', 'db.json');
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
 const sessions = new Map<string, { id: string; username: string; role: string; createdAt: string }>();
@@ -695,8 +696,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Honda Wijaya Abadi Server running on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Honda Wijaya Abadi Server running on http://${HOST}:${PORT}`);
   });
 }
 

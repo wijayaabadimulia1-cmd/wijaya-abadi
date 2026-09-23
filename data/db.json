@@ -376,6 +376,14 @@
   ],
   "auditLogs": [
     {
+      "id": "audit-1790059196176-18cbd2",
+      "created_at": "2026-09-22T06:39:56.176Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
       "id": "audit-1790051005034-d43bf2",
       "created_at": "2026-09-22T04:23:25.044Z",
       "actor": "@Abadi",

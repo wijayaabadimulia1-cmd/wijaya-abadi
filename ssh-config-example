@@ -1,0 +1,10 @@
+Host wijaya-vps
+    HostName YOUR_VPS_IP
+    User root
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519_wijaya_abadi
+    IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+    StrictHostKeyChecking accept
+    UserKnownHostsFile ~/.ssh/known_hosts
