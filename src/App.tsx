@@ -15,7 +15,8 @@ import { InterestModal } from './components/InterestModal';
 import { AdminPanel } from './components/AdminPanel';
 
 export default function App() {
-  const isAdminRoute = window.location.pathname === '/admin';
+  const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
+  const websitePath = isAdminRoute ? window.location.pathname.slice(0, -'/admin'.length) || '/' : '/';
   const [settings, setSettings] = useState<DealerSettings>({
     id: 'hwa-settings-01',
     name: 'Honda Wijaya Abadi Mulia Motor',
@@ -176,7 +177,7 @@ export default function App() {
     return (
       <AdminPanel
         onBackToWebsite={() => {
-          window.history.pushState({}, '', '/');
+          window.history.pushState({}, '', websitePath);
           setIsAdminOpen(false);
         }}
         onRefreshData={loadData}
