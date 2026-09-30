@@ -125,8 +125,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         if (sortBy === 'price-desc') return priceB - priceA;
         if (sortBy === 'bestseller') return (b.is_bestseller ? 1 : 0) - (a.is_bestseller ? 1 : 0);
         return 0;
-      })
-      .slice(0, 10);
+      });
   }, [motors, activeCategory, searchQuery, sortBy]);
 
   return (

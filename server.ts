@@ -165,9 +165,6 @@ async function startServer() {
 
   app.post('/api/motors', (req, res) => {
     const db = readDb();
-    if ((db.motors || []).length >= 10) {
-      return res.status(400).json({ error: 'Maksimal 10 motor dapat ditampilkan di katalog' });
-    }
     const images = normalizeMotorImages(req.body.images, [req.body.image]);
     if (images.length > MAX_MOTOR_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
