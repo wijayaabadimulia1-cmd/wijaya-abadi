@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /api/admin/
+Disallow: /api/login
+
+Crawl-delay: 1
+
+Sitemap: https://kreditmotorhonda.tech/sitemap.xml
