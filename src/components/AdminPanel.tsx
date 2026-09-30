@@ -195,10 +195,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const handleSaveMotor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMotor || !editingMotor.name) return;
-    if (!editingMotor.id && motors.length >= 10) {
-      alert('Maksimal 10 motor dapat ditambahkan ke katalog.');
-      return;
-    }
 
     try {
       if (editingMotor.id) {
@@ -666,11 +662,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                   <button
                     onClick={handleOpenAddMotor}
-                    disabled={motors.length >= 10}
                     className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all shrink-0"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>{motors.length >= 10 ? 'Batas 10 Motor Tercapai' : 'Tambah Motor Baru'}</span>
+                    <span>Tambah Motor Baru</span>
                   </button>
                 </div>
 
