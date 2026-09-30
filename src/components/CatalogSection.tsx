@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
 import { Motor } from '../types';
 import { formatRupiah } from '../services/api';
@@ -10,6 +10,76 @@ interface CatalogSectionProps {
   onOpenSimulator: (motor: Motor) => void;
   onOpenInterest: (motor: Motor) => void;
 }
+
+interface CatalogMotorImageProps {
+  motor: Motor;
+  isPreviewOpen: boolean;
+  onPreview: (images: string[], index: number, alt: string) => void;
+}
+
+const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({ motor, isPreviewOpen, onPreview }) => {
+  const images = useMemo(
+    () => Array.from(new Set([...(motor.images || []), motor.image].filter((image) => Boolean(image?.trim())))),
+    [motor.images, motor.image],
+  );
+  const [imageIndex, setImageIndex] = useState(0);
+  const currentImage = images[imageIndex] || images[0] || motor.image;
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [motor.id, images.length]);
+
+  useEffect(() => {
+    if (images.length < 2 || isPreviewOpen || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const interval = window.setInterval(() => {
+      setImageIndex((currentIndex) => (currentIndex + 1) % images.length);
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [images.length, isPreviewOpen]);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onPreview(images, imageIndex, motor.name)}
+      className="relative h-64 w-full overflow-hidden bg-zinc-950 flex items-center justify-center p-6 cursor-zoom-in"
+      aria-label={`Lihat foto ${motor.name} ukuran penuh`}
+    >
+      <img
+        key={currentImage}
+        src={currentImage}
+        alt={`${motor.name} foto ${imageIndex + 1}`}
+        className="catalog-photo-change max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
+        onError={(event) => {
+          event.currentTarget.closest('.catalog-card')?.classList.add('catalog-card-hidden');
+        }}
+      />
+      <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">
+        Klik untuk lihat foto
+      </span>
+      {images.length > 1 && (
+        <span className="absolute bottom-3 left-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white">
+          {imageIndex + 1}/{images.length}
+        </span>
+      )}
+
+      <div className="absolute top-4 right-4 bg-zinc-900/90 backdrop-blur-sm text-zinc-300 border border-white/10 px-3 py-1 rounded-full text-xs font-semibold">
+        {motor.category}
+      </div>
+
+      {motor.is_bestseller && (
+        <div
+          data-testid={`motor-bestseller-${motor.id}`}
+          className="absolute top-4 left-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center space-x-1"
+        >
+          <Flame className="w-3.5 h-3.5 fill-current" />
+          <span>Bestseller</span>
+        </div>
+      )}
+    </button>
+  );
+};
 
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   motors,
@@ -175,40 +245,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
                   {/* Top card area: image and badges */}
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGallery({ images: (motor.images?.filter(Boolean).length ? motor.images.filter(Boolean) : [motor.image]), index: 0, alt: motor.name })}
-                      className="relative h-64 w-full overflow-hidden bg-zinc-950 flex items-center justify-center p-6 cursor-zoom-in"
-                      aria-label={`Lihat foto ${motor.name} ukuran penuh`}
-                    >
-                      <img
-                        src={motor.image}
-                        alt={motor.name}
-                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
-                        onError={(e) => {
-                          e.currentTarget.closest('.catalog-card')?.classList.add('catalog-card-hidden');
-                        }}
-                      />
-                      <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                        Klik untuk lihat foto
-                      </span>
-
-                      {/* Category Pill Tag */}
-                      <div className="absolute top-4 right-4 bg-zinc-900/90 backdrop-blur-sm text-zinc-300 border border-white/10 px-3 py-1 rounded-full text-xs font-semibold">
-                        {motor.category}
-                      </div>
-
-                      {/* Bestseller Badge */}
-                      {motor.is_bestseller && (
-                        <div
-                          data-testid={`motor-bestseller-${motor.id}`}
-                          className="absolute top-4 left-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center space-x-1"
-                        >
-                          <Flame className="w-3.5 h-3.5 fill-current" />
-                          <span>Bestseller</span>
-                        </div>
-                      )}
-                    </button>
+                    <CatalogMotorImage
+                      motor={motor}
+                      isPreviewOpen={Boolean(selectedGallery)}
+                      onPreview={(images, index, alt) => setSelectedGallery({ images, index, alt })}
+                    />
 
                     {/* Content area */}
                     <div className="p-6">
