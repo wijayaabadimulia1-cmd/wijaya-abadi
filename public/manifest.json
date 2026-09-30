@@ -1,0 +1,75 @@
+{
+  "name": "Kredit Motor Honda | Simulasi Kredit & Harga Motor Honda",
+  "short_name": "Kredit Motor Honda",
+  "description": "Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.",
+  "start_url": "https://kreditmotorhonda.tech/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#dc2626",
+  "background_color": "#000000",
+  "categories": ["automotive", "finance"],
+  "screenshots": [
+    {
+      "src": "/uploads/hero.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/uploads/hero.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Simulasi Kredit",
+      "short_name": "Simulasi",
+      "description": "Simulasi kredit motor Honda dan hitung cicilan",
+      "url": "/?scroll=simulasi",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Katalog Motor",
+      "short_name": "Katalog",
+      "description": "Lihat katalog lengkap motor Honda",
+      "url": "/?scroll=katalog",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
