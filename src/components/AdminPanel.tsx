@@ -41,6 +41,7 @@ import {
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
 import { createWhatsAppUrl } from '../utils/whatsapp';
+import { CustomizationPanel } from './CustomizationPanel';
 
 interface AdminPanelProps {
   onBackToWebsite: () => void;
@@ -48,7 +49,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'security' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'customization' | 'security' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -169,10 +170,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             <p className="mt-2 text-sm text-zinc-400">Masuk untuk mengelola website dan melihat histori perubahan.</p>
           </div>
           <div className="space-y-4">
-            <input required value={loginForm.username} onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })} placeholder="Username" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:border-red-500" />
-            <input required type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} placeholder="Password" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:border-red-500" />
+            <input required value={loginForm.username} onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })} placeholder="Username" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+            <input required type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} placeholder="Password" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
             {loginError && <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">{loginError}</p>}
-            <button disabled={isLoggingIn} className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-500 disabled:opacity-60">{isLoggingIn ? 'Memverifikasi...' : 'Masuk ke Admin Panel'}</button>
+            <button disabled={isLoggingIn} className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-500 disabled:opacity-60">{isLoggingIn ? 'Memverifikasi...' : 'Masuk ke Panel Admin'}</button>
             <button type="button" onClick={onBackToWebsite} className="w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/5">Kembali ke Website</button>
           </div>
         </form>
@@ -391,11 +392,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const handleSaveCustomization = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!settings) return;
+    try {
+      const savedSettings = await api.updateSettings(settings);
+      setSettings(savedSettings);
+      showToast('Customisasi website berhasil disimpan!');
+      onRefreshData();
+    } catch (err: any) {
+      alert('Gagal menyimpan customisasi website: ' + err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-red-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border border-red-400 font-medium text-xs sm:text-sm animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 right-6 z-50 bg-red-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border border-red-400 font-medium text-xs sm:text-sm animate-in fade-in">
           <CheckCircle className="w-4 h-4 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -430,7 +444,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 alert(error.message || 'Gagal mengunduh laporan admin');
               }
             }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-md shadow-red-950/40 transition-all border border-red-500/40"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-md shadow-red-950/40"
             title="Download rating, minat calon konsumen, dan histori perubahan"
           >
             <Download className="w-3.5 h-3.5" />
@@ -475,6 +489,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
+              { id: 'customization', label: 'Customisasi', icon: SettingsIcon },
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].map((tab) => {
@@ -511,7 +526,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             {/* TAB 1: DASHBOARD */}
             {activeTab === 'dashboard' && (
               <div className="space-y-8 animate-in fade-in duration-300">
-                {/* Stats Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
@@ -554,9 +568,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
                 </div>
 
-                {/* Recent Leads & Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                  {/* Recent Leads */}
                   <div className="lg:col-span-8 bg-zinc-900/50 border border-white/10 rounded-3xl p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -619,7 +631,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     )}
                   </div>
 
-                  {/* Showroom Summary */}
                   <div className="lg:col-span-4 bg-zinc-900/50 border border-white/10 rounded-3xl p-6 space-y-4">
                     <h3 className="text-base font-bold text-white">Identitas Showroom</h3>
                     <div className="space-y-3 text-xs">
@@ -655,7 +666,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             {/* TAB 2: MOTORS MANAGEMENT */}
             {activeTab === 'motors' && (
               <div className="space-y-6 animate-in fade-in duration-300">
-                {/* Header controls */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="relative w-full sm:w-80">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -677,7 +687,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </button>
                 </div>
 
-                {/* Motors Table / Cards */}
                 <div className="bg-zinc-900/50 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
@@ -808,7 +817,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           {leads.map((lead) => {
                             const waUrl = createWhatsAppUrl(
                               lead.phone,
-                              `Halo Kak ${lead.customer_name}, kami dari dealer resmi Honda Wijaya Abadi. Terkait pemesanan motor ${lead.motor_name}, ada yang ingin ditanyakan mengenai promo dan simulasi kredit?`
+                              `Halo Kak ${lead.customer_name}, kami dari dealer resmi Honda Wijaya Abadi. Terkait pemesanan motor ${lead.motor_name}, ada yang ingin ditanyakan mengenai promo dan sistem kredit.`
                             );
 
                             return (
@@ -1017,7 +1026,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                               <Star key={i} className="w-3.5 h-3.5 fill-current" />
                             ))}
                           </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${t.approved === false ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}`}>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${t.approved === false ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'}`}>
                             {t.approved === false ? 'Pending' : 'Approved'}
                           </span>
                         </div>
@@ -1190,7 +1199,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             key={option.value}
                             type="button"
                             onClick={() => handleTemplateChange(option.value)}
-                            className={`group text-left rounded-2xl border p-3 transition-all ${isSelected ? 'border-red-500 bg-red-500/10 shadow-lg shadow-red-950/30' : 'border-white/10 bg-zinc-950/70 hover:border-white/20'}`}
+                            className={`group text-left rounded-2xl border p-3 transition-all ${isSelected ? 'border-red-500 bg-red-500/10 shadow-lg shadow-red-950/30' : 'border-white/10 bg-zinc-900 hover:border-white/25'}`}
                           >
                             <div className="flex items-center justify-between gap-2 mb-2">
                               <div className={`h-8 w-8 rounded-full ${option.accent}`} />
@@ -1232,78 +1241,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     </div>
                   </div>
 
+                  <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4 space-y-4">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-300">Custom Tema & Layout</div>
+                      <p className="mt-1 text-[11px] text-zinc-500">Atur warna, font, posisi hero, dan bentuk kartu website utama.</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Honda Red', values: { primaryColor: '#dc2626', accentColor: '#f97316', backgroundColor: '#000000', panelColor: '#111827', textColor: '#f4f4f5', mutedColor: '#a1a1aa', font: 'jakarta', heroAlignment: 'left', cardRadius: 'round' } },
+                        { label: 'Ocean Blue', values: { primaryColor: '#0284c7', accentColor: '#22d3ee', backgroundColor: '#07161d', panelColor: '#0d2430', textColor: '#e0f2fe', mutedColor: '#a5f3fc', font: 'jakarta', heroAlignment: 'center', cardRadius: 'soft' } },
+                        { label: 'Emerald', values: { primaryColor: '#059669', accentColor: '#84cc16', backgroundColor: '#07130f', panelColor: '#10241b', textColor: '#ecfdf5', mutedColor: '#bbf7d0', font: 'jakarta', heroAlignment: 'right', cardRadius: 'soft' } },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setSettings({ ...settings, customization: { ...settings.customization, ...preset.values } })}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-[11px] font-bold text-zinc-300 hover:border-red-500/50 hover:text-white"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {[
+                        ['primaryColor', 'Warna Utama'],
+                        ['accentColor', 'Warna Aksen'],
+                        ['backgroundColor', 'Warna Latar'],
+                        ['panelColor', 'Warna Panel'],
+                        ['textColor', 'Warna Teks'],
+                        ['mutedColor', 'Teks Sekunder'],
+                      ].map(([key, label]) => (
+                        <label key={key} className="text-[11px] text-zinc-400">
+                          <span className="mb-1 block">{label}</span>
+                          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 p-1.5">
+                            <input
+                              type="color"
+                              value={(settings.customization as any)?.[key] || '#dc2626'}
+                              onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, [key]: event.target.value } })}
+                              className="h-7 w-8 cursor-pointer rounded border-0 bg-transparent"
+                            />
+                            <span className="font-mono text-[10px] text-zinc-500">{(settings.customization as any)?.[key] || '#dc2626'}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <label className="text-[11px] text-zinc-400">
+                        <span className="mb-1 block">Font Website</span>
+                        <select value={settings.customization?.font || 'jakarta'} onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, font: event.target.value as any } })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-2 py-2 text-zinc-200 focus:border-red-500 focus:outline-none">
+                          <option value="jakarta">Jakarta Sans</option>
+                          <option value="serif">Serif Elegan</option>
+                          <option value="mono">Mono Modern</option>
+                          <option value="system">System</option>
+                        </select>
+                      </label>
+                      <label className="text-[11px] text-zinc-400">
+                        <span className="mb-1 block">Posisi Hero</span>
+                        <select value={settings.customization?.heroAlignment || 'left'} onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, heroAlignment: event.target.value as any } })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-2 py-2 text-zinc-200 focus:border-red-500 focus:outline-none">
+                          <option value="left">Kiri</option>
+                          <option value="center">Tengah</option>
+                          <option value="right">Kanan</option>
+                        </select>
+                      </label>
+                      <label className="text-[11px] text-zinc-400">
+                        <span className="mb-1 block">Bentuk Kartu</span>
+                        <select value={settings.customization?.cardRadius || 'round'} onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, cardRadius: event.target.value as any } })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-2 py-2 text-zinc-200 focus:border-red-500 focus:outline-none">
+                          <option value="sharp">Tegas</option>
+                          <option value="soft">Soft</option>
+                          <option value="round">Rounded</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-zinc-300 uppercase mb-1">
-
-                    <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4 space-y-4">
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-300">Custom Tema & Layout</div>
-                        <p className="mt-1 text-[11px] text-zinc-500">Atur warna, font, posisi hero, dan bentuk kartu website utama.</p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { label: 'Honda Red', values: { primaryColor: '#dc2626', accentColor: '#f97316', backgroundColor: '#000000', panelColor: '#111827', textColor: '#f4f4f5', mutedColor: '#a1a1aa' } },
-                          { label: 'Ocean Blue', values: { primaryColor: '#0284c7', accentColor: '#22d3ee', backgroundColor: '#07161d', panelColor: '#0d2430', textColor: '#e0f2fe', mutedColor: '#bae6fd' } },
-                          { label: 'Emerald', values: { primaryColor: '#059669', accentColor: '#84cc16', backgroundColor: '#07130f', panelColor: '#10241b', textColor: '#ecfdf5', mutedColor: '#a7f3d0' } },
-                        ].map((preset) => (
-                          <button
-                            key={preset.label}
-                            type="button"
-                            onClick={() => setSettings({ ...settings, customization: { ...settings.customization, ...preset.values } })}
-                            className="rounded-lg border border-white/10 px-3 py-2 text-[11px] font-bold text-zinc-300 hover:border-red-500/50 hover:text-white"
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {[
-                          ['primaryColor', 'Warna Utama'],
-                          ['accentColor', 'Warna Aksen'],
-                          ['backgroundColor', 'Warna Latar'],
-                          ['panelColor', 'Warna Panel'],
-                          ['textColor', 'Warna Teks'],
-                          ['mutedColor', 'Teks Sekunder'],
-                        ].map(([key, label]) => (
-                          <label key={key} className="text-[11px] text-zinc-400">
-                            <span className="mb-1 block">{label}</span>
-                            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 p-1.5">
-                              <input
-                                type="color"
-                                value={(settings.customization as any)?.[key] || '#dc2626'}
-                                onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, [key]: event.target.value } })}
-                                className="h-7 w-8 cursor-pointer rounded border-0 bg-transparent"
-                              />
-                              <span className="font-mono text-[10px] text-zinc-500">{(settings.customization as any)?.[key] || '#dc2626'}</span>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <label className="text-[11px] text-zinc-400">
-                          <span className="mb-1 block">Font Website</span>
-                          <select value={settings.customization?.font || 'jakarta'} onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, font: event.target.value as any } })} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white">
-                            <option value="jakarta">Jakarta Sans</option><option value="serif">Serif Elegan</option><option value="mono">Mono Modern</option><option value="system">System</option>
-                          </select>
-                        </label>
-                        <label className="text-[11px] text-zinc-400">
-                          <span className="mb-1 block">Posisi Hero</span>
-                          <select value={settings.customization?.heroAlignment || 'left'} onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, heroAlignment: event.target.value as any } })} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white">
-                            <option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option>
-                          </select>
-                        </label>
-                        <label className="text-[11px] text-zinc-400">
-                          <span className="mb-1 block">Bentuk Kartu</span>
-                          <select value={settings.customization?.cardRadius || 'round'} onChange={(event) => setSettings({ ...settings, customization: { ...settings.customization, cardRadius: event.target.value as any } })} className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white">
-                            <option value="sharp">Tegas</option><option value="soft">Soft</option><option value="round">Rounded</option>
-                          </select>
-                        </label>
-                      </div>
-                    </div>
                         Nomor WhatsApp Sales (dengan kode 62)
                       </label>
                       <input
@@ -1376,6 +1392,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               </div>
             )}
 
+            {activeTab === 'customization' && settings && (
+              <form onSubmit={handleSaveCustomization} className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Customisasi Website</h2>
+                  <p className="text-xs text-zinc-400">
+                    Ubah logo, banner, font, dan warna website sesuai brand Honda Wijaya Abadi.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-4 sm:p-6">
+                  <CustomizationPanel settings={settings} onSettingsChange={setSettings} />
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-900/40 flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Simpan Customisasi</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
             {activeTab === 'security' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div>
@@ -1400,17 +1441,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4"
                   >
                     <h3 className="font-bold text-white">Akun Saya</h3>
-                    <input value={securityForm.username} onChange={(event) => setSecurityForm({ ...securityForm, username: event.target.value })} placeholder={`Username saat ini: ${adminSession.username}`} className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-red-500" />
-                    <input type="password" value={securityForm.password} onChange={(event) => setSecurityForm({ ...securityForm, password: event.target.value })} placeholder="Password baru (minimal 8 karakter)" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-red-500" />
+                    <input value={securityForm.username} onChange={(event) => setSecurityForm({ ...securityForm, username: event.target.value })} placeholder={`Username saat ini: ${adminSession.username}`} className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                    <input type="password" value={securityForm.password} onChange={(event) => setSecurityForm({ ...securityForm, password: event.target.value })} placeholder="Password baru (opsional)" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
                     <button className="rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500">Simpan Perubahan Akun</button>
                   </form>
 
                   {adminSession.role === 'Super Admin' && (
                     <form onSubmit={handleCreateAdmin} className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4">
                       <h3 className="font-bold text-white">Buat Admin Baru</h3>
-                      <input required value={securityForm.username} onChange={(event) => setSecurityForm({ ...securityForm, username: event.target.value })} placeholder="Username admin baru" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-red-500" />
-                      <input required type="password" minLength={8} value={securityForm.password} onChange={(event) => setSecurityForm({ ...securityForm, password: event.target.value })} placeholder="Password minimal 8 karakter" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-red-500" />
-                      <select value={securityForm.role} onChange={(event) => setSecurityForm({ ...securityForm, role: event.target.value })} className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-red-500">
+                      <input required value={securityForm.username} onChange={(event) => setSecurityForm({ ...securityForm, username: event.target.value })} placeholder="Username admin baru" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="password" minLength={8} value={securityForm.password} onChange={(event) => setSecurityForm({ ...securityForm, password: event.target.value })} placeholder="Password admin baru" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <select value={securityForm.role} onChange={(event) => setSecurityForm({ ...securityForm, role: event.target.value })} className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white focus:border-red-500 focus:outline-none">
                         <option>Staff Admin</option>
                         <option>Super Admin</option>
                       </select>
@@ -1425,7 +1466,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     {adminUsers.map((user) => (
                       <div key={user.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-zinc-950/70 px-4 py-3">
                         <div><div className="text-sm font-bold text-white">{user.username}</div><div className="text-[11px] text-zinc-400">{user.role}</div></div>
-                        {adminSession.role === 'Super Admin' && user.id !== adminSession.id && <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); await refreshSecurityData(); showToast('Admin dihapus'); }} className="text-xs font-bold text-red-400 hover:text-red-300">Hapus</button>}
+                        {adminSession.role === 'Super Admin' && user.id !== adminSession.id && <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); setAdminUsers((prev) => prev.filter((item) => item.id !== user.id)); showToast(`Admin ${user.username} berhasil dihapus`); }} className="text-[10px] text-red-400 hover:text-red-300">Hapus</button>}
                       </div>
                     ))}
                   </div>
@@ -1507,7 +1548,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
               </div>
 
-              {/* Image Gallery Inputs & Upload */}
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">
                   Gambar Motor (maksimal {MAX_MOTOR_IMAGES} foto, URL atau Upload File)
@@ -1541,7 +1581,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
               </div>
 
-              {/* Specs Tag Input */}
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">
                   Spesifikasi Utama (pisahkan dengan koma)
