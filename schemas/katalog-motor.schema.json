@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kreditmotorhonda.tech/schemas/katalog-motor.schema.json",
+  "title": "Data Katalog Motor Honda",
+  "description": "Struktur data motor katalog dengan kapasitas hingga 80 foto.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "nama",
+    "harga",
+    "fotos"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nama": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tipe": {
+      "type": "string"
+    },
+    "tahun": {
+      "type": "integer",
+      "minimum": 1900
+    },
+    "harga": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "deskripsi": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "tersedia",
+        "habis",
+        "indent"
+      ],
+      "default": "tersedia"
+    },
+    "fotos": {
+      "type": "array",
+      "maxItems": 80,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "urutan"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "description": "URL atau path penyimpanan file foto."
+          },
+          "urutan": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 80
+          },
+          "teksAlternatif": {
+            "type": "string"
+          },
+          "utama": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    }
+  }
+}
