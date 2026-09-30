@@ -573,6 +573,21 @@ body {
   display: none !important;
 }
 
+.catalog-photo-change {
+  animation: catalog-photo-change 700ms ease-out both;
+}
+
+@keyframes catalog-photo-change {
+  from {
+    opacity: 0.25;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes catalog-card-enter {
   from {
     opacity: 0;
@@ -585,7 +600,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catalog-card {
+  .catalog-card,
+  .catalog-photo-change {
     animation: none;
   }
 }
