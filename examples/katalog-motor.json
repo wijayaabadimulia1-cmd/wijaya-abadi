@@ -1,491 +1,97 @@
 {
   "id": "contoh-motor-001",
-  "nama": "Honda Vario 160",
-  "tipe": "Skuter matik",
-  "tahun": 2026,
-  "harga": 28000000,
-  "deskripsi": "Contoh data katalog. Sesuaikan detail motor sebelum digunakan.",
-  "status": "tersedia",
-  "fotos": [
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-01.jpg",
-      "urutan": 1,
-      "teksAlternatif": "Honda Vario 160 - foto 1",
-      "utama": true
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-02.jpg",
-      "urutan": 2,
-      "teksAlternatif": "Honda Vario 160 - foto 2",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-03.jpg",
-      "urutan": 3,
-      "teksAlternatif": "Honda Vario 160 - foto 3",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-04.jpg",
-      "urutan": 4,
-      "teksAlternatif": "Honda Vario 160 - foto 4",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-05.jpg",
-      "urutan": 5,
-      "teksAlternatif": "Honda Vario 160 - foto 5",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-06.jpg",
-      "urutan": 6,
-      "teksAlternatif": "Honda Vario 160 - foto 6",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-07.jpg",
-      "urutan": 7,
-      "teksAlternatif": "Honda Vario 160 - foto 7",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-08.jpg",
-      "urutan": 8,
-      "teksAlternatif": "Honda Vario 160 - foto 8",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-09.jpg",
-      "urutan": 9,
-      "teksAlternatif": "Honda Vario 160 - foto 9",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-10.jpg",
-      "urutan": 10,
-      "teksAlternatif": "Honda Vario 160 - foto 10",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-11.jpg",
-      "urutan": 11,
-      "teksAlternatif": "Honda Vario 160 - foto 11",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-12.jpg",
-      "urutan": 12,
-      "teksAlternatif": "Honda Vario 160 - foto 12",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-13.jpg",
-      "urutan": 13,
-      "teksAlternatif": "Honda Vario 160 - foto 13",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-14.jpg",
-      "urutan": 14,
-      "teksAlternatif": "Honda Vario 160 - foto 14",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-15.jpg",
-      "urutan": 15,
-      "teksAlternatif": "Honda Vario 160 - foto 15",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-16.jpg",
-      "urutan": 16,
-      "teksAlternatif": "Honda Vario 160 - foto 16",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-17.jpg",
-      "urutan": 17,
-      "teksAlternatif": "Honda Vario 160 - foto 17",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-18.jpg",
-      "urutan": 18,
-      "teksAlternatif": "Honda Vario 160 - foto 18",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-19.jpg",
-      "urutan": 19,
-      "teksAlternatif": "Honda Vario 160 - foto 19",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-20.jpg",
-      "urutan": 20,
-      "teksAlternatif": "Honda Vario 160 - foto 20",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-21.jpg",
-      "urutan": 21,
-      "teksAlternatif": "Honda Vario 160 - foto 21",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-22.jpg",
-      "urutan": 22,
-      "teksAlternatif": "Honda Vario 160 - foto 22",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-23.jpg",
-      "urutan": 23,
-      "teksAlternatif": "Honda Vario 160 - foto 23",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-24.jpg",
-      "urutan": 24,
-      "teksAlternatif": "Honda Vario 160 - foto 24",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-25.jpg",
-      "urutan": 25,
-      "teksAlternatif": "Honda Vario 160 - foto 25",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-26.jpg",
-      "urutan": 26,
-      "teksAlternatif": "Honda Vario 160 - foto 26",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-27.jpg",
-      "urutan": 27,
-      "teksAlternatif": "Honda Vario 160 - foto 27",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-28.jpg",
-      "urutan": 28,
-      "teksAlternatif": "Honda Vario 160 - foto 28",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-29.jpg",
-      "urutan": 29,
-      "teksAlternatif": "Honda Vario 160 - foto 29",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-30.jpg",
-      "urutan": 30,
-      "teksAlternatif": "Honda Vario 160 - foto 30",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-31.jpg",
-      "urutan": 31,
-      "teksAlternatif": "Honda Vario 160 - foto 31",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-32.jpg",
-      "urutan": 32,
-      "teksAlternatif": "Honda Vario 160 - foto 32",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-33.jpg",
-      "urutan": 33,
-      "teksAlternatif": "Honda Vario 160 - foto 33",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-34.jpg",
-      "urutan": 34,
-      "teksAlternatif": "Honda Vario 160 - foto 34",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-35.jpg",
-      "urutan": 35,
-      "teksAlternatif": "Honda Vario 160 - foto 35",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-36.jpg",
-      "urutan": 36,
-      "teksAlternatif": "Honda Vario 160 - foto 36",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-37.jpg",
-      "urutan": 37,
-      "teksAlternatif": "Honda Vario 160 - foto 37",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-38.jpg",
-      "urutan": 38,
-      "teksAlternatif": "Honda Vario 160 - foto 38",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-39.jpg",
-      "urutan": 39,
-      "teksAlternatif": "Honda Vario 160 - foto 39",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-40.jpg",
-      "urutan": 40,
-      "teksAlternatif": "Honda Vario 160 - foto 40",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-41.jpg",
-      "urutan": 41,
-      "teksAlternatif": "Honda Vario 160 - foto 41",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-42.jpg",
-      "urutan": 42,
-      "teksAlternatif": "Honda Vario 160 - foto 42",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-43.jpg",
-      "urutan": 43,
-      "teksAlternatif": "Honda Vario 160 - foto 43",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-44.jpg",
-      "urutan": 44,
-      "teksAlternatif": "Honda Vario 160 - foto 44",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-45.jpg",
-      "urutan": 45,
-      "teksAlternatif": "Honda Vario 160 - foto 45",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-46.jpg",
-      "urutan": 46,
-      "teksAlternatif": "Honda Vario 160 - foto 46",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-47.jpg",
-      "urutan": 47,
-      "teksAlternatif": "Honda Vario 160 - foto 47",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-48.jpg",
-      "urutan": 48,
-      "teksAlternatif": "Honda Vario 160 - foto 48",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-49.jpg",
-      "urutan": 49,
-      "teksAlternatif": "Honda Vario 160 - foto 49",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-50.jpg",
-      "urutan": 50,
-      "teksAlternatif": "Honda Vario 160 - foto 50",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-51.jpg",
-      "urutan": 51,
-      "teksAlternatif": "Honda Vario 160 - foto 51",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-52.jpg",
-      "urutan": 52,
-      "teksAlternatif": "Honda Vario 160 - foto 52",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-53.jpg",
-      "urutan": 53,
-      "teksAlternatif": "Honda Vario 160 - foto 53",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-54.jpg",
-      "urutan": 54,
-      "teksAlternatif": "Honda Vario 160 - foto 54",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-55.jpg",
-      "urutan": 55,
-      "teksAlternatif": "Honda Vario 160 - foto 55",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-56.jpg",
-      "urutan": 56,
-      "teksAlternatif": "Honda Vario 160 - foto 56",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-57.jpg",
-      "urutan": 57,
-      "teksAlternatif": "Honda Vario 160 - foto 57",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-58.jpg",
-      "urutan": 58,
-      "teksAlternatif": "Honda Vario 160 - foto 58",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-59.jpg",
-      "urutan": 59,
-      "teksAlternatif": "Honda Vario 160 - foto 59",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-60.jpg",
-      "urutan": 60,
-      "teksAlternatif": "Honda Vario 160 - foto 60",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-61.jpg",
-      "urutan": 61,
-      "teksAlternatif": "Honda Vario 160 - foto 61",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-62.jpg",
-      "urutan": 62,
-      "teksAlternatif": "Honda Vario 160 - foto 62",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-63.jpg",
-      "urutan": 63,
-      "teksAlternatif": "Honda Vario 160 - foto 63",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-64.jpg",
-      "urutan": 64,
-      "teksAlternatif": "Honda Vario 160 - foto 64",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-65.jpg",
-      "urutan": 65,
-      "teksAlternatif": "Honda Vario 160 - foto 65",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-66.jpg",
-      "urutan": 66,
-      "teksAlternatif": "Honda Vario 160 - foto 66",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-67.jpg",
-      "urutan": 67,
-      "teksAlternatif": "Honda Vario 160 - foto 67",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-68.jpg",
-      "urutan": 68,
-      "teksAlternatif": "Honda Vario 160 - foto 68",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-69.jpg",
-      "urutan": 69,
-      "teksAlternatif": "Honda Vario 160 - foto 69",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-70.jpg",
-      "urutan": 70,
-      "teksAlternatif": "Honda Vario 160 - foto 70",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-71.jpg",
-      "urutan": 71,
-      "teksAlternatif": "Honda Vario 160 - foto 71",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-72.jpg",
-      "urutan": 72,
-      "teksAlternatif": "Honda Vario 160 - foto 72",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-73.jpg",
-      "urutan": 73,
-      "teksAlternatif": "Honda Vario 160 - foto 73",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-74.jpg",
-      "urutan": 74,
-      "teksAlternatif": "Honda Vario 160 - foto 74",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-75.jpg",
-      "urutan": 75,
-      "teksAlternatif": "Honda Vario 160 - foto 75",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-76.jpg",
-      "urutan": 76,
-      "teksAlternatif": "Honda Vario 160 - foto 76",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-77.jpg",
-      "urutan": 77,
-      "teksAlternatif": "Honda Vario 160 - foto 77",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-78.jpg",
-      "urutan": 78,
-      "teksAlternatif": "Honda Vario 160 - foto 78",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-79.jpg",
-      "urutan": 79,
-      "teksAlternatif": "Honda Vario 160 - foto 79",
-      "utama": false
-    },
-    {
-      "url": "/uploads/motor/contoh-motor-001/foto-80.jpg",
-      "urutan": 80,
-      "teksAlternatif": "Honda Vario 160 - foto 80",
-      "utama": false
-    }
-  ]
+  "name": "Honda Vario 160",
+  "category": "Matic",
+  "price": "28.000.000",
+  "numericPrice": 28000000,
+  "image": "/uploads/motor/contoh-motor-001/foto-01.jpg",
+  "images": [
+    "/uploads/motor/contoh-motor-001/foto-01.jpg",
+    "/uploads/motor/contoh-motor-001/foto-02.jpg",
+    "/uploads/motor/contoh-motor-001/foto-03.jpg",
+    "/uploads/motor/contoh-motor-001/foto-04.jpg",
+    "/uploads/motor/contoh-motor-001/foto-05.jpg",
+    "/uploads/motor/contoh-motor-001/foto-06.jpg",
+    "/uploads/motor/contoh-motor-001/foto-07.jpg",
+    "/uploads/motor/contoh-motor-001/foto-08.jpg",
+    "/uploads/motor/contoh-motor-001/foto-09.jpg",
+    "/uploads/motor/contoh-motor-001/foto-10.jpg",
+    "/uploads/motor/contoh-motor-001/foto-11.jpg",
+    "/uploads/motor/contoh-motor-001/foto-12.jpg",
+    "/uploads/motor/contoh-motor-001/foto-13.jpg",
+    "/uploads/motor/contoh-motor-001/foto-14.jpg",
+    "/uploads/motor/contoh-motor-001/foto-15.jpg",
+    "/uploads/motor/contoh-motor-001/foto-16.jpg",
+    "/uploads/motor/contoh-motor-001/foto-17.jpg",
+    "/uploads/motor/contoh-motor-001/foto-18.jpg",
+    "/uploads/motor/contoh-motor-001/foto-19.jpg",
+    "/uploads/motor/contoh-motor-001/foto-20.jpg",
+    "/uploads/motor/contoh-motor-001/foto-21.jpg",
+    "/uploads/motor/contoh-motor-001/foto-22.jpg",
+    "/uploads/motor/contoh-motor-001/foto-23.jpg",
+    "/uploads/motor/contoh-motor-001/foto-24.jpg",
+    "/uploads/motor/contoh-motor-001/foto-25.jpg",
+    "/uploads/motor/contoh-motor-001/foto-26.jpg",
+    "/uploads/motor/contoh-motor-001/foto-27.jpg",
+    "/uploads/motor/contoh-motor-001/foto-28.jpg",
+    "/uploads/motor/contoh-motor-001/foto-29.jpg",
+    "/uploads/motor/contoh-motor-001/foto-30.jpg",
+    "/uploads/motor/contoh-motor-001/foto-31.jpg",
+    "/uploads/motor/contoh-motor-001/foto-32.jpg",
+    "/uploads/motor/contoh-motor-001/foto-33.jpg",
+    "/uploads/motor/contoh-motor-001/foto-34.jpg",
+    "/uploads/motor/contoh-motor-001/foto-35.jpg",
+    "/uploads/motor/contoh-motor-001/foto-36.jpg",
+    "/uploads/motor/contoh-motor-001/foto-37.jpg",
+    "/uploads/motor/contoh-motor-001/foto-38.jpg",
+    "/uploads/motor/contoh-motor-001/foto-39.jpg",
+    "/uploads/motor/contoh-motor-001/foto-40.jpg",
+    "/uploads/motor/contoh-motor-001/foto-41.jpg",
+    "/uploads/motor/contoh-motor-001/foto-42.jpg",
+    "/uploads/motor/contoh-motor-001/foto-43.jpg",
+    "/uploads/motor/contoh-motor-001/foto-44.jpg",
+    "/uploads/motor/contoh-motor-001/foto-45.jpg",
+    "/uploads/motor/contoh-motor-001/foto-46.jpg",
+    "/uploads/motor/contoh-motor-001/foto-47.jpg",
+    "/uploads/motor/contoh-motor-001/foto-48.jpg",
+    "/uploads/motor/contoh-motor-001/foto-49.jpg",
+    "/uploads/motor/contoh-motor-001/foto-50.jpg",
+    "/uploads/motor/contoh-motor-001/foto-51.jpg",
+    "/uploads/motor/contoh-motor-001/foto-52.jpg",
+    "/uploads/motor/contoh-motor-001/foto-53.jpg",
+    "/uploads/motor/contoh-motor-001/foto-54.jpg",
+    "/uploads/motor/contoh-motor-001/foto-55.jpg",
+    "/uploads/motor/contoh-motor-001/foto-56.jpg",
+    "/uploads/motor/contoh-motor-001/foto-57.jpg",
+    "/uploads/motor/contoh-motor-001/foto-58.jpg",
+    "/uploads/motor/contoh-motor-001/foto-59.jpg",
+    "/uploads/motor/contoh-motor-001/foto-60.jpg",
+    "/uploads/motor/contoh-motor-001/foto-61.jpg",
+    "/uploads/motor/contoh-motor-001/foto-62.jpg",
+    "/uploads/motor/contoh-motor-001/foto-63.jpg",
+    "/uploads/motor/contoh-motor-001/foto-64.jpg",
+    "/uploads/motor/contoh-motor-001/foto-65.jpg",
+    "/uploads/motor/contoh-motor-001/foto-66.jpg",
+    "/uploads/motor/contoh-motor-001/foto-67.jpg",
+    "/uploads/motor/contoh-motor-001/foto-68.jpg",
+    "/uploads/motor/contoh-motor-001/foto-69.jpg",
+    "/uploads/motor/contoh-motor-001/foto-70.jpg",
+    "/uploads/motor/contoh-motor-001/foto-71.jpg",
+    "/uploads/motor/contoh-motor-001/foto-72.jpg",
+    "/uploads/motor/contoh-motor-001/foto-73.jpg",
+    "/uploads/motor/contoh-motor-001/foto-74.jpg",
+    "/uploads/motor/contoh-motor-001/foto-75.jpg",
+    "/uploads/motor/contoh-motor-001/foto-76.jpg",
+    "/uploads/motor/contoh-motor-001/foto-77.jpg",
+    "/uploads/motor/contoh-motor-001/foto-78.jpg",
+    "/uploads/motor/contoh-motor-001/foto-79.jpg",
+    "/uploads/motor/contoh-motor-001/foto-80.jpg"
+  ],
+  "specs": [
+    "160cc",
+    "eSP+"
+  ],
+  "description": "Contoh data katalog. Sesuaikan detail dan path foto sebelum digunakan.",
+  "is_bestseller": false,
+  "interest_count": 0
 }

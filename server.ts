@@ -4,6 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
+import { MAX_MOTOR_IMAGES } from './src/constants';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
@@ -97,6 +98,11 @@ function appendAudit(db: any, entry: Record<string, unknown>) {
   ].slice(0, 500);
 }
 
+function normalizeMotorImages(value: unknown, fallback: unknown = []): string[] {
+  const source = Array.isArray(value) ? value : Array.isArray(fallback) ? fallback : [fallback];
+  return source.map((image: unknown) => String(image || '').trim()).filter(Boolean);
+}
+
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
@@ -162,10 +168,10 @@ async function startServer() {
     if ((db.motors || []).length >= 10) {
       return res.status(400).json({ error: 'Maksimal 10 motor dapat ditampilkan di katalog' });
     }
-    const images = (Array.isArray(req.body.images) ? req.body.images : [req.body.image])
-      .map((image: unknown) => String(image || '').trim())
-      .filter(Boolean)
-      .slice(0, 10);
+    const images = normalizeMotorImages(req.body.images, [req.body.image]);
+    if (images.length > MAX_MOTOR_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
+    }
     const newMotor = {
       id: req.body.id || `motor-${Date.now()}`,
       name: req.body.name || 'New Honda Motor',
@@ -193,10 +199,10 @@ async function startServer() {
       return res.status(404).json({ error: 'Motor not found' });
     }
     const existingImages = Array.isArray(db.motors[index].images) ? db.motors[index].images : [db.motors[index].image];
-    const images = (Array.isArray(req.body.images) ? req.body.images : existingImages)
-      .map((image: unknown) => String(image || '').trim())
-      .filter(Boolean)
-      .slice(0, 10);
+    const images = normalizeMotorImages(req.body.images, existingImages);
+    if (images.length > MAX_MOTOR_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
+    }
     const updated = {
       ...db.motors[index],
       ...req.body,

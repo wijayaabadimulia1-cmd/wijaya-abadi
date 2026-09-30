@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
 import { api, formatRupiah } from '../services/api';
+import { MAX_MOTOR_IMAGES } from '../constants';
 import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface AdminPanelProps {
@@ -180,14 +181,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       specs: ['110cc', 'eSP'],
       description: '',
       image: '',
-      images: Array(10).fill(''),
+      images: Array(MAX_MOTOR_IMAGES).fill(''),
       is_bestseller: false,
     });
     setIsMotorModalOpen(true);
   };
 
   const handleOpenEditMotor = (motor: Motor) => {
-    setEditingMotor({ ...motor, images: [...(motor.images || [motor.image]), ...Array(10).fill('')].slice(0, 10) });
+    setEditingMotor({ ...motor, images: [...(motor.images || [motor.image]), ...Array(MAX_MOTOR_IMAGES).fill('')].slice(0, MAX_MOTOR_IMAGES) });
     setIsMotorModalOpen(true);
   };
 
@@ -236,7 +237,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const url = await api.uploadImage(file);
       setEditingMotor((prev) => {
         if (!prev) return null;
-        const images = [...(prev.images || Array(10).fill(''))];
+        const images = [...(prev.images || Array(MAX_MOTOR_IMAGES).fill(''))];
         images[imageIndex] = url;
         return { ...prev, image: images[0] || '', images };
       });
@@ -1433,11 +1434,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               {/* Image Gallery Inputs & Upload */}
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">
-                  Gambar Motor (maksimal 10 foto, URL atau Upload File)
+                  Gambar Motor (maksimal {MAX_MOTOR_IMAGES} foto, URL atau Upload File)
                 </label>
                 <p className="mb-2 text-[11px] text-zinc-500">Foto pertama menjadi cover kartu katalog. Foto kosong tidak ditampilkan di website.</p>
-                <div className="space-y-2">
-                  {Array.from({ length: 10 }, (_, imageIndex) => {
+                <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+                  {Array.from({ length: MAX_MOTOR_IMAGES }, (_, imageIndex) => {
                     const images = editingMotor.images || [editingMotor.image || ''];
                     const imageValue = images[imageIndex] || '';
                     return (
@@ -1447,7 +1448,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           type="text"
                           value={imageValue}
                           onChange={(e) => {
-                            const nextImages = [...(editingMotor.images || Array(10).fill(''))];
+                            const nextImages = [...(editingMotor.images || Array(MAX_MOTOR_IMAGES).fill(''))];
                             nextImages[imageIndex] = e.target.value;
                             setEditingMotor({ ...editingMotor, image: nextImages[0] || '', images: nextImages });
                           }}

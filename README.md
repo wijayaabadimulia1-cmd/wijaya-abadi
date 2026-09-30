@@ -20,3 +20,7 @@ View your app in AI Studio: https://ai.studio/apps/bd629d44-3672-4e6f-ad5a-0adb3
    `npm run dev`
 
 # wijaya-abadi
+
+## Foto katalog motor
+
+Admin panel mendukung hingga 80 foto per motor. Foto pertama menjadi cover kartu katalog, sedangkan foto lainnya dapat dilihat melalui galeri. API juga menolak penyimpanan jika satu motor memiliki lebih dari 80 foto. Struktur data dan contoh 80 foto tersedia di `schemas/katalog-motor.schema.json` dan `examples/katalog-motor.json`.
