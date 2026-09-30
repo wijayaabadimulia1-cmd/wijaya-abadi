@@ -13,6 +13,7 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { AdminPanel } from './components/AdminPanel';
+import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
 
 export default function App() {
   const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
@@ -33,6 +34,8 @@ export default function App() {
     footerText:
       'Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.',
     websiteTemplate: 'classic',
+    catalogAnimation: DEFAULT_CATALOG_ANIMATION,
+    catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
     customization: {
       primaryColor: '#dc2626',
       accentColor: '#f97316',
@@ -209,6 +212,8 @@ export default function App() {
         {/* Motorcycle Catalog */}
         <CatalogSection
           motors={motors}
+          animation={settings.catalogAnimation}
+          animationSpeed={settings.catalogAnimationSpeed}
           compareList={compareList}
           onToggleCompare={handleToggleCompare}
           onOpenSimulator={handleOpenSimulator}

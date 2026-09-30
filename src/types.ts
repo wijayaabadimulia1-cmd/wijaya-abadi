@@ -1,3 +1,5 @@
+import type { CatalogAnimation } from './catalogAnimation';
+
 export interface MotorSpec {
   id?: string;
   name: string;
@@ -54,6 +56,7 @@ export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sp
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system';
 export type CardRadius = 'sharp' | 'soft' | 'round';
+export type { CatalogAnimation } from './catalogAnimation';
 
 export interface WebsiteCustomization {
   primaryColor?: string;
@@ -82,6 +85,8 @@ export interface DealerSettings {
   heroSubtitle: string;
   footerText: string;
   websiteTemplate?: WebsiteTemplate;
+  catalogAnimation?: CatalogAnimation;
+  catalogAnimationSpeed?: number;
   customization?: WebsiteCustomization;
   updated_at?: string;
 }

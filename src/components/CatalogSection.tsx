@@ -1,10 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
-import { Motor } from '../types';
+import { CatalogAnimation, Motor } from '../types';
 import { formatRupiah } from '../services/api';
+import {
+  DEFAULT_CATALOG_ANIMATION,
+  DEFAULT_CATALOG_ANIMATION_SPEED,
+  isCatalogAnimation,
+  normalizeCatalogAnimationSpeed,
+} from '../catalogAnimation';
 
 interface CatalogSectionProps {
   motors: Motor[];
+  animation?: CatalogAnimation;
+  animationSpeed?: number;
   compareList: Motor[];
   onToggleCompare: (motor: Motor) => void;
   onOpenSimulator: (motor: Motor) => void;
@@ -13,17 +21,30 @@ interface CatalogSectionProps {
 
 interface CatalogMotorImageProps {
   motor: Motor;
+  animation: CatalogAnimation;
+  animationSpeed: number;
   isPreviewOpen: boolean;
   onPreview: (images: string[], index: number, alt: string) => void;
 }
 
-const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({ motor, isPreviewOpen, onPreview }) => {
+const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
+  motor,
+  animation,
+  animationSpeed,
+  isPreviewOpen,
+  onPreview,
+}) => {
   const images = useMemo(
     () => Array.from(new Set([...(motor.images || []), motor.image].filter((image) => Boolean(image?.trim())))),
     [motor.images, motor.image],
   );
   const [imageIndex, setImageIndex] = useState(0);
   const currentImage = images[imageIndex] || images[0] || motor.image;
+  const cycleSpeed = normalizeCatalogAnimationSpeed(animationSpeed);
+  const selectedAnimation = isCatalogAnimation(animation) ? animation : DEFAULT_CATALOG_ANIMATION;
+  const animationStyle: React.CSSProperties & { '--catalog-animation-duration': string } = {
+    '--catalog-animation-duration': `${Math.min(cycleSpeed * 0.3, 3)}s`,
+  };
 
   useEffect(() => {
     setImageIndex(0);
@@ -34,10 +55,10 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({ motor, isPreviewO
 
     const interval = window.setInterval(() => {
       setImageIndex((currentIndex) => (currentIndex + 1) % images.length);
-    }, 3000);
+    }, cycleSpeed * 1000);
 
     return () => window.clearInterval(interval);
-  }, [images.length, isPreviewOpen]);
+  }, [cycleSpeed, images.length, isPreviewOpen]);
 
   return (
     <button
@@ -50,7 +71,9 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({ motor, isPreviewO
         key={currentImage}
         src={currentImage}
         alt={`${motor.name} foto ${imageIndex + 1}`}
-        className="catalog-photo-change max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
+        className="catalog-photo-animation max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
+        data-catalog-animation={selectedAnimation}
+        style={animationStyle}
         onError={(event) => {
           event.currentTarget.closest('.catalog-card')?.classList.add('catalog-card-hidden');
         }}
@@ -83,6 +106,8 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({ motor, isPreviewO
 
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   motors,
+  animation = DEFAULT_CATALOG_ANIMATION,
+  animationSpeed = DEFAULT_CATALOG_ANIMATION_SPEED,
   compareList,
   onToggleCompare,
   onOpenSimulator,
@@ -246,6 +271,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                   <div>
                     <CatalogMotorImage
                       motor={motor}
+                      animation={animation}
+                      animationSpeed={animationSpeed}
                       isPreviewOpen={Boolean(selectedGallery)}
                       onPreview={(images, index, alt) => setSelectedGallery({ images, index, alt })}
                     />
