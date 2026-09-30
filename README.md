@@ -23,4 +23,4 @@ View your app in AI Studio: https://ai.studio/apps/bd629d44-3672-4e6f-ad5a-0adb3
 
 ## Foto katalog motor
 
-Admin panel dan katalog tidak membatasi jumlah motor; banyaknya motor yang dapat disimpan tetap bergantung pada kapasitas penyimpanan server. Setiap motor mendukung hingga 80 foto. Foto pertama menjadi cover kartu katalog, sedangkan foto lainnya dapat dilihat melalui galeri. Struktur data dan contoh 80 foto tersedia di `schemas/katalog-motor.schema.json` dan `examples/katalog-motor.json`.
+Admin panel dan katalog tidak membatasi jumlah motor; banyaknya motor yang dapat disimpan tetap bergantung pada kapasitas penyimpanan server. Setiap motor mendukung hingga 80 foto. Foto pertama menjadi cover kartu katalog, sedangkan foto lainnya dapat dilihat melalui galeri. Panel admin menyediakan 10 gaya animasi foto dan pengaturan jeda pergantian 3-15 detik. Struktur data dan contoh foto tersedia di `schemas/katalog-motor.schema.json` dan `examples/katalog-motor.json`.

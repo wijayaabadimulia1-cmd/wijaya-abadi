@@ -32,6 +32,14 @@ import {
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { MAX_MOTOR_IMAGES } from '../constants';
+import {
+  CATALOG_ANIMATION_OPTIONS,
+  DEFAULT_CATALOG_ANIMATION,
+  DEFAULT_CATALOG_ANIMATION_SPEED,
+  MAX_CATALOG_ANIMATION_SPEED,
+  MIN_CATALOG_ANIMATION_SPEED,
+  normalizeCatalogAnimationSpeed,
+} from '../catalogAnimation';
 import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface AdminPanelProps {
@@ -1070,6 +1078,79 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
 
                 <form onSubmit={handleSaveSettings} className="bg-zinc-900/50 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-5">
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4 sm:p-5 space-y-4">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-200">Animasi Foto Katalog</h3>
+                      <p className="mt-1 text-[11px] text-zinc-500">Pilih gaya pergantian foto dan jeda tampil tiap foto. Simpan bersama pengaturan di bawah.</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                      {CATALOG_ANIMATION_OPTIONS.map((option) => {
+                        const selectedAnimation = settings.catalogAnimation || DEFAULT_CATALOG_ANIMATION;
+                        const animationSpeed = normalizeCatalogAnimationSpeed(
+                          settings.catalogAnimationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED,
+                        );
+                        const isSelected = selectedAnimation === option.value;
+                        const previewStyle: React.CSSProperties & { '--catalog-animation-duration': string } = {
+                          '--catalog-animation-duration': `${Math.min(animationSpeed * 0.3, 3)}s`,
+                        };
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => setSettings({ ...settings, catalogAnimation: option.value })}
+                            className={`rounded-xl border p-2 text-left transition-colors ${isSelected ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-900 hover:border-white/25'}`}
+                          >
+                            <div
+                              className="catalog-animation-preview mb-2 flex h-14 items-center justify-center overflow-hidden rounded-lg bg-zinc-800"
+                              data-catalog-animation={option.value}
+                              style={previewStyle}
+                            >
+                              {motors.find((motor) => motor.image)?.image ? (
+                                <img
+                                  src={motors.find((motor) => motor.image)?.image}
+                                  alt=""
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <span className="text-[10px] font-bold text-zinc-400">Foto motor</span>
+                              )}
+                            </div>
+                            <span className="block text-[11px] font-bold text-white">{option.label}</span>
+                            <span className="mt-0.5 block text-[10px] text-zinc-500">{option.description}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="rounded-xl border border-white/10 bg-zinc-900 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <label htmlFor="catalog-animation-speed" className="text-xs font-semibold text-zinc-200">
+                          Jeda tampil setiap foto
+                        </label>
+                        <span className="text-xs font-bold text-red-400">
+                          {normalizeCatalogAnimationSpeed(settings.catalogAnimationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} detik
+                        </span>
+                      </div>
+                      <input
+                        id="catalog-animation-speed"
+                        type="range"
+                        min={MIN_CATALOG_ANIMATION_SPEED}
+                        max={MAX_CATALOG_ANIMATION_SPEED}
+                        step="1"
+                        value={normalizeCatalogAnimationSpeed(settings.catalogAnimationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)}
+                        onChange={(event) => setSettings({ ...settings, catalogAnimationSpeed: Number(event.target.value) })}
+                        className="w-full accent-red-600"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-500">
+                        <span>{MIN_CATALOG_ANIMATION_SPEED} detik (lebih cepat)</span>
+                        <span>{MAX_CATALOG_ANIMATION_SPEED} detik (lebih lambat)</span>
+                      </div>
+                    </div>
+                  </section>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-zinc-300 uppercase mb-1">
