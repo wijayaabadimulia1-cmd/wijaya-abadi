@@ -34,6 +34,7 @@ import {
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { MAX_MOTOR_IMAGES } from '../constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
   DEFAULT_CATALOG_ANIMATION,
@@ -51,7 +52,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'customization' | 'security' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'seo' | 'customization' | 'security' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -74,6 +75,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [adminTheme, setAdminTheme] = useState<'dark' | 'light'>(() => (
     localStorage.getItem('hwa-admin-theme') === 'light' ? 'light' : 'dark'
   ));
+  const [isCheckingSeo, setIsCheckingSeo] = useState(false);
+  const [seoFileChecks, setSeoFileChecks] = useState<{ sitemap: boolean | null; robots: boolean | null }>({ sitemap: null, robots: null });
   const backupInputRef = useRef<HTMLInputElement>(null);
 
   // Modals for CRUD
@@ -360,6 +363,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
 
+  const seoTitle = settings?.seoTitle || DEFAULT_SEO_TITLE;
+  const seoDescription = settings?.seoDescription || DEFAULT_SEO_DESCRIPTION;
+  const seoFocusKeyword = settings?.seoFocusKeyword || '';
+  const seoKeywords = settings?.seoKeywords || DEFAULT_SEO_KEYWORDS;
+  const seoCanonicalUrl = settings?.seoCanonicalUrl || DEFAULT_SEO_CANONICAL_URL;
+  const seoRobots = settings?.seoRobots || DEFAULT_SEO_ROBOTS;
+  const focusKeywordLower = seoFocusKeyword.trim().toLocaleLowerCase();
+  let canonicalUsesHttps = false;
+  try {
+    canonicalUsesHttps = new URL(seoCanonicalUrl).protocol === 'https:';
+  } catch {
+    canonicalUsesHttps = false;
+  }
+  const seoChecks = [
+    { label: 'Judul SEO 30-60 karakter', passed: seoTitle.length >= 30 && seoTitle.length <= 60, detail: `${seoTitle.length} karakter` },
+    { label: 'Deskripsi 120-160 karakter', passed: seoDescription.length >= 120 && seoDescription.length <= 160, detail: `${seoDescription.length} karakter` },
+    { label: 'Focus keyword ada di judul dan deskripsi', passed: Boolean(focusKeywordLower) && seoTitle.toLocaleLowerCase().includes(focusKeywordLower) && seoDescription.toLocaleLowerCase().includes(focusKeywordLower), detail: seoFocusKeyword || 'Belum diatur' },
+    { label: 'Canonical menggunakan HTTPS', passed: canonicalUsesHttps, detail: seoCanonicalUrl },
+    { label: 'Robots mengizinkan index dan follow', passed: /\bindex\b/i.test(seoRobots) && /\bfollow\b/i.test(seoRobots), detail: seoRobots },
+    { label: 'Sitemap tersedia dan berformat XML', passed: seoFileChecks.sitemap === true, detail: seoFileChecks.sitemap === null ? 'Belum diperiksa' : seoFileChecks.sitemap ? 'Valid' : 'Perlu diperbaiki' },
+    { label: 'Robots.txt memuat deklarasi Sitemap', passed: seoFileChecks.robots === true, detail: seoFileChecks.robots === null ? 'Belum diperiksa' : seoFileChecks.robots ? 'Valid' : 'Perlu diperbaiki' },
+  ];
+  const seoScore = Math.round((seoChecks.filter((check) => check.passed).length / seoChecks.length) * 100);
+
   const approvedTestimonials = testimonials.filter((item) => item.approved !== false);
   const pendingTestimonials = testimonials.filter((item) => item.approved === false);
   const totalReviewRating = testimonials.reduce((sum, item) => sum + Number(item.rating || 0), 0);
@@ -480,6 +507,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const handleCheckSeoFiles = async () => {
+    setIsCheckingSeo(true);
+    try {
+      const [sitemapResponse, robotsResponse] = await Promise.all([
+        fetch('/sitemap.xml', { cache: 'no-store' }),
+        fetch('/robots.txt', { cache: 'no-store' }),
+      ]);
+      const [sitemapContent, robotsContent] = await Promise.all([
+        sitemapResponse.text(),
+        robotsResponse.text(),
+      ]);
+      setSeoFileChecks({
+        sitemap: sitemapResponse.ok && sitemapContent.includes('<urlset'),
+        robots: robotsResponse.ok && robotsContent.toLowerCase().includes('sitemap:'),
+      });
+    } catch {
+      setSeoFileChecks({ sitemap: false, robots: false });
+    } finally {
+      setIsCheckingSeo(false);
+    }
+  };
+
   return (
     <div className={`admin-panel min-h-screen flex flex-col font-sans ${adminTheme === 'light' ? 'admin-theme-light bg-zinc-50 text-zinc-900' : 'bg-zinc-950 text-zinc-100'}`}>
       {/* Toast Notification */}
@@ -574,6 +623,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
+              { id: 'seo', label: 'Rank Math SEO', icon: Search },
               { id: 'customization', label: 'Customisasi', icon: SettingsIcon },
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
@@ -1475,6 +1525,112 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
                 </form>
               </div>
+            )}
+
+            {activeTab === 'seo' && settings && (
+              <form onSubmit={handleSaveSettings} className="space-y-6 animate-in fade-in duration-300">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Rank Math SEO</h2>
+                    <p className="mt-1 text-xs text-zinc-400">Kelola metadata pencarian dan pantau kesiapan SEO halaman utama.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleCheckSeoFiles()}
+                    disabled={isCheckingSeo}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    <RotateCcw className={`h-3.5 w-3.5 ${isCheckingSeo ? 'animate-spin' : ''}`} />
+                    {isCheckingSeo ? 'Memeriksa...' : 'Periksa sitemap & robots'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+                  <div className="space-y-5">
+                    <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                      <h3 className="text-sm font-bold text-white">Metadata halaman utama</h3>
+                      <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
+                        Judul SEO
+                        <input value={settings.seoTitle ?? DEFAULT_SEO_TITLE} onChange={(event) => setSettings({ ...settings, seoTitle: event.target.value })} maxLength={70} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Judul halaman yang tampil di Google" />
+                        <span className="block text-right text-[11px] text-zinc-500">{seoTitle.length} / 60 karakter ideal</span>
+                      </label>
+                      <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
+                        Deskripsi SEO
+                        <textarea rows={4} value={settings.seoDescription ?? DEFAULT_SEO_DESCRIPTION} onChange={(event) => setSettings({ ...settings, seoDescription: event.target.value })} maxLength={200} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Ringkas isi halaman untuk hasil pencarian" />
+                        <span className="block text-right text-[11px] text-zinc-500">{seoDescription.length} / 160 karakter ideal</span>
+                      </label>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
+                          Focus keyword
+                          <input value={settings.seoFocusKeyword || ''} onChange={(event) => setSettings({ ...settings, seoFocusKeyword: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="contoh: kredit motor Honda" />
+                        </label>
+                        <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
+                          Kata kunci tambahan
+                          <input value={settings.seoKeywords ?? DEFAULT_SEO_KEYWORDS} onChange={(event) => setSettings({ ...settings, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan kata kunci dengan koma" />
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
+                          URL canonical
+                          <input type="url" value={settings.seoCanonicalUrl ?? DEFAULT_SEO_CANONICAL_URL} onChange={(event) => setSettings({ ...settings, seoCanonicalUrl: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
+                        </label>
+                        <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
+                          Robots
+                          <select value={settings.seoRobots ?? DEFAULT_SEO_ROBOTS} onChange={(event) => setSettings({ ...settings, seoRobots: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+                            <option value="index, follow">Index, follow</option>
+                            <option value="noindex, follow">Noindex, follow</option>
+                            <option value="index, nofollow">Index, nofollow</option>
+                            <option value="noindex, nofollow">Noindex, nofollow</option>
+                          </select>
+                        </label>
+                      </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                      <h3 className="mb-3 text-sm font-bold text-white">Pratinjau hasil pencarian</h3>
+                      <div className="max-w-2xl rounded-lg border border-white/10 bg-zinc-950 p-4">
+                        <p className="truncate text-xs text-emerald-400">{seoCanonicalUrl}</p>
+                        <h4 className="mt-1 line-clamp-2 text-lg font-medium text-sky-300">{seoTitle}</h4>
+                        <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-zinc-300">{seoDescription}</p>
+                      </div>
+                      <button type="submit" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500">
+                        <Save className="h-4 w-4" />
+                        Simpan metadata SEO
+                      </button>
+                    </section>
+                  </div>
+
+                  <aside className="space-y-4">
+                    <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-1" style={{ background: `conic-gradient(#ef4444 ${seoScore * 3.6}deg, #27272a 0deg)` }}>
+                          <div className="grid h-full w-full place-items-center rounded-full bg-zinc-950 text-xl font-black text-white">{seoScore}</div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-white">SEO Score</h3>
+                          <p className="mt-1 text-xs text-zinc-400">{seoChecks.filter((check) => check.passed).length} dari {seoChecks.length} pemeriksaan lolos</p>
+                        </div>
+                      </div>
+                      <div className="mt-5 space-y-3">
+                        {seoChecks.map((check) => (
+                          <div key={check.label} className="flex items-start gap-2.5 text-xs">
+                            <CheckCircle className={`mt-0.5 h-4 w-4 shrink-0 ${check.passed ? 'text-emerald-400' : 'text-zinc-600'}`} />
+                            <div className="min-w-0">
+                              <p className={check.passed ? 'text-zinc-200' : 'text-zinc-400'}>{check.label}</p>
+                              <p className="mt-0.5 break-words text-[11px] text-zinc-500">{check.detail}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                    <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4 text-xs">
+                      <h3 className="font-bold text-white">Berkas SEO</h3>
+                      <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="mt-3 block text-sky-300 hover:text-sky-200">Buka sitemap.xml</a>
+                      <a href="/robots.txt" target="_blank" rel="noreferrer" className="mt-2 block text-sky-300 hover:text-sky-200">Buka robots.txt</a>
+                    </section>
+                  </aside>
+                </div>
+              </form>
             )}
 
             {activeTab === 'customization' && settings && (

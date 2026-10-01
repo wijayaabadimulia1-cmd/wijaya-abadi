@@ -14,6 +14,7 @@ import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { AdminPanel } from './components/AdminPanel';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from './constants';
 
 export default function App() {
   const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
@@ -33,6 +34,11 @@ export default function App() {
       'Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.',
     footerText:
       'Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.',
+    seoTitle: DEFAULT_SEO_TITLE,
+    seoDescription: DEFAULT_SEO_DESCRIPTION,
+    seoKeywords: DEFAULT_SEO_KEYWORDS,
+    seoCanonicalUrl: DEFAULT_SEO_CANONICAL_URL,
+    seoRobots: DEFAULT_SEO_ROBOTS,
     websiteTemplate: 'classic',
     catalogAnimation: DEFAULT_CATALOG_ANIMATION,
     catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
@@ -114,6 +120,44 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('hwa-color-mode', colorMode);
   }, [colorMode]);
+
+  useEffect(() => {
+    if (isAdminOpen) return;
+
+    const title = settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
+    const description = settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
+    const keywords = settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
+    const canonicalUrl = settings.seoCanonicalUrl?.trim() || DEFAULT_SEO_CANONICAL_URL;
+    const robots = settings.seoRobots?.trim() || DEFAULT_SEO_ROBOTS;
+    document.title = title;
+
+    const setMeta = (attribute: 'name' | 'property', key: string, content: string) => {
+      let meta = document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${key}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(attribute, key);
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
+
+    setMeta('name', 'description', description);
+    setMeta('name', 'keywords', keywords);
+    setMeta('name', 'robots', robots);
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:url', canonicalUrl);
+    setMeta('name', 'twitter:title', title);
+    setMeta('name', 'twitter:description', description);
+
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalUrl;
+  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle]);
 
   // Comparison toggle handler
   const handleToggleCompare = (motor: Motor) => {

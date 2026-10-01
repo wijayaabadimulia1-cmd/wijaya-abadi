@@ -115,6 +115,12 @@ export interface DealerSettings {
   heroAnimation?: HeroAnimation;
   heroAnimationSpeed?: number;
   footerText: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoFocusKeyword?: string;
+  seoKeywords?: string;
+  seoCanonicalUrl?: string;
+  seoRobots?: string;
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
   catalogAnimationSpeed?: number;
