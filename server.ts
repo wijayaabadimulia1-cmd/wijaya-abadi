@@ -4,7 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
-import { MAX_MOTOR_IMAGES } from './src/constants';
+import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES } from './src/constants';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
@@ -411,25 +411,48 @@ async function startServer() {
   });
 
   // File Upload (Base64)
-  app.post('/api/upload', (req, res) => {
+  app.post('/api/upload', express.raw({ type: ['image/*', 'application/octet-stream'], limit: MAX_IMAGE_UPLOAD_BYTES }), (req, res) => {
     try {
-      const { filename, base64Data } = req.body;
-      if (!base64Data) {
-        return res.status(400).json({ error: 'base64Data is required' });
-      }
-      const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
       let buffer: Buffer;
       let ext = 'png';
+      let filename = '';
 
-      if (matches && matches.length === 3) {
-        const mimeType = matches[1];
-        ext = mimeType.split('/')[1] || 'png';
-        buffer = Buffer.from(matches[2], 'base64');
+      if (Buffer.isBuffer(req.body)) {
+        const mimeType = String(req.headers['content-type'] || '').split(';')[0];
+        try {
+          filename = decodeURIComponent(String(req.headers['x-file-name'] || ''));
+        } catch {
+          filename = '';
+        }
+        const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
+        const knownImageExtension = ['avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp'].includes(fileExtension);
+        if (!mimeType.startsWith('image/') && !(mimeType === 'application/octet-stream' && knownImageExtension)) {
+          return res.status(415).json({ error: 'File yang diunggah harus berupa gambar' });
+        }
+        buffer = req.body;
+        ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
       } else {
-        buffer = Buffer.from(base64Data, 'base64');
+        const { filename: legacyFilename, base64Data } = req.body || {};
+        if (!base64Data) {
+          return res.status(400).json({ error: 'base64Data is required' });
+        }
+        filename = legacyFilename || '';
+        const matches = String(base64Data).match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const mimeType = matches[1];
+          ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+          buffer = Buffer.from(matches[2], 'base64');
+        } else {
+          buffer = Buffer.from(base64Data, 'base64');
+        }
       }
 
-      const safeName = (filename || `upload-${Date.now()}.${ext}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+      if (buffer.length === 0) {
+        return res.status(400).json({ error: 'File gambar kosong' });
+      }
+
+      const requestedName = (filename || `upload.${ext}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+      const safeName = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${requestedName}`;
       const targetPath = path.join(UPLOADS_DIR, safeName);
       fs.writeFileSync(targetPath, buffer);
 

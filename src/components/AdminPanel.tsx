@@ -264,7 +264,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   const handleFileUploadMotor = async (e: React.ChangeEvent<HTMLInputElement>, imageIndex: number) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
     try {
       showToast('Mengunggah gambar...');
@@ -278,6 +279,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       showToast('Gambar berhasil diunggah!');
     } catch (err: any) {
       alert('Gagal upload gambar: ' + err.message);
+    } finally {
+      input.value = '';
     }
   };
 

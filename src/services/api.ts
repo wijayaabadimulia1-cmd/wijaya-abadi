@@ -1,4 +1,5 @@
 import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog } from '../types';
+import { MAX_IMAGE_UPLOAD_BYTES } from '../constants';
 
 const ADMIN_TOKEN_KEY = 'hwa-admin-token';
 
@@ -267,32 +268,35 @@ export const api = {
 
   // Upload image
   async uploadImage(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result as string;
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: adminHeaders(),
-            body: JSON.stringify({
-              filename: file.name,
-              base64Data,
-            }),
-          });
-          const json = await res.json();
-          if (json.url) {
-            resolve(json.url);
-          } else {
-            reject(new Error(json.error || 'Upload gagal'));
-          }
-        } catch (e) {
-          reject(e);
-        }
-      };
-      reader.onerror = (e) => reject(e);
-      reader.readAsDataURL(file);
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      throw new Error('Ukuran gambar melebihi batas 100 MB. Kompres gambar lalu coba lagi.');
+    }
+    const contentTypeByExtension: Record<string, string> = {
+      avif: 'image/avif',
+      gif: 'image/gif',
+      jpeg: 'image/jpeg',
+      jpg: 'image/jpeg',
+      png: 'image/png',
+      svg: 'image/svg+xml',
+      webp: 'image/webp',
+    };
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const contentType = file.type || contentTypeByExtension[extension] || 'application/octet-stream';
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${file.name}`;
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        ...adminHeaders(),
+        'Content-Type': contentType,
+        'X-File-Name': encodeURIComponent(uniqueName),
+      },
+      body: file,
     });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.url) {
+      throw new Error(result.error || `Upload gagal (HTTP ${res.status})`);
+    }
+    return result.url;
   },
 
   // Export / Download all data
