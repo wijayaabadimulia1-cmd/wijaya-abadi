@@ -2,6 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent } from 'lucide-react';
 import { Motor, DealerSettings } from '../types';
 import { formatRupiah } from '../services/api';
+import fifPriceList from '../data/fifPriceList.json';
+
+type FIFPriceListModel = { price: number; options: Record<string, number[]> };
+const FIF_PRICE_LIST_MODELS = fifPriceList.models as Record<string, FIFPriceListModel>;
+const FIF_TENORS: number[] = fifPriceList.tenors;
 
 interface CreditSimulatorProps {
   motors: Motor[];
@@ -32,27 +37,34 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const activeMotor = useMemo(() => {
     return motors.find((m) => m.id === currentMotorId) || motors[0];
   }, [motors, currentMotorId]);
+  const priceListModel = activeMotor ? FIF_PRICE_LIST_MODELS[activeMotor.name] : undefined;
 
   const motorPrice = useMemo(() => {
     if (!activeMotor) return 20000000;
-    return activeMotor.numericPrice || Number(String(activeMotor.price).replace(/[^0-9]/g, '')) || 20000000;
-  }, [activeMotor]);
+    return priceListModel?.price || activeMotor.numericPrice || Number(String(activeMotor.price).replace(/[^0-9]/g, '')) || 20000000;
+  }, [activeMotor, priceListModel]);
 
   // DP percentage (default 20%)
   const [dpPercent, setDpPercent] = useState<number>(20);
-  // Tenor in months: 11, 23, 29, 35 (standard Indonesian motorcycle leasing options: FIF, Adira, OTO)
+  // Tenor options follow the FIF price list.
   const [tenorMonths, setTenorMonths] = useState<number>(35);
   // Flat annual interest rate estimate (typical 8.5% - 11%)
   const [annualRate, setAnnualRate] = useState<number>(9.5);
 
   // Computed values
   const rawDpAmount = (motorPrice * dpPercent) / 100;
-  const dpAmount = Math.min(motorPrice, Math.ceil(rawDpAmount / 100_000) * 100_000);
+  const priceListOption = priceListModel?.options[String(dpPercent)];
+  const dpAmount = priceListOption?.[0] ?? Math.min(motorPrice, Math.ceil(rawDpAmount / 500_000) * 500_000);
   const loanPrincipal = Math.max(0, motorPrice - dpAmount);
   const years = tenorMonths / 12;
   const totalInterest = loanPrincipal * (annualRate / 100) * years;
-  const totalLoanRepay = loanPrincipal + totalInterest;
-  const monthlyInstallment = Math.round(totalLoanRepay / tenorMonths);
+  const estimatedTotalLoanRepay = loanPrincipal + totalInterest;
+  const tenorIndex = FIF_TENORS.indexOf(tenorMonths) + 1;
+  const listedInstallment = tenorIndex > 0 ? priceListOption?.[tenorIndex] : undefined;
+  const monthlyInstallment = listedInstallment ?? Math.round(estimatedTotalLoanRepay / tenorMonths);
+  const totalLoanRepay = listedInstallment !== undefined
+    ? listedInstallment * tenorMonths
+    : estimatedTotalLoanRepay;
   const totalCustomerSpend = dpAmount + totalLoanRepay;
 
   const handleApply = () => {
@@ -102,7 +114,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                 >
                   {motors.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} — ({formatRupiah(m.price)})
+                      {m.name} — ({formatRupiah(FIF_PRICE_LIST_MODELS[m.name]?.price ?? m.price)})
                     </option>
                   ))}
                 </select>
@@ -165,8 +177,8 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                   <span className="text-sm font-bold text-zinc-200">{tenorMonths} Bulan</span>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2.5">
-                  {[11, 23, 29, 35].map((months) => (
+                <div className="grid grid-cols-5 gap-2">
+                  {[11, 17, 23, 29, 35].map((months) => (
                     <button
                       key={months}
                       type="button"
@@ -179,7 +191,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                     >
                       <div className="text-sm">{months} bln</div>
                       <div className="text-[10px] opacity-75 font-normal">
-                        {months >= 35 ? '3 Tahun' : months >= 23 ? '2 Tahun' : '1 Tahun'}
+                        {months === 11 ? '1 Tahun' : months === 17 ? '1,5 Tahun' : months === 23 ? '2 Tahun' : months === 29 ? '2,5 Tahun' : '3 Tahun'}
                       </div>
                     </button>
                   ))}

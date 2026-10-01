@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
 import { CatalogAnimation, Motor } from '../types';
 import { formatRupiah } from '../services/api';
+import fifPriceList from '../data/fifPriceList.json';
 import {
   DEFAULT_CATALOG_ANIMATION,
   DEFAULT_CATALOG_ANIMATION_SPEED,
@@ -26,6 +27,8 @@ interface CatalogMotorImageProps {
   isPreviewOpen: boolean;
   onPreview: (images: string[], index: number, alt: string) => void;
 }
+
+const FIF_PRICE_LIST_MODELS = fifPriceList.models as Record<string, { price: number }>;
 
 const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
   motor,
@@ -329,7 +332,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                           Mulai dari OTR Bandung
                         </span>
                         <div className="text-2xl font-black text-white mt-0.5">
-                          {formatRupiah(motor.price)}
+                          {formatRupiah(FIF_PRICE_LIST_MODELS[motor.name]?.price ?? motor.price)}
                         </div>
                       </div>
                     </div>
