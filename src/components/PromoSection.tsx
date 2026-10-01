@@ -81,7 +81,7 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                     className="promo-action w-full py-3 px-4 bg-zinc-800 hover:bg-red-600 text-white font-bold text-xs rounded-xl border border-white/10 hover:border-red-500 transition-all flex items-center justify-center gap-2 shadow-md"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    <span>Klaim Promo via WhatsApp</span>
+                    <span>Klaim {promo.title} via WhatsApp</span>
                   </a>
                 </div>
               </div>

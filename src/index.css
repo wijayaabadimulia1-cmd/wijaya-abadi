@@ -964,6 +964,26 @@ body {
   border-radius: 0.5rem;
 }
 
+.website-shell :where(a, button, input, select, textarea, .catalog-card, .promo-card) {
+  transition-property: transform, opacity !important;
+}
+
+.website-shell nav a::after {
+  transition-property: transform !important;
+}
+
+.website-shell #katalog .bg-red-600\/10 {
+  background-color: rgba(127, 29, 29, 0.35) !important;
+}
+
+.website-shell #katalog .text-red-400 {
+  color: #fca5a5 !important;
+}
+
+.website-shell.site-mode-light #katalog .text-red-400 {
+  color: #991b1b !important;
+}
+
 @media (min-width: 1024px) {
   .website-shell.website-template-showroom #home .hero-main-title,
   .website-shell.website-template-showroom #home .hero-highlight-text {

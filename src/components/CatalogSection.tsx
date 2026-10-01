@@ -204,10 +204,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
+                aria-label="Cari motor berdasarkan nama, deskripsi, atau spesifikasi"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari Beat, PCX, Vario, 160cc..."
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/80 border border-white/10 focus:border-red-500 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-500 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/80 border border-white/10 focus:border-red-500 rounded-xl text-sm text-white placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-red-500"
               />
               {searchQuery && (
                 <button
@@ -223,6 +224,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <span className="text-xs text-zinc-400 whitespace-nowrap">Urutkan:</span>
               <select
+                aria-label="Urutkan katalog motor"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="bg-zinc-900 border border-white/10 rounded-xl text-xs text-zinc-300 py-2.5 px-3 focus:outline-none focus:border-red-500"
@@ -243,7 +245,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${
                     isActive
                       ? 'bg-red-600 text-white shadow-lg shadow-red-900/30 border border-red-500'
                       : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-white/10'

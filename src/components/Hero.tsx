@@ -126,7 +126,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-white text-xs font-bold">100% Unit AHM</h4>
+                  <p className="text-white text-xs font-bold">100% Unit AHM</p>
                   <p className="text-zinc-400 text-[11px]">Garansi Rangka 5 Th</p>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   <Wrench className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-white text-xs font-bold">Bengkel AHASS</h4>
+                  <p className="text-white text-xs font-bold">Bengkel AHASS</p>
                   <p className="text-zinc-400 text-[11px]">Teknisi Bersertifikat</p>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-white text-xs font-bold">Kredit Instan</h4>
+                  <p className="text-white text-xs font-bold">Kredit Instan</p>
                   <p className="text-zinc-400 text-[11px]">Approval 1 Hari</p>
                 </div>
               </div>
@@ -197,7 +197,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
-                      <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-1.5">
+                      <div className="absolute bottom-14 left-0 right-0 z-10 flex justify-center gap-1">
                         {heroImages.map((image, index) => (
                           <button
                             key={`${image}-${index}`}
@@ -205,8 +205,10 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                             onClick={() => setActiveSlide(index)}
                             aria-label={`Tampilkan foto hero ${index + 1}`}
                             aria-current={index === activeSlide}
-                            className={`h-2 rounded-full transition-all ${index === activeSlide ? 'w-5 bg-white' : 'w-2 bg-white/50'}`}
-                          />
+                            className="flex h-8 w-8 items-center justify-center rounded-full"
+                          >
+                            <span className={`h-2 w-5 rounded-full bg-white ${index === activeSlide ? 'scale-x-100' : 'scale-x-50 opacity-60'} transition-transform`} />
+                          </button>
                         ))}
                       </div>
                     </>

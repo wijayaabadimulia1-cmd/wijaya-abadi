@@ -1,0 +1,24 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Honda Wijaya Abadi Mulia Motor",
+    "documentationUrl": "https://kreditmotorhonda.tech/"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:kreditmotorhonda.tech:website:showroom",
+      "displayName": "Honda Wijaya Abadi Mulia Motor website",
+      "type": "text/html",
+      "url": "https://kreditmotorhonda.tech/",
+      "description": "Authorized Honda dealer website for browsing motorcycles, checking Bandung OTR prices, estimating credit payments, viewing promotions, and contacting the showroom.",
+      "tags": ["Honda", "motorcycle", "Bandung", "catalog", "credit simulation", "dealer"],
+      "capabilities": ["browse-motorcycle-catalog", "estimate-credit-installments", "view-promotions", "contact-dealer"],
+      "representativeQueries": [
+        "Show Honda motorcycles and their listed prices in Bandung.",
+        "Estimate the down payment and monthly installment for a Honda motorcycle."
+      ],
+      "version": "1.0.0",
+      "updatedAt": "2026-10-01T00:00:00Z"
+    }
+  ]
+}

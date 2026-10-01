@@ -1,0 +1,20 @@
+# Kredit Motor Honda
+
+> Honda Wijaya Abadi Mulia Motor is an authorized Honda motorcycle dealer in Bandung, Indonesia. The website provides a motorcycle catalog, estimated credit simulations, current promotions, and dealer contact details.
+
+Use the catalog for current model names, descriptions, specifications, and listed prices. Credit calculations are estimates; final rates and installments are confirmed by the financing provider.
+
+## Public Pages
+
+- [Homepage](https://kreditmotorhonda.tech/): Dealer information, motorcycle catalog, promotions, credit simulator, customer reviews, and contact details.
+- [Motorcycle catalog](https://kreditmotorhonda.tech/#katalog): Browse models, specifications, and listed Bandung OTR prices.
+- [Credit simulator](https://kreditmotorhonda.tech/#simulasi): Estimate down payment and monthly installments for a selected motorcycle.
+- [Promotions](https://kreditmotorhonda.tech/#promo): Review current Honda offers and their terms.
+- [Dealer contact](https://kreditmotorhonda.tech/#kontak): Address, phone, business hours, and map.
+
+## Contact
+
+- Dealer: Honda Wijaya Abadi Mulia Motor
+- Address: Jl. Gegerkalong Hilir No.68, Gegerkalong, Kec. Sukasari, Kota Bandung, Jawa Barat 40152
+- Phone and WhatsApp: +62 821-2935-8899
+- Email: wijayaabadimulia1@gmail.com

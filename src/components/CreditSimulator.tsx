@@ -90,10 +90,11 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
             <div className="lg:col-span-7 space-y-6">
               {/* Select Motor */}
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                <label htmlFor="simulator-motor" className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
                   Pilih Unit Motor Honda
                 </label>
                 <select
+                  id="simulator-motor"
                   value={currentMotorId}
                   onChange={(e) => setCurrentMotorId(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500 font-medium"
@@ -115,7 +116,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
               {/* Down Payment (DP) */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                  <label htmlFor="simulator-dp-percent" className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                     Uang Muka (DP)
                   </label>
                   <span className="text-sm font-bold text-red-400">
@@ -125,6 +126,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
 
                 {/* Range Slider */}
                 <input
+                  id="simulator-dp-percent"
                   type="range"
                   min="10"
                   max="60"

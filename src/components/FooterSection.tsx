@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare, Bike, ArrowUp } from 'lucide-react';
 import { DealerSettings } from '../types';
 
@@ -7,7 +7,9 @@ interface FooterSectionProps {
 }
 
 export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || 'Honda Wijaya Abadi Mulia Motor, Bandung')}`;
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.'
   )}`;
@@ -85,14 +87,37 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
 
             {/* Google Maps Embed Right */}
             <div className="lg:col-span-6 h-72 sm:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-lg relative bg-zinc-950">
-              <iframe
-                title="Lokasi Honda Wijaya Abadi Mulia Motor"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.164321689104!2d107.58552687587637!3d-6.870908867228833!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e69007f59d51%3A0xe2be5ba106bb403c!2sJl.%20Gegerkalong%20Hilir%20No.68%2C%20Gegerkalong%2C%20Kec.%20Sukasari%2C%20Kota%20Bandung%2C%20Jawa%20Barat%2040152!5e0!3m2!1sid!2sid!4v1710000000000!5m2!1sid!2sid"
-                className="w-full h-full border-0 filter grayscale contrast-125 opacity-90 hover:grayscale-0 transition-all duration-500"
-                allowFullScreen={false}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+              {isMapLoaded ? (
+                <iframe
+                  title="Lokasi Honda Wijaya Abadi Mulia Motor"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.164321689104!2d107.58552687587637!3d-6.870908867228833!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e69007f59d51%3A0xe2be5ba106bb403c!2sJl.%20Gegerkalong%20Hilir%20No.68%2C%20Gegerkalong%2C%20Kec.%20Sukasari%2C%20Kota%20Bandung%2C%20Jawa%20Barat%2040152!5e0!3m2!1sid!2sid!4v1710000000000!5m2!1sid!2sid"
+                  className="h-full w-full border-0"
+                  allowFullScreen={false}
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-4 bg-zinc-900 px-6 text-center">
+                  <MapPin className="h-8 w-8 text-red-400" aria-hidden="true" />
+                  <p className="max-w-md text-sm text-zinc-300">{settings.address || 'Honda Wijaya Abadi Mulia Motor, Bandung'}</p>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsMapLoaded(true)}
+                      className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Tampilkan peta di sini
+                    </button>
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Buka di Google Maps
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
