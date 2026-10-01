@@ -2,10 +2,25 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /api
 Disallow: /api/
-Disallow: /api/admin/
-Disallow: /api/login
+Disallow: /*.json$
+Disallow: /tmp
+Disallow: /tmp/
 
-Crawl-delay: 1
+# Allow CSS, JavaScript, and images
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.gif$
+Allow: /*.webp$
+Allow: /*.svg$
 
 Sitemap: https://kreditmotorhonda.tech/sitemap.xml
+
+Crawl-delay: 1
