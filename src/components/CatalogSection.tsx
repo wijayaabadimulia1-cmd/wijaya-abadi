@@ -279,11 +279,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
                     {/* Content area */}
                     <div className="p-6">
-                      <h3 className="text-xl font-bold text-white group-hover:text-red-400 transition-colors">
+                      <h3 className="break-words [overflow-wrap:anywhere] text-xl font-bold text-white group-hover:text-red-400 transition-colors">
                         {motor.name}
                       </h3>
 
-                      <p className="mt-2 text-zinc-400 text-xs sm:text-sm line-clamp-2 min-h-[36px]">
+                      <p className="mt-2 break-words [overflow-wrap:anywhere] text-zinc-400 text-xs sm:text-sm">
                         {motor.description || 'Pilihan tepat untuk kenyamanan mobilitas harian Anda.'}
                       </p>
 
