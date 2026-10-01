@@ -162,15 +162,16 @@ export default function App() {
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
   const customization = settings.customization || {};
+  const activePalette = { ...customization, ...customization.colorPalettes?.[colorMode] };
   const customizationStyle = {
-    '--custom-primary': customization.primaryColor || undefined,
-    '--custom-accent': customization.accentColor || undefined,
-    '--custom-bg': customization.backgroundColor || undefined,
-    '--custom-panel': customization.panelColor || undefined,
-    '--custom-text': customization.textColor || undefined,
-    '--custom-muted': customization.mutedColor || undefined,
+    '--custom-primary': activePalette.primaryColor || undefined,
+    '--custom-accent': activePalette.accentColor || undefined,
+    '--custom-bg': activePalette.backgroundColor || undefined,
+    '--custom-panel': activePalette.panelColor || undefined,
+    '--custom-text': activePalette.textColor || undefined,
+    '--custom-muted': activePalette.mutedColor || undefined,
   } as React.CSSProperties;
-  const customizationClass = `site-font-${customization.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
+  const customizationClass = `site-font-${activePalette.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
   const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
   )}`;
@@ -204,7 +205,7 @@ export default function App() {
       <main className="flex-1">
         {/* Hero Section */}
         <Hero
-          settings={settings}
+          settings={{ ...settings, customization: activePalette }}
           onOpenSimulator={() => handleOpenSimulator()}
           onOpenInterest={() => handleOpenInterest()}
         />

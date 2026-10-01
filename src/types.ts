@@ -55,9 +55,22 @@ export interface ManifestoItem {
 export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport';
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
+export type ThemeMode = 'light' | 'dark';
 export type CardRadius = 'sharp' | 'soft' | 'round';
 export type HeroAnimation = CatalogAnimation;
 export type { CatalogAnimation } from './catalogAnimation';
+
+export interface ThemeColorPalette {
+  primaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  panelColor?: string;
+  textColor?: string;
+  mutedColor?: string;
+  font?: SiteFont;
+  heroTextColor?: string;
+  heroTitleHighlightColor?: string;
+}
 
 export interface WebsiteCustomization {
   primaryColor?: string;
@@ -70,10 +83,16 @@ export interface WebsiteCustomization {
   heroAlignment?: HeroAlignment;
   cardRadius?: CardRadius;
   heroTextColor?: string;
-  heroTextFont?: SiteFont;
+  heroTextFont?: string;
+  heroBadgeFontSize?: number;
+  heroTitleFontSize?: number;
+  heroHighlightFontSize?: number;
+  heroSubtitleFontSize?: number;
+  heroCaptionFontSize?: number;
   heroTitleHighlightColor?: string;
   heroOverlayColor?: string;
   heroOverlayOpacity?: number;
+  colorPalettes?: Partial<Record<ThemeMode, ThemeColorPalette>>;
 }
 
 export interface DealerSettings {

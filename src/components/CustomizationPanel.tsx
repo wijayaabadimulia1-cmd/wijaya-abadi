@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Upload, X, Eye, Trash2 } from 'lucide-react';
-import type { DealerSettings } from '../types';
+import type { DealerSettings, ThemeColorPalette, ThemeMode } from '../types';
 import { api } from '../services/api';
 import { MAX_HERO_IMAGES } from '../constants';
 import {
@@ -11,6 +11,7 @@ import {
   MIN_CATALOG_ANIMATION_SPEED,
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
+import { getHeroFontStack, HERO_FONT_OPTIONS, loadHeroFont, resolveHeroFont } from '../heroFonts';
 
 interface CustomizationPanelProps {
   settings: any;
@@ -20,10 +21,48 @@ interface CustomizationPanelProps {
 export function CustomizationPanel({ settings, onSettingsChange }: CustomizationPanelProps) {
   const [previewMode, setPreviewMode] = useState<'logo' | 'banner' | 'fonts' | 'colors' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingThemeMode, setEditingThemeMode] = useState<ThemeMode>('dark');
+  const selectedHeroFont = resolveHeroFont(settings.customization?.heroTextFont || settings.customization?.font);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const customization = settings.customization || {};
+  const basePalette: ThemeColorPalette = {
+    primaryColor: customization.primaryColor || '#dc2626',
+    accentColor: customization.accentColor || '#f97316',
+    backgroundColor: customization.backgroundColor || '#000000',
+    panelColor: customization.panelColor || '#111827',
+    textColor: customization.textColor || '#f4f4f5',
+    mutedColor: customization.mutedColor || '#a1a1aa',
+    font: customization.font || 'jakarta',
+    heroTextColor: customization.heroTextColor || '#f4f4f5',
+    heroTitleHighlightColor: customization.heroTitleHighlightColor || '#f97316',
+  };
+  const activePalette: ThemeColorPalette = {
+    ...basePalette,
+    ...customization.colorPalettes?.[editingThemeMode],
+  };
+  const themeColorFields: Array<{ key: Exclude<keyof ThemeColorPalette, 'font'>; label: string; fallback: string }> = [
+    { key: 'primaryColor', label: 'Warna utama', fallback: '#dc2626' },
+    { key: 'accentColor', label: 'Warna aksen', fallback: '#f97316' },
+    { key: 'backgroundColor', label: 'Warna latar', fallback: '#000000' },
+    { key: 'panelColor', label: 'Warna panel', fallback: '#111827' },
+    { key: 'textColor', label: 'Warna teks', fallback: '#f4f4f5' },
+    { key: 'mutedColor', label: 'Warna teks sekunder', fallback: '#a1a1aa' },
+    { key: 'heroTextColor', label: 'Warna teks hero', fallback: '#f4f4f5' },
+    { key: 'heroTitleHighlightColor', label: 'Warna sorotan hero', fallback: '#f97316' },
+  ];
+  const heroTextSizeFields = [
+    { key: 'heroBadgeFontSize', label: 'Ukuran label kecil', min: 10, max: 24, fallback: 12 },
+    { key: 'heroTitleFontSize', label: 'Ukuran judul utama', min: 28, max: 76, fallback: 58 },
+    { key: 'heroHighlightFontSize', label: 'Ukuran sorotan judul', min: 28, max: 76, fallback: 58 },
+    { key: 'heroSubtitleFontSize', label: 'Ukuran deskripsi', min: 12, max: 30, fallback: 18 },
+    { key: 'heroCaptionFontSize', label: 'Ukuran caption foto', min: 10, max: 24, fallback: 12 },
+  ] as const;
+
+  useEffect(() => {
+    loadHeroFont(selectedHeroFont);
+  }, [selectedHeroFont]);
 
   const handleImageUpload = async (
     file: File,
@@ -94,12 +133,29 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
     }
   };
 
-  const handleColorChange = (key: string, value: string) => {
+  const handleColorChange = (key: Exclude<keyof ThemeColorPalette, 'font'>, value: string) => {
+    const nextPalette = { ...activePalette, [key]: value };
     onSettingsChange({
       ...settings,
       customization: {
         ...customization,
-        [key]: value,
+        colorPalettes: {
+          ...customization.colorPalettes,
+          [editingThemeMode]: nextPalette,
+        },
+      },
+    });
+  };
+
+  const handleColorPreset = (preset: (typeof colorPresets)[number]) => {
+    onSettingsChange({
+      ...settings,
+      customization: {
+        ...customization,
+        colorPalettes: {
+          ...customization.colorPalettes,
+          [editingThemeMode]: { ...activePalette, primaryColor: preset.primary, accentColor: preset.accent },
+        },
       },
     });
   };
@@ -278,23 +334,45 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
               placeholder="One Heart. Satu Hati."
             />
           </label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-2">
+            {heroTextSizeFields.map(({ key, label, min, max, fallback }) => {
+              const fontSize = Number(customization[key]) || fallback;
+              return (
+                <label key={key} className="space-y-2 text-xs font-medium text-zinc-300">
+                  <span className="flex items-center justify-between gap-3">
+                    {label}
+                    <output className="font-mono tabular-nums text-white">{fontSize} px</output>
+                  </span>
+                  <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    step="1"
+                    value={fontSize}
+                    onChange={(event) => onSettingsChange({
+                      ...settings,
+                      customization: { ...customization, [key]: Number(event.target.value) },
+                    })}
+                    className="w-full accent-red-500"
+                  />
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 border-t border-zinc-800 pt-4 md:grid-cols-2">
-          <label className="space-y-1 text-xs font-medium text-zinc-300">
-            Font teks hero
+          <label className="space-y-1 text-xs font-medium text-zinc-300 md:col-span-2">
+            Font teks hero (100 pilihan)
             <select
-              value={customization.heroTextFont || customization.font || 'jakarta'}
+              value={selectedHeroFont}
               onChange={(event) => onSettingsChange({ ...settings, customization: { ...customization, heroTextFont: event.target.value } })}
+              style={{ fontFamily: getHeroFontStack(selectedHeroFont) }}
               className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
             >
-              <option value="jakarta">Plus Jakarta Sans</option>
-              <option value="serif">Serif</option>
-              <option value="mono">Monospace</option>
-              <option value="system">System</option>
-              <option value="outfit">Outfit</option>
-              <option value="inter">Inter</option>
-              <option value="montserrat">Montserrat</option>
+              {HERO_FONT_OPTIONS.map((font) => (
+                <option key={font} value={font} style={{ fontFamily: getHeroFontStack(font) }}>{font}</option>
+              ))}
             </select>
           </label>
           <label className="space-y-1 text-xs font-medium text-zinc-300">
@@ -348,8 +426,8 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
       </div>
 
       {/* Font Selection */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pilih Font</h3>
+      <div className="rounded-lg border border-zinc-700 bg-zinc-950 p-6 text-zinc-100">
+        <h3 className="mb-4 text-lg font-semibold">Pilih Font</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {fontOptions.map((font) => (
@@ -359,8 +437,8 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
               onClick={() => handleFontChange(font.name)}
               className={`p-4 rounded-lg border-2 transition text-center font-semibold ${
                 customization.font === font.name
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-red-500 bg-red-500/10'
+                  : 'border-zinc-700 bg-zinc-900 hover:border-zinc-500'
               }`}
               style={{ fontFamily: font.label }}>
               {font.label}
@@ -370,26 +448,68 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
       </div>
 
       {/* Color Customization */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Warna Tema</h3>
+      <div className="rounded-lg border border-zinc-700 bg-zinc-950 p-6 text-zinc-100">
+        <h3 className="mb-4 text-lg font-semibold">Warna Tema</h3>
 
         <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm font-medium text-zinc-300">Mode tampilan yang diatur</span>
+            <div className="inline-flex rounded-md border border-zinc-700 bg-zinc-900 p-1" role="group" aria-label="Pilih mode warna">
+              {(['dark', 'light'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={editingThemeMode === mode}
+                  onClick={() => setEditingThemeMode(mode)}
+                  className={`rounded px-3 py-2 text-xs font-semibold transition-colors ${editingThemeMode === mode ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                >
+                  {mode === 'dark' ? 'Gelap' : 'Terang'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <label className="space-y-1 text-xs font-medium text-zinc-300 sm:col-span-1">
+              Font mode {editingThemeMode === 'dark' ? 'gelap' : 'terang'}
+              <select
+                value={activePalette.font || 'jakarta'}
+                onChange={(event) => onSettingsChange({
+                  ...settings,
+                  customization: {
+                    ...customization,
+                    colorPalettes: {
+                      ...customization.colorPalettes,
+                      [editingThemeMode]: { ...activePalette, font: event.target.value as ThemeColorPalette['font'] },
+                    },
+                  },
+                })}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+              >
+                <option value="jakarta">Plus Jakarta Sans</option>
+                <option value="serif">Serif</option>
+                <option value="mono">Monospace</option>
+                <option value="system">System</option>
+                <option value="outfit">Outfit</option>
+                <option value="inter">Inter</option>
+                <option value="montserrat">Montserrat</option>
+              </select>
+            </label>
+          </div>
+
           {/* Color Presets */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Preset Warna</label>
+            <label className="mb-3 block text-sm font-medium text-zinc-300">Preset warna cepat</label>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {colorPresets.map((preset) => (
                 <button
                   key={preset.name}
                   type="button"
-                  onClick={() => {
-                    handleColorChange('primaryColor', preset.primary);
-                    handleColorChange('accentColor', preset.accent);
-                  }}
+                  onClick={() => handleColorPreset(preset)}
                   className={`p-4 rounded-lg border-2 transition ${
-                    customization.primaryColor === preset.primary
-                      ? 'border-gray-900 shadow-lg'
-                      : 'border-gray-200 hover:border-gray-300'
+                    activePalette.primaryColor === preset.primary
+                      ? 'border-red-500 bg-red-500/10 shadow-lg'
+                      : 'border-zinc-700 bg-zinc-900 hover:border-zinc-500'
                   }`}>
                   <div className="flex gap-2 mb-2">
                     <div
@@ -401,7 +521,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                       style={{ backgroundColor: preset.accent }}
                     />
                   </div>
-                  <p className="text-sm font-medium text-gray-700">{preset.name}</p>
+                  <p className="text-sm font-medium text-zinc-300">{preset.name}</p>
                 </button>
               ))}
             </div>
@@ -409,142 +529,63 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
 
           {/* Custom Colors */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Primary Color */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Warna Utama (Primary)
-              </label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="color"
-                  value={customization.primaryColor || '#dc2626'}
-                  onChange={(e) => handleColorChange('primaryColor', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={customization.primaryColor || '#dc2626'}
-                  onChange={(e) => handleColorChange('primaryColor', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
-                  placeholder="#dc2626"
-                />
+            {themeColorFields.map(({ key, label, fallback }) => (
+              <div key={key} className="space-y-2">
+                <label className="block text-xs font-medium text-zinc-300">{label}</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={activePalette[key] || fallback}
+                    onChange={(event) => handleColorChange(key, event.target.value)}
+                    aria-label={`Pilih ${label.toLowerCase()}`}
+                    className="h-10 w-12 cursor-pointer rounded border border-zinc-700 bg-zinc-900 p-1"
+                  />
+                  <input
+                    type="text"
+                    value={activePalette[key] || fallback}
+                    onChange={(event) => handleColorChange(key, event.target.value)}
+                    aria-label={`Kode hex ${label.toLowerCase()}`}
+                    className="min-w-0 flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-mono text-white"
+                    placeholder={fallback}
+                  />
+                </div>
+                <div className="h-2 w-full rounded-full" style={{ backgroundColor: activePalette[key] || fallback }} />
               </div>
-              <div
-                className="w-full h-16 rounded-lg border-2 border-gray-200"
-                style={{ backgroundColor: customization.primaryColor || '#dc2626' }}
-              />
-            </div>
-
-            {/* Accent Color */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Warna Aksen (Accent)
-              </label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="color"
-                  value={customization.accentColor || '#f97316'}
-                  onChange={(e) => handleColorChange('accentColor', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={customization.accentColor || '#f97316'}
-                  onChange={(e) => handleColorChange('accentColor', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
-                  placeholder="#f97316"
-                />
-              </div>
-              <div
-                className="w-full h-16 rounded-lg border-2 border-gray-200"
-                style={{ backgroundColor: customization.accentColor || '#f97316' }}
-              />
-            </div>
-
-            {/* Text Color */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Warna Teks
-              </label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="color"
-                  value={customization.textColor || '#f4f4f5'}
-                  onChange={(e) => handleColorChange('textColor', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={customization.textColor || '#f4f4f5'}
-                  onChange={(e) => handleColorChange('textColor', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
-                  placeholder="#f4f4f5"
-                />
-              </div>
-              <div
-                className="w-full h-16 rounded-lg border-2 border-gray-200 flex items-center justify-center font-semibold"
-                style={{ backgroundColor: customization.textColor || '#f4f4f5' }}>
-                Sample Text
-              </div>
-            </div>
-
-            {/* Background Color */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Warna Latar Belakang
-              </label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="color"
-                  value={customization.backgroundColor || '#000000'}
-                  onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
-                  className="w-16 h-10 rounded cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={customization.backgroundColor || '#000000'}
-                  onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
-                  placeholder="#000000"
-                />
-              </div>
-              <div
-                className="w-full h-16 rounded-lg border-2 border-gray-200"
-                style={{ backgroundColor: customization.backgroundColor || '#000000' }}
-              />
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Preview */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm p-6 border border-blue-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Preview Warna</h3>
+      <div className="rounded-lg border border-zinc-700 p-6" style={{ backgroundColor: activePalette.backgroundColor, color: activePalette.textColor }}>
+        <h3 className="mb-4 text-lg font-semibold">Preview mode {editingThemeMode === 'dark' ? 'gelap' : 'terang'}</h3>
         <div
-          className="w-full rounded-lg p-8 text-center"
+          className="w-full rounded-lg border p-8 text-center"
           style={{
-            backgroundColor: customization.backgroundColor || '#000000',
+            backgroundColor: activePalette.panelColor,
+            borderColor: activePalette.mutedColor,
+            fontFamily: activePalette.font === 'serif' ? 'Georgia, serif' : activePalette.font === 'mono' ? 'monospace' : activePalette.font === 'system' ? 'system-ui, sans-serif' : activePalette.font === 'outfit' ? 'Outfit, sans-serif' : activePalette.font === 'inter' ? 'Inter, sans-serif' : activePalette.font === 'montserrat' ? 'Montserrat, sans-serif' : '"Plus Jakarta Sans", sans-serif',
           }}>
           <div
-            className="inline-block px-6 py-3 rounded-lg font-bold text-lg mb-4"
+            className="mb-4 inline-block rounded-lg px-6 py-3 text-lg font-bold"
             style={{
-              backgroundColor: customization.primaryColor || '#dc2626',
-              color: customization.textColor || '#f4f4f5',
+              backgroundColor: activePalette.primaryColor,
+              color: activePalette.textColor,
             }}>
             Tombol Utama
           </div>
           <div
-            className="inline-block ml-2 px-6 py-3 rounded-lg font-bold text-lg"
+            className="ml-2 inline-block rounded-lg px-6 py-3 text-lg font-bold"
             style={{
-              backgroundColor: customization.accentColor || '#f97316',
-              color: customization.textColor || '#f4f4f5',
+              backgroundColor: activePalette.accentColor,
+              color: activePalette.textColor,
             }}>
             Tombol Aksen
           </div>
           <p
             className="mt-6 text-base"
             style={{
-              color: customization.textColor || '#f4f4f5',
+              color: activePalette.mutedColor,
             }}>
             Ini adalah contoh teks dengan warna yang Anda pilih
           </p>

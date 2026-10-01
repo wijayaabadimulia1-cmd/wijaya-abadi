@@ -638,10 +638,41 @@ body {
   color: var(--hero-text-color, #f4f4f5) !important;
 }
 
+.website-shell #home .hero-badge-text {
+  font-size: var(--hero-badge-font-size, 12px);
+}
+
+.website-shell #home .hero-main-title {
+  font-size: var(--hero-title-font-size, 58px);
+}
+
 .website-shell #home .hero-highlight-text {
+  font-size: var(--hero-highlight-font-size, 58px);
   color: var(--hero-highlight-color, #f97316) !important;
   background-image: none !important;
   -webkit-text-fill-color: currentColor;
+}
+
+.website-shell #home .hero-subtitle {
+  font-size: var(--hero-subtitle-font-size, 18px);
+}
+
+.website-shell #home .hero-caption-text {
+  font-size: var(--hero-caption-font-size, 12px);
+}
+
+@media (max-width: 640px) {
+  .website-shell #home .hero-main-title {
+    font-size: min(var(--hero-title-font-size, 58px), 40px);
+  }
+
+  .website-shell #home .hero-highlight-text {
+    font-size: min(var(--hero-highlight-font-size, 58px), 40px);
+  }
+
+  .website-shell #home .hero-subtitle {
+    font-size: min(var(--hero-subtitle-font-size, 18px), 17px);
+  }
 }
 
 .hero-slide-image {

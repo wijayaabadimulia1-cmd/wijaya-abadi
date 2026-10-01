@@ -3,6 +3,7 @@ import { ArrowRight, ShieldCheck, Wrench, Clock, CheckCircle2, ChevronLeft, Chev
 import { MAX_HERO_IMAGES } from '../constants';
 import { DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED, normalizeCatalogAnimationSpeed } from '../catalogAnimation';
+import { getHeroFontStack, loadHeroFont } from '../heroFonts';
 
 interface HeroProps {
   settings: DealerSettings;
@@ -34,15 +35,12 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
     return () => window.clearInterval(timer);
   }, [heroImages.length, animationSpeed]);
 
-  const fontFamily = {
-    jakarta: '"Plus Jakarta Sans", sans-serif',
-    serif: 'Georgia, serif',
-    mono: 'monospace',
-    system: 'system-ui, sans-serif',
-    outfit: 'Outfit, sans-serif',
-    inter: 'Inter, sans-serif',
-    montserrat: 'Montserrat, sans-serif',
-  }[settings.customization?.heroTextFont || 'jakarta'];
+  const heroFont = settings.customization?.heroTextFont || settings.customization?.font;
+  const fontFamily = getHeroFontStack(heroFont);
+
+  useEffect(() => {
+    loadHeroFont(heroFont);
+  }, [heroFont]);
 
   return (
     <section
@@ -52,6 +50,11 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
         fontFamily,
         '--hero-text-color': settings.customization?.heroTextColor || '#f4f4f5',
         '--hero-highlight-color': settings.customization?.heroTitleHighlightColor || settings.customization?.accentColor || '#f97316',
+        '--hero-badge-font-size': `${settings.customization?.heroBadgeFontSize || 12}px`,
+        '--hero-title-font-size': `${settings.customization?.heroTitleFontSize || 58}px`,
+        '--hero-highlight-font-size': `${settings.customization?.heroHighlightFontSize || 58}px`,
+        '--hero-subtitle-font-size': `${settings.customization?.heroSubtitleFontSize || 18}px`,
+        '--hero-caption-font-size': `${settings.customization?.heroCaptionFontSize || 12}px`,
       } as React.CSSProperties}
     >
       {/* Background radial glow */}
@@ -70,11 +73,11 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-red-500/30 text-xs font-semibold text-zinc-300 shadow-inner">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span className="w-2 h-2 rounded-full bg-red-500 -ml-3" />
-              <span className="hero-editable-text">{settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
+              <span className="hero-editable-text hero-badge-text">{settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="hero-editable-text text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15]">
+            <h1 className="hero-editable-text hero-main-title font-black tracking-tight leading-[1.15]">
               {settings.heroMainTitle || 'Partner Terpercaya'}{' '}
               <span className="hero-highlight-text">
                 {settings.heroTitleHighlight || 'Berkendara Anda'}
@@ -82,7 +85,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             </h1>
 
             {/* Subtitle */}
-            <p className="hero-editable-text text-zinc-300 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+            <p className="hero-editable-text hero-subtitle text-zinc-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
               {settings.heroSubtitle ||
                 'Dapatkan motor Honda impian Anda dengan harga terbaik dan proses yang mudah. Layanan penjualan unit baru, simulasi kredit terjangkau, dan servis resmi AHASS.'}
             </p>
@@ -215,7 +218,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
                   {/* Bottom Image Caption */}
                   <div className="absolute bottom-4 left-4 right-4 text-left">
-                    <span className="hero-editable-text text-xs font-semibold tracking-wider uppercase">
+                    <span className="hero-editable-text hero-caption-text font-semibold tracking-wider uppercase">
                       {settings.heroCaption || 'One Heart. Satu Hati.'}
                     </span>
                     <h3 className="text-white text-base font-bold">
