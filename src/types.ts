@@ -54,8 +54,9 @@ export interface ManifestoItem {
 
 export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport';
 export type HeroAlignment = 'left' | 'center' | 'right';
-export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system';
+export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
 export type CardRadius = 'sharp' | 'soft' | 'round';
+export type HeroAnimation = 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'zoom' | 'ken-burns' | 'flip' | 'blur' | 'reveal' | 'pan';
 export type { CatalogAnimation } from './catalogAnimation';
 
 export interface WebsiteCustomization {
@@ -68,6 +69,10 @@ export interface WebsiteCustomization {
   font?: SiteFont;
   heroAlignment?: HeroAlignment;
   cardRadius?: CardRadius;
+  heroTextColor?: string;
+  heroTextFont?: SiteFont;
+  heroOverlayColor?: string;
+  heroOverlayOpacity?: number;
 }
 
 export interface DealerSettings {
@@ -80,9 +85,14 @@ export interface DealerSettings {
   workingHours: string;
   logo: string;
   heroImage: string;
+  heroImages?: string[];
   heroTitle: string;
   heroTitleHighlight?: string;
   heroSubtitle: string;
+  heroBadge?: string;
+  heroCaption?: string;
+  heroAnimation?: HeroAnimation;
+  heroAnimationSpeed?: number;
   footerText: string;
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
