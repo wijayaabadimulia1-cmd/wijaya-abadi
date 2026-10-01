@@ -46,7 +46,8 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const [annualRate, setAnnualRate] = useState<number>(9.5);
 
   // Computed values
-  const dpAmount = Math.round((motorPrice * dpPercent) / 100);
+  const rawDpAmount = (motorPrice * dpPercent) / 100;
+  const dpAmount = Math.min(motorPrice, Math.ceil(rawDpAmount / 100_000) * 100_000);
   const loanPrincipal = Math.max(0, motorPrice - dpAmount);
   const years = tenorMonths / 12;
   const totalInterest = loanPrincipal * (annualRate / 100) * years;

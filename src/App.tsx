@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { MessageSquare, Phone, Scale, Shield, Sparkles } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem } from './types';
 import { api } from './services/api';
@@ -12,9 +12,10 @@ import { ManifestoSection } from './components/ManifestoSection';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
-import { AdminPanel } from './components/AdminPanel';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
 import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from './constants';
+
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel: panel }) => ({ default: panel })));
 
 export default function App() {
   const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
@@ -223,13 +224,15 @@ export default function App() {
   // If Admin panel is open, show full CMS interface
   if (isAdminOpen) {
     return (
-      <AdminPanel
-        onBackToWebsite={() => {
-          window.history.pushState({}, '', websitePath);
-          setIsAdminOpen(false);
-        }}
-        onRefreshData={loadData}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-zinc-950" aria-label="Memuat panel admin" />}>
+        <AdminPanel
+          onBackToWebsite={() => {
+            window.history.pushState({}, '', websitePath);
+            setIsAdminOpen(false);
+          }}
+          onRefreshData={loadData}
+        />
+      </Suspense>
     );
   }
 
