@@ -2,11 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent } from 'lucide-react';
 import { Motor, DealerSettings } from '../types';
 import { formatRupiah } from '../services/api';
-import fifPriceList from '../data/fifPriceList.json';
-
-type FIFPriceListModel = { price: number; options: Record<string, number[]> };
-const FIF_PRICE_LIST_MODELS = fifPriceList.models as Record<string, FIFPriceListModel>;
-const FIF_TENORS: number[] = fifPriceList.tenors;
+import { FIF_TENORS, getFIFPriceListModel, getMotorOtrPrice } from '../services/fifPriceList';
 
 interface CreditSimulatorProps {
   motors: Motor[];
@@ -37,12 +33,12 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const activeMotor = useMemo(() => {
     return motors.find((m) => m.id === currentMotorId) || motors[0];
   }, [motors, currentMotorId]);
-  const priceListModel = activeMotor ? FIF_PRICE_LIST_MODELS[activeMotor.name] : undefined;
+  const priceListModel = activeMotor ? getFIFPriceListModel(activeMotor.name) : undefined;
 
   const motorPrice = useMemo(() => {
     if (!activeMotor) return 20000000;
-    return priceListModel?.price || activeMotor.numericPrice || Number(String(activeMotor.price).replace(/[^0-9]/g, '')) || 20000000;
-  }, [activeMotor, priceListModel]);
+    return getMotorOtrPrice(activeMotor) || 20000000;
+  }, [activeMotor]);
 
   // DP percentage (default 20%)
   const [dpPercent, setDpPercent] = useState<number>(20);
@@ -114,7 +110,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                 >
                   {motors.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} — ({formatRupiah(FIF_PRICE_LIST_MODELS[m.name]?.price ?? m.price)})
+                      {m.name} — ({formatRupiah(getMotorOtrPrice(m))})
                     </option>
                   ))}
                 </select>

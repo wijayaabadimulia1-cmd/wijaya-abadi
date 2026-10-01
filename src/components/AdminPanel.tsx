@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
 import { api, formatRupiah } from '../services/api';
+import { normalizeMotorOtrPrice } from '../services/fifPriceList';
 import { MAX_MOTOR_IMAGES } from '../constants';
 import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
@@ -117,7 +118,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         api.getAnalytics(),
       ]);
 
-      setMotors(motorsRes);
+      setMotors(motorsRes.map(normalizeMotorOtrPrice));
       setPromos(promosRes);
       setTestimonials(testiRes);
       setSettings(settingsRes);

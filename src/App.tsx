@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { MessageSquare, Phone, Scale, Shield, Sparkles } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem } from './types';
 import { api } from './services/api';
+import { normalizeMotorOtrPrice } from './services/fifPriceList';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { CatalogSection } from './components/CatalogSection';
@@ -96,7 +97,7 @@ export default function App() {
         setSettings(settingsData);
       }
       if (motorsData && motorsData.length > 0) {
-        setMotors(motorsData);
+        setMotors(motorsData.map(normalizeMotorOtrPrice));
       }
       if (promosData && promosData.length > 0) {
         setPromos(promosData);
