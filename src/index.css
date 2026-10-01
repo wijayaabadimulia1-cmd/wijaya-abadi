@@ -565,6 +565,80 @@ body {
   background: #991b1b !important;
 }
 
+.admin-theme-light {
+  color-scheme: light;
+  background-color: #f4f4f5;
+  color: #18181b;
+}
+
+.admin-panel:not(.admin-theme-light) .bg-white {
+  background-color: #09090b !important;
+}
+
+.admin-panel:not(.admin-theme-light) [class*="text-gray-900"],
+.admin-panel:not(.admin-theme-light) [class*="text-gray-700"] {
+  color: #e4e4e7 !important;
+}
+
+.admin-panel:not(.admin-theme-light) [class*="text-gray-500"] {
+  color: #a1a1aa !important;
+}
+
+.admin-panel:not(.admin-theme-light) [class*="border-gray-200"] {
+  border-color: #3f3f46 !important;
+}
+
+.admin-theme-light header,
+.admin-theme-light [class*="bg-black"],
+.admin-theme-light [class*="bg-zinc-950"],
+.admin-theme-light [class*="bg-zinc-900"],
+.admin-theme-light [class*="bg-zinc-800"] {
+  background-color: #ffffff !important;
+}
+
+.admin-theme-light [class*="text-white"],
+.admin-theme-light [class*="text-zinc-100"],
+.admin-theme-light [class*="text-zinc-200"],
+.admin-theme-light [class*="text-zinc-300"] {
+  color: #18181b !important;
+}
+
+.admin-theme-light [class*="text-zinc-400"],
+.admin-theme-light [class*="text-zinc-500"] {
+  color: #52525b !important;
+}
+
+.admin-theme-light [class*="border-white"] {
+  border-color: #d4d4d8 !important;
+}
+
+.admin-theme-light input:not([type="checkbox"]):not([type="range"]):not([type="color"]),
+.admin-theme-light textarea,
+.admin-theme-light select {
+  background-color: #ffffff !important;
+  border-color: #d4d4d8 !important;
+  color: #18181b !important;
+}
+
+.admin-theme-light input::placeholder,
+.admin-theme-light textarea::placeholder {
+  color: #71717a !important;
+}
+
+.admin-theme-light [class*="hover:bg-zinc"]:hover {
+  background-color: #e4e4e7 !important;
+}
+
+.admin-theme-light [class*="bg-red-"],
+.admin-theme-light [class*="bg-gradient-to-r"],
+.admin-theme-light [class*="bg-emerald-"] {
+  color: #ffffff !important;
+}
+
+.admin-theme-light [class*="shadow-red-"] {
+  --tw-shadow-color: rgba(127, 29, 29, 0.12) !important;
+}
+
 .catalog-card {
   animation: catalog-card-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

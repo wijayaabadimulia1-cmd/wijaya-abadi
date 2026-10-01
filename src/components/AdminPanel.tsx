@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Bike,
   Plus,
@@ -28,6 +28,8 @@ import {
   FileDown,
   FileJson,
   Shield,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
 import { api, formatRupiah } from '../services/api';
@@ -67,6 +69,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isImportingBackup, setIsImportingBackup] = useState(false);
+  const [activeExport, setActiveExport] = useState<string | null>(null);
+  const [adminTheme, setAdminTheme] = useState<'dark' | 'light'>(() => (
+    localStorage.getItem('hwa-admin-theme') === 'light' ? 'light' : 'dark'
+  ));
+  const backupInputRef = useRef<HTMLInputElement>(null);
 
   // Modals for CRUD
   const [isMotorModalOpen, setIsMotorModalOpen] = useState(false);
@@ -84,6 +92,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  useEffect(() => {
+    localStorage.setItem('hwa-admin-theme', adminTheme);
+  }, [adminTheme]);
+
+  const toggleAdminTheme = () => {
+    setAdminTheme((mode) => mode === 'dark' ? 'light' : 'dark');
   };
 
   const loadAllData = async () => {
@@ -162,7 +178,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   if (!adminSession) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center px-4">
+      <div className={`admin-panel relative min-h-screen flex items-center justify-center px-4 ${adminTheme === 'light' ? 'admin-theme-light bg-zinc-50 text-zinc-900' : 'bg-zinc-950 text-zinc-100'}`}>
+        <button
+          type="button"
+          onClick={toggleAdminTheme}
+          aria-label={`Aktifkan mode ${adminTheme === 'dark' ? 'terang' : 'gelap'} admin`}
+          title={`Aktifkan mode ${adminTheme === 'dark' ? 'terang' : 'gelap'} admin`}
+          className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
+        >
+          {adminTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <span>{adminTheme === 'dark' ? 'Tema terang' : 'Tema gelap'}</span>
+        </button>
         <form onSubmit={handleAdminLogin} className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900/80 p-7 shadow-2xl">
           <div className="mb-7">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-400">Honda Wijaya Abadi</p>
@@ -405,8 +431,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const handleRestoreBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      const backup: unknown = JSON.parse(await file.text());
+      const isRecord = (value: unknown): value is Record<string, unknown> => (
+        typeof value === 'object' && value !== null && !Array.isArray(value)
+      );
+      if (!isRecord(backup)) {
+        throw new Error('File bukan backup Honda Wijaya Abadi yang valid.');
+      }
+      const collections = ['motors', 'promos', 'testimonials', 'interests'];
+      const hasAppData = 'settings' in backup || collections.some((key) => key in backup);
+      const validCollections = collections.every((key) => backup[key] === undefined || Array.isArray(backup[key]));
+      const validSettings = backup.settings === undefined || (
+        typeof backup.settings === 'object' && backup.settings !== null && !Array.isArray(backup.settings)
+      );
+      if (!hasAppData || !validCollections || !validSettings) {
+        throw new Error('Struktur file backup tidak valid.');
+      }
+      if (!window.confirm('Pemulihan akan mengganti seluruh data website saat ini. Lanjutkan?')) return;
+
+      setIsImportingBackup(true);
+      await api.importDatabase(backup);
+      await loadAllData();
+      await onRefreshData();
+      showToast('Backup berhasil dipulihkan');
+    } catch (error: any) {
+      alert(error.message || 'Gagal memulihkan backup');
+    } finally {
+      setIsImportingBackup(false);
+      input.value = '';
+    }
+  };
+
+  const handleAdminExport = async (key: string, download: () => Promise<void>, message: string) => {
+    setActiveExport(key);
+    try {
+      await download();
+      showToast(message);
+    } catch (error: any) {
+      alert(error.message || 'Gagal mengunduh data');
+    } finally {
+      setActiveExport(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+    <div className={`admin-panel min-h-screen flex flex-col font-sans ${adminTheme === 'light' ? 'admin-theme-light bg-zinc-50 text-zinc-900' : 'bg-zinc-950 text-zinc-100'}`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-red-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 border border-red-400 font-medium text-xs sm:text-sm animate-in fade-in">
@@ -416,7 +491,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       )}
 
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-md border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <header className="admin-header sticky top-0 z-30 bg-black/90 backdrop-blur-md border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <button
             onClick={onBackToWebsite}
@@ -450,6 +525,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             <Download className="w-3.5 h-3.5" />
             <span>Download Laporan Admin</span>
           </button>
+          <button
+            type="button"
+            onClick={toggleAdminTheme}
+            aria-label={`Aktifkan mode ${adminTheme === 'dark' ? 'terang' : 'gelap'} admin`}
+            title={`Aktifkan mode ${adminTheme === 'dark' ? 'terang' : 'gelap'} admin`}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
+          >
+            {adminTheme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{adminTheme === 'dark' ? 'Terang' : 'Gelap'}</span>
+          </button>
           <div className="h-4 w-px bg-white/10 hidden md:block" />
           <span className="text-xs text-zinc-400 hidden md:inline">
             Login: <strong className="text-white">{adminSession.username}</strong>
@@ -481,7 +566,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex min-w-0 flex-wrap items-center justify-start gap-1.5 pb-1 md:flex-1 md:justify-end">
             {[
               { id: 'dashboard', label: 'Ringkasan', icon: TrendingUp },
               { id: 'motors', label: `Motor (${motors.length})`, icon: Bike },
@@ -1482,6 +1567,104 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'export' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Download & Backup Data</h2>
+                  <p className="text-xs text-zinc-400">Unduh salinan database lengkap atau ekspor data pilihan. Pemulihan backup akan mengganti data saat ini.</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <div className="flex items-start gap-3">
+                      <Database className="mt-0.5 h-5 w-5 text-red-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Backup lengkap</h3>
+                        <p className="mt-1 text-xs text-zinc-400">Satu file JSON berisi pengaturan, katalog, promo, ulasan, prospek, dan histori.</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={activeExport !== null}
+                      onClick={() => void handleAdminExport('backup-json', () => api.downloadAllBackup(), 'Backup database berhasil diunduh')}
+                      className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"
+                    >
+                      <FileJson className="h-4 w-4" />
+                      {activeExport === 'backup-json' ? 'Menyiapkan backup...' : 'Unduh backup JSON'}
+                    </button>
+                  </section>
+
+                  <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <div className="flex items-start gap-3">
+                      <FileSpreadsheet className="mt-0.5 h-5 w-5 text-emerald-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Laporan Excel</h3>
+                        <p className="mt-1 text-xs text-zinc-400">Laporan ringkas rating, minat konsumen, dan histori perubahan.</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={activeExport !== null}
+                      onClick={() => void handleAdminExport('report-xlsx', () => api.downloadAdminReport(), 'Laporan Excel berhasil diunduh')}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      {activeExport === 'report-xlsx' ? 'Menyiapkan laporan...' : 'Unduh laporan Excel'}
+                    </button>
+                  </section>
+
+                  <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 xl:col-span-2">
+                    <div className="flex items-start gap-3">
+                      <FileDown className="mt-0.5 h-5 w-5 text-sky-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Ekspor CSV</h3>
+                        <p className="mt-1 text-xs text-zinc-400">Pilih satu kumpulan data untuk dibuka di spreadsheet.</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                      {[
+                        { type: 'motors' as const, label: 'Katalog motor', count: motors.length },
+                        { type: 'interests' as const, label: 'Data peminat', count: leads.length },
+                        { type: 'promos' as const, label: 'Promo', count: promos.length },
+                        { type: 'testimonials' as const, label: 'Ulasan', count: testimonials.length },
+                      ].map((dataset) => (
+                        <button
+                          key={dataset.type}
+                          type="button"
+                          disabled={activeExport !== null}
+                          onClick={() => void handleAdminExport(`csv-${dataset.type}`, () => api.downloadCsv(dataset.type), `Ekspor ${dataset.label.toLowerCase()} berhasil diunduh`)}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-3 text-left text-xs text-zinc-200 hover:border-red-500/50 hover:bg-zinc-900 disabled:opacity-50"
+                        >
+                          <span>{activeExport === `csv-${dataset.type}` ? 'Menyiapkan...' : dataset.label}</span>
+                          <span className="shrink-0 font-mono text-zinc-500">{dataset.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="space-y-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 xl:col-span-2">
+                    <div className="flex items-start gap-3">
+                      <HardDrive className="mt-0.5 h-5 w-5 text-amber-300" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Pulihkan backup JSON</h3>
+                        <p className="mt-1 text-xs text-zinc-400">Pilih file backup yang dibuat dari panel ini. Database saat ini akan diganti setelah konfirmasi.</p>
+                      </div>
+                    </div>
+                    <input ref={backupInputRef} type="file" accept=".json,application/json" onChange={handleRestoreBackup} className="hidden" />
+                    <button
+                      type="button"
+                      disabled={isImportingBackup}
+                      onClick={() => backupInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {isImportingBackup ? 'Memulihkan data...' : 'Pilih file backup'}
+                    </button>
+                  </section>
                 </div>
               </div>
             )}

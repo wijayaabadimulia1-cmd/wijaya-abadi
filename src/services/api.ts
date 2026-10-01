@@ -7,6 +7,23 @@ function adminHeaders() {
   return { 'Content-Type': 'application/json', ...(token ? { 'x-admin-token': token } : {}) };
 }
 
+async function downloadAdminFile(url: string, fallbackName: string): Promise<void> {
+  const response = await fetch(url, { headers: adminHeaders() });
+  if (!response.ok) throw new Error('Unduhan gagal. Periksa sesi admin Anda.');
+
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition');
+  const fileName = contentDisposition?.match(/filename="?([^";]+)"?/i)?.[1] || fallbackName;
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
 export const api = {
   // Admin authentication
   async loginAdmin(username: string, password: string): Promise<{ token: string; user: AdminSession }> {
@@ -287,8 +304,8 @@ export const api = {
     return `/api/export/csv/${type}`;
   },
 
-  downloadAllBackup(): void {
-    window.location.href = '/api/export/all';
+  async downloadAllBackup(): Promise<void> {
+    await downloadAdminFile('/api/export/all', `honda-wijaya-abadi-backup-${new Date().toISOString().slice(0, 10)}.json`);
   },
 
   async downloadAdminReport(): Promise<void> {
@@ -305,8 +322,8 @@ export const api = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
-  downloadCsv(type: 'interests' | 'motors' | 'promos' | 'testimonials'): void {
-    window.location.href = `/api/export/csv/${type}`;
+  async downloadCsv(type: 'interests' | 'motors' | 'promos' | 'testimonials'): Promise<void> {
+    await downloadAdminFile(`/api/export/csv/${type}`, `honda-wijaya-abadi-${type}-${new Date().toISOString().slice(0, 10)}.csv`);
   },
 
   async importDatabase(jsonData: any): Promise<any> {

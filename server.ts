@@ -574,7 +574,7 @@ async function startServer() {
   });
 
   // Download / Export All Data (JSON)
-  app.get('/api/export/all', (req, res) => {
+  app.get('/api/export/all', requireAdmin, (req, res) => {
     try {
       const db = readDb();
       const dateStr = new Date().toISOString().split('T')[0];
@@ -588,7 +588,7 @@ async function startServer() {
   });
 
   // Download / Export CSV per collection
-  app.get('/api/export/csv/:type', (req, res) => {
+  app.get('/api/export/csv/:type', requireAdmin, (req, res) => {
     try {
       const db = readDb();
       const type = req.params.type;
