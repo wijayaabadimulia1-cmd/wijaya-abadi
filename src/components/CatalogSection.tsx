@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
 import { CatalogAnimation, Motor } from '../types';
 import { formatRupiah } from '../services/api';
@@ -39,6 +39,8 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
     [motor.images, motor.image],
   );
   const [imageIndex, setImageIndex] = useState(0);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
   const currentImage = images[imageIndex] || images[0] || motor.image;
   const cycleSpeed = normalizeCatalogAnimationSpeed(animationSpeed);
   const selectedAnimation = isCatalogAnimation(animation) ? animation : DEFAULT_CATALOG_ANIMATION;
@@ -51,18 +53,34 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
   }, [motor.id, images.length]);
 
   useEffect(() => {
-    if (images.length < 2 || isPreviewOpen || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const element = imageButtonRef.current;
+    if (!element) return;
+    if (!('IntersectionObserver' in window)) {
+      setIsNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsNearViewport(entry.isIntersecting);
+    }, { rootMargin: '200px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isNearViewport || images.length < 2 || isPreviewOpen || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const interval = window.setInterval(() => {
       setImageIndex((currentIndex) => (currentIndex + 1) % images.length);
     }, cycleSpeed * 1000);
 
     return () => window.clearInterval(interval);
-  }, [cycleSpeed, images.length, isPreviewOpen]);
+  }, [cycleSpeed, images.length, isNearViewport, isPreviewOpen]);
 
   return (
     <button
       type="button"
+      ref={imageButtonRef}
       onClick={() => onPreview(images, imageIndex, motor.name)}
       className="relative h-64 w-full overflow-hidden bg-zinc-950 flex items-center justify-center p-6 cursor-zoom-in"
       aria-label={`Lihat foto ${motor.name} ukuran penuh`}
@@ -71,6 +89,9 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
         key={currentImage}
         src={currentImage}
         alt={`${motor.name} foto ${imageIndex + 1}`}
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
         className="catalog-photo-animation max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
         data-catalog-animation={selectedAnimation}
         style={animationStyle}
