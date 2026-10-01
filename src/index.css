@@ -867,3 +867,106 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--site-accent);
 }
+
+.website-shell.website-template-showroom {
+  --site-bg-effective: #f4f6f8;
+  --site-panel-effective: #ffffff;
+  --site-text-effective: #202124;
+  --site-muted-effective: #525a65;
+  --site-accent-effective: #c8102e;
+}
+
+.website-shell.website-template-showroom.site-mode-dark {
+  --site-bg-effective: #111315;
+  --site-panel-effective: #1b1e21;
+  --site-text-effective: #f4f4f5;
+  --site-muted-effective: #c2c7ce;
+}
+
+.website-shell.website-template-showroom .bg-black,
+.website-shell.website-template-showroom .bg-zinc-950 {
+  background-color: var(--site-bg-effective) !important;
+}
+
+.website-shell.website-template-showroom .bg-zinc-900,
+.website-shell.website-template-showroom .bg-zinc-800,
+.website-shell.website-template-showroom .bg-zinc-900\/60,
+.website-shell.website-template-showroom .bg-zinc-900\/50 {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell.website-template-showroom .text-white,
+.website-shell.website-template-showroom .text-zinc-100,
+.website-shell.website-template-showroom .text-zinc-200 {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-showroom .text-zinc-300,
+.website-shell.website-template-showroom .text-zinc-400 {
+  color: var(--site-muted-effective) !important;
+}
+
+.website-shell.website-template-showroom .border-white\/10,
+.website-shell.website-template-showroom .border-white\/15 {
+  border-color: color-mix(in srgb, var(--site-text-effective) 14%, transparent) !important;
+}
+
+.website-shell.website-template-showroom #home {
+  min-height: auto;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.website-shell.website-template-showroom #home > .absolute {
+  display: none;
+}
+
+.website-shell.website-template-showroom #home .hero-main-title,
+.website-shell.website-template-showroom #home .hero-highlight-text {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-showroom #home .hero-highlight-text {
+  background-image: none !important;
+  -webkit-text-fill-color: currentColor;
+}
+
+.website-shell.website-template-showroom #home .backdrop-blur-md {
+  background-color: var(--site-panel-effective);
+  border-color: color-mix(in srgb, var(--site-text-effective) 14%, transparent);
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 48px rgba(17, 24, 39, 0.1);
+}
+
+.website-shell.website-template-showroom #home .hero-slide-image {
+  object-fit: contain;
+  background-color: var(--site-panel-effective);
+}
+
+.website-shell.website-template-showroom .showroom-stats {
+  background: var(--site-panel-effective);
+  color: var(--site-text-effective);
+  border-top: 1px solid color-mix(in srgb, var(--site-text-effective) 12%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--site-text-effective) 12%, transparent);
+}
+
+.website-shell.website-template-showroom .showroom-stats span:last-child {
+  color: var(--site-muted-effective);
+}
+
+.website-shell.website-template-showroom #katalog {
+  background-color: var(--site-bg-effective) !important;
+}
+
+.website-shell.website-template-showroom .catalog-card {
+  background-color: var(--site-panel-effective) !important;
+  border-color: color-mix(in srgb, var(--site-text-effective) 12%, transparent);
+  border-radius: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .website-shell.website-template-showroom #home .hero-main-title,
+  .website-shell.website-template-showroom #home .hero-highlight-text {
+    font-size: 4rem;
+  }
+}

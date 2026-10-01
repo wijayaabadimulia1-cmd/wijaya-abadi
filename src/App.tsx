@@ -254,6 +254,24 @@ export default function App() {
           onOpenInterest={() => handleOpenInterest()}
         />
 
+        {settings.websiteTemplate === 'showroom' && (
+          <section className="showroom-stats px-4 py-6 sm:py-8" aria-label="Keunggulan dealer">
+            <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-5 sm:grid-cols-4">
+              {[
+                { value: '500+', label: 'Unit' },
+                { value: '10+', label: 'Tahun' },
+                { value: '100%', label: 'AHASS' },
+                { value: '24/7', label: 'WhatsApp' },
+              ].map((stat) => (
+                <div key={stat.label} className="flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-black sm:text-3xl">{stat.value}</span>
+                  <span className="mt-1 text-xs font-semibold uppercase">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Motorcycle Catalog */}
         <CatalogSection
           motors={motors}

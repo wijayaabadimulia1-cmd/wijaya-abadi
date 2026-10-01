@@ -362,6 +362,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'minimal', label: 'Minimal', accent: 'bg-zinc-800', description: 'Netral, bersih, dan modern untuk brand yang simpel.' },
     { value: 'luxury', label: 'Luxury', accent: 'bg-amber-300', description: 'Elegan dengan nuansa premium dan refined.' },
     { value: 'sport', label: 'Sport', accent: 'bg-cyan-500', description: 'Tampilan dinamis dengan fokus pada energi dan aksi.' },
+    { value: 'showroom', label: 'Showroom', accent: 'bg-red-700', description: 'Layout dealer resmi dengan hero, statistik, dan katalog yang jelas.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
