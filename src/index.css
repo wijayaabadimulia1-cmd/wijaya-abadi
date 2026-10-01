@@ -634,6 +634,32 @@ body {
   animation-iteration-count: infinite;
 }
 
+.website-shell #home .hero-editable-text {
+  color: var(--hero-text-color, #f4f4f5) !important;
+}
+
+.website-shell #home .hero-highlight-text {
+  color: var(--hero-highlight-color, #f97316) !important;
+  background-image: none !important;
+  -webkit-text-fill-color: currentColor;
+}
+
+.hero-slide-image {
+  animation: catalog-photo-fade 700ms ease both;
+  will-change: opacity, transform, filter, clip-path;
+}
+
+.hero-slide-image[data-hero-animation="fade"] { animation-name: catalog-photo-fade; }
+.hero-slide-image[data-hero-animation="slide-left"] { animation-name: catalog-photo-slide-left; }
+.hero-slide-image[data-hero-animation="slide-right"] { animation-name: catalog-photo-slide-right; }
+.hero-slide-image[data-hero-animation="slide-up"] { animation-name: catalog-photo-slide-up; }
+.hero-slide-image[data-hero-animation="slide-down"] { animation-name: catalog-photo-slide-down; }
+.hero-slide-image[data-hero-animation="zoom-in"] { animation-name: catalog-photo-zoom-in; }
+.hero-slide-image[data-hero-animation="zoom-out"] { animation-name: catalog-photo-zoom-out; }
+.hero-slide-image[data-hero-animation="blur"] { animation-name: catalog-photo-blur; }
+.hero-slide-image[data-hero-animation="flip"] { animation-name: catalog-photo-flip; }
+.hero-slide-image[data-hero-animation="rotate"] { animation-name: catalog-photo-rotate; }
+
 @keyframes catalog-photo-fade {
   from {
     opacity: 0;
@@ -702,7 +728,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .catalog-card,
   .catalog-photo-animation,
-  .catalog-animation-preview img {
+  .catalog-animation-preview img,
+  .hero-slide-image {
     animation: none;
   }
 }

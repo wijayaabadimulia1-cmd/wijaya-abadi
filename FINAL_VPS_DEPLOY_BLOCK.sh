@@ -10,6 +10,7 @@ export DEBIAN_FRONTEND=noninteractive
 APP_DIR="/var/www/wijaya.kreditmotorhonda.id"
 REPO_URL="https://github.com/wijayaabadimulia1-cmd/wijaya-abadi.git"
 DOMAIN="wijaya.kreditmotorhonda.id"
+SITE_URL="https://kreditmotorhonda.tech"
 PORT=3000
 
 echo "==> Updating system"
@@ -81,8 +82,26 @@ if [ ! -d /etc/letsencrypt/live/$DOMAIN ]; then
 fi
 
 pm2 status
-curl -I http://localhost:$PORT || true
-curl -I https://$DOMAIN || true
+
+check_http_200() {
+  local url="$1"
+  local status
+
+  status=$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "$url") || {
+    echo "Request failed: $url" >&2
+    return 1
+  }
+
+  if [ "$status" != "200" ]; then
+    echo "Expected HTTP 200, received HTTP $status: $url" >&2
+    return 1
+  fi
+
+  echo "HTTP $status: $url"
+}
+
+check_http_200 "$SITE_URL/"
+check_http_200 "$SITE_URL/sitemap.xml"
 
 echo "========================================"
 echo "Deployment complete."

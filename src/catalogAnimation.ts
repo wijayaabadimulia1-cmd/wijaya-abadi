@@ -11,6 +11,8 @@ export const CATALOG_ANIMATION_OPTIONS = [
   { value: 'rotate', label: 'Putar', description: 'Berputar lembut ke posisi' },
 ] as const;
 
+export const HERO_ANIMATION_OPTIONS = CATALOG_ANIMATION_OPTIONS;
+
 export type CatalogAnimation = (typeof CATALOG_ANIMATION_OPTIONS)[number]['value'];
 
 export const DEFAULT_CATALOG_ANIMATION: CatalogAnimation = 'fade';

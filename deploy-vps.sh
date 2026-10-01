@@ -4,6 +4,7 @@ set -euo pipefail
 APP_DIR="/var/www/wijaya.kreditmotorhonda.id"
 REPO_URL="${1:-https://github.com/<your-user>/<your-repo>.git}"
 BRANCH="${2:-main}"
+SITE_URL="https://kreditmotorhonda.tech"
 
 if [ ! -d "$APP_DIR" ]; then
   sudo mkdir -p "$APP_DIR"
@@ -34,7 +35,7 @@ fi
 pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs
 
 sudo apt-get update
-sudo apt-get install -y nginx certbot python3-certbot-nginx || true
+sudo apt-get install -y curl nginx certbot python3-certbot-nginx || true
 
 sudo tee /etc/nginx/sites-available/wijaya.kreditmotorhonda.id > /dev/null <<'EOF'
 server {
@@ -60,5 +61,25 @@ sudo systemctl reload nginx
 if [ ! -d /etc/letsencrypt/live/wijaya.kreditmotorhonda.id ]; then
   sudo certbot --nginx -d wijaya.kreditmotorhonda.id --non-interactive --agree-tos -m admin@wijaya.kreditmotorhonda.id
 fi
+
+check_http_200() {
+  local url="$1"
+  local status
+
+  status=$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "$url") || {
+    echo "Request failed: $url" >&2
+    return 1
+  }
+
+  if [ "$status" != "200" ]; then
+    echo "Expected HTTP 200, received HTTP $status: $url" >&2
+    return 1
+  fi
+
+  echo "HTTP $status: $url"
+}
+
+check_http_200 "$SITE_URL/"
+check_http_200 "$SITE_URL/sitemap.xml"
 
 echo "Deployment complete. App should be available at https://wijaya.kreditmotorhonda.id"

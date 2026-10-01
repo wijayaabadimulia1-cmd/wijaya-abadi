@@ -105,6 +105,15 @@ Setelah itu, setiap push ke branch `main` akan otomatis deploy ke VPS.
 
 ```bash
 pm2 logs honda-wijaya-abadi --lines 100
-curl -I http://localhost:3000
-curl -I https://wijaya.kreditmotorhonda.id
+SITE_URL=https://kreditmotorhonda.tech
+for url in "$SITE_URL/" "$SITE_URL/sitemap.xml"; do
+    status=$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "$url") || exit 1
+    if [ "$status" != "200" ]; then
+        echo "Expected HTTP 200, received HTTP $status: $url" >&2
+        exit 1
+    fi
+    echo "HTTP $status: $url"
+done
 ```
+
+Kirim `https://kreditmotorhonda.tech/sitemap.xml` ke Google Search Console hanya setelah kedua URL di atas menampilkan HTTP 200.

@@ -1,6 +1,8 @@
-import React from 'react';
-import { ArrowRight, ShieldCheck, Wrench, Clock, CheckCircle2, ChevronRight, MessageSquare, Calculator } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, ShieldCheck, Wrench, Clock, CheckCircle2, ChevronLeft, ChevronRight, MessageSquare, Calculator } from 'lucide-react';
+import { MAX_HERO_IMAGES } from '../constants';
 import { DealerSettings } from '../types';
+import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED, normalizeCatalogAnimationSpeed } from '../catalogAnimation';
 
 interface HeroProps {
   settings: DealerSettings;
@@ -9,13 +11,49 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInterest }) => {
+  const uploadedImages = settings.heroImages ?? (settings.heroImage ? [settings.heroImage] : []);
+  const heroImages = uploadedImages.filter((image): image is string => typeof image === 'string' && image.trim().length > 0).slice(0, MAX_HERO_IMAGES);
+  const imageSignature = heroImages.join('|');
+  const animation = settings.heroAnimation || DEFAULT_CATALOG_ANIMATION;
+  const animationSpeed = normalizeCatalogAnimationSpeed(settings.heroAnimationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED);
+  const [activeSlide, setActiveSlide] = useState(0);
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.'
   )}`;
 
+  useEffect(() => {
+    setActiveSlide(0);
+  }, [imageSignature]);
+
+  useEffect(() => {
+    if (heroImages.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % heroImages.length);
+    }, animationSpeed * 1000);
+    return () => window.clearInterval(timer);
+  }, [heroImages.length, animationSpeed]);
+
+  const fontFamily = {
+    jakarta: '"Plus Jakarta Sans", sans-serif',
+    serif: 'Georgia, serif',
+    mono: 'monospace',
+    system: 'system-ui, sans-serif',
+    outfit: 'Outfit, sans-serif',
+    inter: 'Inter, sans-serif',
+    montserrat: 'Montserrat, sans-serif',
+  }[settings.customization?.heroTextFont || 'jakarta'];
+
   return (
-    <section id="home" className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-black py-16 sm:py-24">
+    <section
+      id="home"
+      className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-black py-16 sm:py-24"
+      style={{
+        fontFamily,
+        '--hero-text-color': settings.customization?.heroTextColor || '#f4f4f5',
+        '--hero-highlight-color': settings.customization?.heroTitleHighlightColor || settings.customization?.accentColor || '#f97316',
+      } as React.CSSProperties}
+    >
       {/* Background radial glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-red-900/10 rounded-full blur-[100px] pointer-events-none" />
@@ -32,19 +70,19 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-red-500/30 text-xs font-semibold text-zinc-300 shadow-inner">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span className="w-2 h-2 rounded-full bg-red-500 -ml-3" />
-              <span>{settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
+              <span className="hero-editable-text">{settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]">
-              Partner Terpercaya{' '}
-              <span className="bg-gradient-to-r from-red-500 via-red-600 to-orange-500 bg-clip-text text-transparent">
-                Berkendara Anda
+            <h1 className="hero-editable-text text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15]">
+              {settings.heroMainTitle || 'Partner Terpercaya'}{' '}
+              <span className="hero-highlight-text">
+                {settings.heroTitleHighlight || 'Berkendara Anda'}
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-zinc-300 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+            <p className="hero-editable-text text-zinc-300 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
               {settings.heroSubtitle ||
                 'Dapatkan motor Honda impian Anda dengan harga terbaik dan proses yang mudah. Layanan penjualan unit baru, simulasi kredit terjangkau, dan servis resmi AHASS.'}
             </p>
@@ -121,17 +159,53 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
               <div className="relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-4 sm:p-6 overflow-hidden shadow-2xl">
                 {/* Image showcase */}
                 <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-zinc-950 flex items-center justify-center border border-white/5">
-                  <img
-                    src={settings.heroImage || '/uploads/hero.jpeg'}
-                    alt="Honda Wijaya Abadi Showroom"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    onError={(e) => {
-                      // Fallback image if error
-                      e.currentTarget.src =
-                        'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?crop=entropy&cs=srgb&fm=jpg&w=900&q=80';
-                    }}
-                  />
+                  {heroImages.length > 0 ? (
+                    <img
+                      key={`${activeSlide}-${heroImages[activeSlide] || heroImages[0]}`}
+                      src={heroImages[activeSlide] || heroImages[0]}
+                      alt={settings.heroCaption || `Banner Honda Wijaya Abadi ${activeSlide + 1}`}
+                      className="hero-slide-image absolute inset-0 h-full w-full object-cover"
+                      data-hero-animation={animation}
+                      style={{ animationDuration: `${Math.min(1500, animationSpeed * 100)}ms` }}
+                      onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-zinc-900" aria-label="Belum ada foto banner" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+
+                  {heroImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSlide((current) => (current - 1 + heroImages.length) % heroImages.length)}
+                        aria-label="Foto hero sebelumnya"
+                        className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-2 text-white hover:bg-black/80"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSlide((current) => (current + 1) % heroImages.length)}
+                        aria-label="Foto hero berikutnya"
+                        className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-2 text-white hover:bg-black/80"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                      <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-1.5">
+                        {heroImages.map((image, index) => (
+                          <button
+                            key={`${image}-${index}`}
+                            type="button"
+                            onClick={() => setActiveSlide(index)}
+                            aria-label={`Tampilkan foto hero ${index + 1}`}
+                            aria-current={index === activeSlide}
+                            className={`h-2 rounded-full transition-all ${index === activeSlide ? 'w-5 bg-white' : 'w-2 bg-white/50'}`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                   
                   {/* Floating Promo Tag */}
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-red-600 to-red-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 border border-red-400/40">
@@ -141,8 +215,8 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
                   {/* Bottom Image Caption */}
                   <div className="absolute bottom-4 left-4 right-4 text-left">
-                    <span className="text-xs text-red-400 font-semibold tracking-wider uppercase">
-                      One Heart. Satu Hati.
+                    <span className="hero-editable-text text-xs font-semibold tracking-wider uppercase">
+                      {settings.heroCaption || 'One Heart. Satu Hati.'}
                     </span>
                     <h3 className="text-white text-base font-bold">
                       {settings.name || 'Honda Wijaya Abadi Mulia Motor'}

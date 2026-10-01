@@ -1248,11 +1248,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {[
+                      {([
                         { label: 'Honda Red', values: { primaryColor: '#dc2626', accentColor: '#f97316', backgroundColor: '#000000', panelColor: '#111827', textColor: '#f4f4f5', mutedColor: '#a1a1aa', font: 'jakarta', heroAlignment: 'left', cardRadius: 'round' } },
                         { label: 'Ocean Blue', values: { primaryColor: '#0284c7', accentColor: '#22d3ee', backgroundColor: '#07161d', panelColor: '#0d2430', textColor: '#e0f2fe', mutedColor: '#a5f3fc', font: 'jakarta', heroAlignment: 'center', cardRadius: 'soft' } },
                         { label: 'Emerald', values: { primaryColor: '#059669', accentColor: '#84cc16', backgroundColor: '#07130f', panelColor: '#10241b', textColor: '#ecfdf5', mutedColor: '#bbf7d0', font: 'jakarta', heroAlignment: 'right', cardRadius: 'soft' } },
-                      ].map((preset) => (
+                      ] as const).map((preset) => (
                         <button
                           key={preset.label}
                           type="button"
