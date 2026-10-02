@@ -41,7 +41,7 @@ sudo tee /etc/nginx/sites-available/wijaya.kreditmotorhonda.id > /dev/null <<'EO
 server {
     listen 80;
     server_name wijaya.kreditmotorhonda.id;
-  client_max_body_size 100m;
+  client_max_body_size 0;
 
     location / {
         proxy_pass http://127.0.0.1:3000;

@@ -259,7 +259,7 @@ async function startServer() {
 
   app.post('/api/fif-price-list/import', express.raw({
     type: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'],
-    limit: '25mb',
+    limit: Infinity,
   }), (req, res) => {
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
