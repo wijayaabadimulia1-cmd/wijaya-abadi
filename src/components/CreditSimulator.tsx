@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent } from 'lucide-react';
-import { Motor, DealerSettings } from '../types';
+import { Motor, DealerSettings, FIFPriceList } from '../types';
 import { formatRupiah } from '../services/api';
-import { FIF_TENORS, getFIFPriceListModel, getMotorOtrPrice } from '../services/fifPriceList';
+import { getFIFPriceListModel, getMotorOtrPrice } from '../services/fifPriceList';
 
 interface CreditSimulatorProps {
   motors: Motor[];
+  priceList: FIFPriceList;
   selectedMotor?: Motor | null;
   settings: DealerSettings;
   onApplyCredit: (motor: Motor, dpSummary: string, installmentSummary: string) => void;
@@ -13,6 +14,7 @@ interface CreditSimulatorProps {
 
 export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   motors,
+  priceList,
   selectedMotor,
   settings,
   onApplyCredit,
@@ -33,12 +35,12 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const activeMotor = useMemo(() => {
     return motors.find((m) => m.id === currentMotorId) || motors[0];
   }, [motors, currentMotorId]);
-  const priceListModel = activeMotor ? getFIFPriceListModel(activeMotor.name) : undefined;
+  const priceListModel = activeMotor ? getFIFPriceListModel(activeMotor.name, priceList) : undefined;
 
   const motorPrice = useMemo(() => {
     if (!activeMotor) return 20000000;
-    return getMotorOtrPrice(activeMotor) || 20000000;
-  }, [activeMotor]);
+    return getMotorOtrPrice(activeMotor, priceList) || 20000000;
+  }, [activeMotor, priceList]);
 
   // DP percentage (default 20%)
   const [dpPercent, setDpPercent] = useState<number>(20);
@@ -50,17 +52,21 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   // Computed values
   const rawDpAmount = (motorPrice * dpPercent) / 100;
   const priceListOption = priceListModel?.options[String(dpPercent)];
-  const dpAmount = Math.min(motorPrice, Math.ceil(rawDpAmount / 100_000) * 100_000);
+  const tenorIndex = priceList.tenors.indexOf(tenorMonths) + 1;
+  const listedInstallment = tenorIndex > 0 ? priceListOption?.[tenorIndex] : undefined;
+  const hasListedInstallment = Boolean(priceListOption?.[0] && listedInstallment);
+  const dpAmount = hasListedInstallment
+    ? Math.min(motorPrice, priceListOption![0])
+    : Math.min(motorPrice, Math.ceil(rawDpAmount / 100_000) * 100_000);
   const loanPrincipal = Math.max(0, motorPrice - dpAmount);
   const years = tenorMonths / 12;
   const totalInterest = loanPrincipal * (annualRate / 100) * years;
   const estimatedTotalLoanRepay = loanPrincipal + totalInterest;
-  const tenorIndex = FIF_TENORS.indexOf(tenorMonths) + 1;
-  const hasExactPriceListDp = priceListOption?.[0] === dpAmount;
-  const listedInstallment = hasExactPriceListDp && tenorIndex > 0 ? priceListOption?.[tenorIndex] : undefined;
-  const monthlyInstallment = listedInstallment ?? Math.round(estimatedTotalLoanRepay / tenorMonths);
-  const totalLoanRepay = listedInstallment !== undefined
-    ? listedInstallment * tenorMonths
+  const monthlyInstallment = hasListedInstallment
+    ? listedInstallment!
+    : Math.round(estimatedTotalLoanRepay / tenorMonths);
+  const totalLoanRepay = hasListedInstallment
+    ? listedInstallment! * tenorMonths
     : estimatedTotalLoanRepay;
   const totalCustomerSpend = dpAmount + totalLoanRepay;
 

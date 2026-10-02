@@ -31,9 +31,9 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
 import { api, formatRupiah } from '../services/api';
-import { normalizeMotorOtrPrice } from '../services/fifPriceList';
+import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from '../services/fifPriceList';
 import { MAX_MOTOR_IMAGES } from '../constants';
 import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
@@ -53,7 +53,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'seo' | 'customization' | 'security' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'seo' | 'customization' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -79,6 +79,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [isCheckingSeo, setIsCheckingSeo] = useState(false);
   const [seoFileChecks, setSeoFileChecks] = useState<{ sitemap: boolean | null; robots: boolean | null }>({ sitemap: null, robots: null });
   const backupInputRef = useRef<HTMLInputElement>(null);
+  const [fifPriceList, setFifPriceList] = useState<FIFPriceList>(DEFAULT_FIF_PRICE_LIST);
+  const [isImportingFifPriceList, setIsImportingFifPriceList] = useState(false);
+  const fifPriceListInputRef = useRef<HTMLInputElement>(null);
 
   // Modals for CRUD
   const [isMotorModalOpen, setIsMotorModalOpen] = useState(false);
@@ -109,16 +112,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, analyticsRes] = await Promise.all([
+      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, analyticsRes, priceListRes] = await Promise.all([
         api.getMotors(),
         api.getPromos(),
         api.getTestimonials(),
         api.getSettings(),
         api.getInterests(),
         api.getAnalytics(),
+        api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
       ]);
 
-      setMotors(motorsRes.map(normalizeMotorOtrPrice));
+      setFifPriceList(priceListRes);
+      setMotors(motorsRes.map((motor) => normalizeMotorOtrPrice(motor, priceListRes)));
       setPromos(promosRes);
       setTestimonials(testiRes);
       setSettings(settingsRes);
@@ -500,6 +505,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const handleImportFifPriceList = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setIsImportingFifPriceList(true);
+    try {
+      const result = await api.importFifPriceList(file);
+      await loadAllData();
+      await onRefreshData();
+      showToast(`Price list berhasil diperbarui untuk ${result.modelCount} model`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal mengimpor price list FIF');
+    } finally {
+      setIsImportingFifPriceList(false);
+      input.value = '';
+    }
+  };
+
   const handleAdminExport = async (key: string, download: () => Promise<void>, message: string) => {
     setActiveExport(key);
     try {
@@ -631,6 +655,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'seo', label: 'Rank Math SEO', icon: Search },
               { id: 'customization', label: 'Customisasi', icon: SettingsIcon },
               { id: 'security', label: 'Admin & Histori', icon: Shield },
+              { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -1729,6 +1754,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'credit' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Cicilan & Price List FIFGROUP</h2>
+                  <p className="text-xs text-zinc-400">Kelola tabel DP dan angsuran yang digunakan katalog serta kalkulator kredit.</p>
+                </div>
+
+                <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                  <div className="flex items-start gap-3">
+                    <FileSpreadsheet className="mt-0.5 h-5 w-5 text-emerald-400" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Price list cicilan FIFGROUP</h3>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {Object.keys(fifPriceList.models).length} model aktif · Sumber: {fifPriceList.source}
+                        {fifPriceList.updatedAt ? ` · Diperbarui ${new Date(fifPriceList.updatedAt).toLocaleString('id-ID')}` : ''}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500">Unduh template, isi nominal DP dan cicilan untuk setiap model, lalu unggah. Data yang diunggah langsung tersimpan dan memperbarui katalog serta kalkulator; model yang tidak disertakan tetap dipertahankan.</p>
+                    </div>
+                  </div>
+                  <input
+                    ref={fifPriceListInputRef}
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={(event) => void handleImportFifPriceList(event)}
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={isImportingFifPriceList}
+                      onClick={() => fifPriceListInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {isImportingFifPriceList ? 'Mengimpor price list...' : 'Upload price list Excel'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={activeExport !== null}
+                      onClick={() => void handleAdminExport('fif-template', () => api.downloadFifPriceListTemplate(), 'Template price list berhasil diunduh')}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      {activeExport === 'fif-template' ? 'Menyiapkan template...' : 'Download template Excel'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-zinc-500">Template berisi kolom model, harga OTR, DP 10%, 15%, 20%, 30%, 40%, serta cicilan tenor 11, 17, 23, 29, dan 35 bulan.</p>
+                </section>
               </div>
             )}
 

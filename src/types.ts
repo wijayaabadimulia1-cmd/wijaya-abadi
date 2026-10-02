@@ -21,6 +21,18 @@ export interface Motor {
   is_bestseller?: boolean;
 }
 
+export interface FIFPriceListModel {
+  price: number;
+  options: Record<string, number[]>;
+}
+
+export interface FIFPriceList {
+  source: string;
+  updatedAt?: string;
+  tenors: number[];
+  models: Record<string, FIFPriceListModel>;
+}
+
 export interface Promo {
   id: string;
   title: string;
