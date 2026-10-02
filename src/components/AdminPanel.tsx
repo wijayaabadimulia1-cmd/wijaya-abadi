@@ -35,7 +35,7 @@ import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem,
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from '../services/fifPriceList';
 import { MAX_MOTOR_IMAGES } from '../constants';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
   DEFAULT_CATALOG_ANIMATION,
@@ -375,7 +375,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const seoTitle = settings?.seoTitle || DEFAULT_SEO_TITLE;
   const seoDescription = settings?.seoDescription || DEFAULT_SEO_DESCRIPTION;
-  const seoFocusKeyword = settings?.seoFocusKeyword || '';
+  const seoFocusKeyword = settings?.seoFocusKeyword || DEFAULT_SEO_FOCUS_KEYWORD;
   const seoKeywords = settings?.seoKeywords || DEFAULT_SEO_KEYWORDS;
   const seoCanonicalUrl = settings?.seoCanonicalUrl || DEFAULT_SEO_CANONICAL_URL;
   const seoRobots = settings?.seoRobots || DEFAULT_SEO_ROBOTS;
@@ -1592,11 +1592,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Focus keyword
-                          <input value={settings.seoFocusKeyword || ''} onChange={(event) => setSettings({ ...settings, seoFocusKeyword: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="contoh: kredit motor Honda" />
+                          <input value={settings.seoFocusKeyword || DEFAULT_SEO_FOCUS_KEYWORD} onChange={(event) => setSettings({ ...settings, seoFocusKeyword: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="contoh: kredit motor Honda" />
                         </label>
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Kata kunci tambahan
                           <input value={settings.seoKeywords ?? DEFAULT_SEO_KEYWORDS} onChange={(event) => setSettings({ ...settings, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan kata kunci dengan koma" />
+                          <span className="block text-[11px] text-zinc-500">Google tidak menggunakan meta keywords sebagai faktor ranking. Masukkan variasi kata kunci secara alami ke konten dan judul section halaman.</span>
                         </label>
                       </div>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
