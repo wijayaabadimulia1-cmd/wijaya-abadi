@@ -50,13 +50,14 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   // Computed values
   const rawDpAmount = (motorPrice * dpPercent) / 100;
   const priceListOption = priceListModel?.options[String(dpPercent)];
-  const dpAmount = priceListOption?.[0] ?? Math.min(motorPrice, Math.ceil(rawDpAmount / 500_000) * 500_000);
+  const dpAmount = Math.min(motorPrice, Math.ceil(rawDpAmount / 100_000) * 100_000);
   const loanPrincipal = Math.max(0, motorPrice - dpAmount);
   const years = tenorMonths / 12;
   const totalInterest = loanPrincipal * (annualRate / 100) * years;
   const estimatedTotalLoanRepay = loanPrincipal + totalInterest;
   const tenorIndex = FIF_TENORS.indexOf(tenorMonths) + 1;
-  const listedInstallment = tenorIndex > 0 ? priceListOption?.[tenorIndex] : undefined;
+  const hasExactPriceListDp = priceListOption?.[0] === dpAmount;
+  const listedInstallment = hasExactPriceListDp && tenorIndex > 0 ? priceListOption?.[tenorIndex] : undefined;
   const monthlyInstallment = listedInstallment ?? Math.round(estimatedTotalLoanRepay / tenorMonths);
   const totalLoanRepay = listedInstallment !== undefined
     ? listedInstallment * tenorMonths
