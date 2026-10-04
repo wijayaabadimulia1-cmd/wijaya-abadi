@@ -217,7 +217,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   {/* Floating Promo Tag */}
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-red-600 to-red-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 border border-red-400/40">
                     <span className="text-yellow-300">★</span>
-                    <span>Showroom Resmi Bandung</span>
+                    <span>{settings.heroBadge || 'Showroom Resmi Bandung'}</span>
                   </div>
 
                   {/* Bottom Image Caption */}
