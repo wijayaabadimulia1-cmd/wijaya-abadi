@@ -1,6 +1,8 @@
 import React from 'react';
 import { Tag, Sparkles, ArrowRight, MessageSquare, CheckCircle, Gift } from 'lucide-react';
 import { Promo, DealerSettings } from '../types';
+import { DEFAULT_CATALOG_ANIMATION } from '../catalogAnimation';
+import { MAX_PROMO_IMAGES } from '../constants';
 
 interface PromoSectionProps {
   promos: Promo[];
@@ -30,6 +32,10 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
         {/* Promo Grid */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {promos.map((promo, idx) => {
+            const promoImages = (promo.images || []).slice(0, MAX_PROMO_IMAGES);
+            const promoTemplate = promo.promoTemplate || 'classic';
+            const gridColumns = promoTemplate === 'compact' ? 'grid-cols-3' : 'grid-cols-2';
+            const cardPadding = promoTemplate === 'showcase' ? 'p-5 sm:p-6' : promoTemplate === 'compact' ? 'p-4 sm:p-5' : 'p-6 sm:p-8';
             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
               `Halo Honda Wijaya Abadi, saya ingin klaim penawaran "${promo.title} - ${promo.description}". Mohon informasi syarat dan ketentuannya.`
             )}`;
@@ -37,12 +43,37 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
             return (
               <div
                 key={promo.id || idx}
-                className="promo-card group relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:border-red-500/50 transition-all duration-300 shadow-xl overflow-hidden"
+                data-promo-template={promoTemplate}
+                className={`promo-card group relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl ${cardPadding} flex flex-col justify-between hover:border-red-500/50 transition-all duration-300 shadow-xl overflow-hidden`}
               >
                 {/* Background glow */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
 
                 <div>
+                  {promoImages.length > 0 && (
+                    <div className={`relative mb-5 grid ${gridColumns} gap-2`}>
+                      {promoImages.map((image, imageIndex) => {
+                        const featuredImage = promoTemplate === 'showcase' && imageIndex === 0;
+                        const singleImage = promoImages.length === 1;
+                        const imageLayout = featuredImage || singleImage
+                          ? 'col-span-full aspect-[16/8]'
+                          : promoTemplate === 'compact'
+                            ? 'aspect-square'
+                            : 'aspect-[4/3]';
+                        return (
+                          <img
+                            key={`${image}-${imageIndex}`}
+                            src={image}
+                            alt={`${promo.title} - foto ${imageIndex + 1}`}
+                            loading="lazy"
+                            data-catalog-animation={promo.promoAnimation || DEFAULT_CATALOG_ANIMATION}
+                            className={`catalog-photo-animation ${imageLayout} w-full rounded-xl border border-white/10 object-cover`}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Badge */}
                   <div className="flex items-center justify-between mb-4">
                     <span className="px-3 py-1 rounded-full bg-red-600/20 text-red-400 text-xs font-bold border border-red-500/30">

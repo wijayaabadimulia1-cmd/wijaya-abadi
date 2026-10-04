@@ -1,5 +1,6 @@
 export const MAX_MOTOR_IMAGES = 15;
 export const MAX_HERO_IMAGES = 10;
+export const MAX_PROMO_IMAGES = 5;
 export const MAX_IMAGE_UPLOAD_BYTES = 100 * 1024 * 1024;
 export const DEFAULT_SEO_TITLE = 'Honda Bandung | Dealer Motor & Simulasi Kredit';
 export const DEFAULT_SEO_DESCRIPTION = 'Honda Bandung: dealer motor Honda di Gegerkalong. Cek harga OTR, simulasi kredit, pilihan DP dan tenor, lalu konsultasi melalui WhatsApp.';

@@ -34,7 +34,7 @@ import {
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from '../services/fifPriceList';
-import { MAX_MOTOR_IMAGES } from '../constants';
+import { MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from '../constants';
 import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
@@ -89,6 +89,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<Partial<Promo> | null>(null);
+  const [isUploadingPromoImages, setIsUploadingPromoImages] = useState(false);
 
   const [isTestiModalOpen, setIsTestiModalOpen] = useState(false);
   const [editingTesti, setEditingTesti] = useState<Partial<Testimonial> | null>(null);
@@ -291,6 +292,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   // --- Promo CRUD Handlers ---
+  const handlePromoImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const files = Array.from(input.files || []);
+    if (!files.length || !editingPromo) return;
+
+    const existingImages = editingPromo.images || [];
+    const availableSlots = MAX_PROMO_IMAGES - existingImages.length;
+    if (files.length > availableSlots) {
+      alert(`Maksimal ${MAX_PROMO_IMAGES} foto per promo. Tersisa ${availableSlots} slot.`);
+      input.value = '';
+      return;
+    }
+    if (files.some((file) => !file.type.startsWith('image/'))) {
+      alert('Pilih file gambar yang valid.');
+      input.value = '';
+      return;
+    }
+
+    setIsUploadingPromoImages(true);
+    try {
+      const uploadedImages = await Promise.all(files.map((file) => api.uploadImage(file)));
+      setEditingPromo((current) => current ? { ...current, images: [...(current.images || []), ...uploadedImages] } : current);
+      showToast(`${uploadedImages.length} foto promo berhasil diunggah`);
+    } catch (error: any) {
+      alert(`Gagal upload foto promo: ${error.message}`);
+    } finally {
+      setIsUploadingPromoImages(false);
+      input.value = '';
+    }
+  };
+
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPromo || !editingPromo.title) return;
@@ -2121,7 +2153,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       {/* --- MODAL ADD / EDIT PROMO --- */}
       {isPromoModalOpen && editingPromo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-zinc-950 border border-white/15 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
               <h3 className="font-bold text-white text-sm">
                 {editingPromo.id ? 'Edit Promo' : 'Tambah Promo Baru'}
@@ -2144,6 +2176,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 />
               </div>
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-zinc-300">Foto Promo</label>
+                  <span className="text-zinc-500">{editingPromo.images?.length || 0}/{MAX_PROMO_IMAGES}</span>
+                </div>
+                {!!editingPromo.images?.length && (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {editingPromo.images.map((image, imageIndex) => (
+                      <div key={`${image}-${imageIndex}`} className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-zinc-900">
+                        <img src={image} alt={`Foto promo ${imageIndex + 1}`} className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          aria-label={`Hapus foto promo ${imageIndex + 1}`}
+                          onClick={() => setEditingPromo({ ...editingPromo, images: editingPromo.images?.filter((_, index) => index !== imageIndex) })}
+                          className="absolute right-1 top-1 rounded-md bg-black/75 p-1 text-white hover:bg-red-600"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 ${isUploadingPromoImages || (editingPromo.images?.length || 0) >= MAX_PROMO_IMAGES ? 'pointer-events-none opacity-50' : ''}`}>
+                  <Upload className="h-4 w-4" />
+                  {isUploadingPromoImages ? 'Mengunggah foto...' : 'Upload foto'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={isUploadingPromoImages || (editingPromo.images?.length || 0) >= MAX_PROMO_IMAGES}
+                    onChange={(event) => void handlePromoImageUpload(event)}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-[11px] text-zinc-500">Maksimal {MAX_PROMO_IMAGES} foto. Pilih beberapa gambar sekaligus.</p>
+              </div>
+
               <div>
                 <label className="block font-bold text-zinc-300 mb-1">Label Diskon / Badge</label>
                 <input
@@ -2153,6 +2222,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   placeholder="Contoh: DP 0% atau Cashback 2 Juta"
                   className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block font-bold text-zinc-300">
+                  Template Promo
+                  <select
+                    value={editingPromo.promoTemplate || 'classic'}
+                    onChange={(event) => setEditingPromo({ ...editingPromo, promoTemplate: event.target.value as Promo['promoTemplate'] })}
+                    className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 font-normal text-white"
+                  >
+                    <option value="classic">Kartu Standar</option>
+                    <option value="showcase">Sorotan Gambar</option>
+                    <option value="compact">Galeri Ringkas</option>
+                  </select>
+                </label>
+                <label className="block font-bold text-zinc-300">
+                  Animasi Promo
+                  <select
+                    value={editingPromo.promoAnimation || DEFAULT_CATALOG_ANIMATION}
+                    onChange={(event) => setEditingPromo({ ...editingPromo, promoAnimation: event.target.value as Promo['promoAnimation'] })}
+                    className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 font-normal text-white"
+                  >
+                    {CATALOG_ANIMATION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
               <div>
@@ -2185,7 +2281,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl"
+                  disabled={isUploadingPromoImages}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl disabled:opacity-50"
                 >
                   Simpan
                 </button>

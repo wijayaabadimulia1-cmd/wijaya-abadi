@@ -4,7 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
-import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES } from './src/constants';
+import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
@@ -403,6 +403,12 @@ async function startServer() {
 
   app.post('/api/promos', (req, res) => {
     const db = readDb();
+    const images = Array.isArray(req.body.images)
+      ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
+      : [];
+    if (images.length > MAX_PROMO_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
+    }
     const newPromo = {
       id: req.body.id || `promo-${Date.now()}`,
       title: req.body.title || 'Promo Menarik',
@@ -410,6 +416,9 @@ async function startServer() {
       terms: req.body.terms || 'S&K Berlaku',
       badge: req.body.badge || 'Promo',
       discountValue: req.body.discountValue || '',
+      images,
+      promoAnimation: req.body.promoAnimation || 'fade',
+      promoTemplate: req.body.promoTemplate || 'classic',
       created_at: new Date().toISOString()
     };
     db.promos = [newPromo, ...(db.promos || [])];
@@ -421,7 +430,15 @@ async function startServer() {
     const db = readDb();
     const index = (db.promos || []).findIndex((p: any) => p.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Promo not found' });
-    db.promos[index] = { ...db.promos[index], ...req.body };
+    const images = req.body.images === undefined
+      ? db.promos[index].images || []
+      : Array.isArray(req.body.images)
+        ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
+        : [];
+    if (images.length > MAX_PROMO_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
+    }
+    db.promos[index] = { ...db.promos[index], ...req.body, images };
     writeDb(db);
     res.json(db.promos[index]);
   });

@@ -33,6 +33,8 @@ export interface FIFPriceList {
   models: Record<string, FIFPriceListModel>;
 }
 
+export type PromoTemplate = 'classic' | 'showcase' | 'compact';
+
 export interface Promo {
   id: string;
   title: string;
@@ -40,6 +42,9 @@ export interface Promo {
   terms: string;
   badge?: string;
   discountValue?: string;
+  images?: string[];
+  promoAnimation?: CatalogAnimation;
+  promoTemplate?: PromoTemplate;
   created_at?: string;
 }
 
