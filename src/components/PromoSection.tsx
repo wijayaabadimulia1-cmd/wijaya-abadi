@@ -1,5 +1,5 @@
-import React from 'react';
-import { Tag, Sparkles, ArrowRight, MessageSquare, CheckCircle, Gift } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Tag, Sparkles, ArrowRight, MessageSquare, CheckCircle, Gift, X } from 'lucide-react';
 import { Promo, DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION } from '../catalogAnimation';
 import { MAX_PROMO_IMAGES } from '../constants';
@@ -10,7 +10,17 @@ interface PromoSectionProps {
 }
 
 export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) => {
+  const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
+
+  useEffect(() => {
+    if (!activeImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActiveImage(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [activeImage]);
 
   return (
     <section id="promo" className="py-24 bg-zinc-950 relative">
@@ -61,14 +71,21 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                             ? 'aspect-square'
                             : 'aspect-[4/3]';
                         return (
-                          <img
+                          <button
                             key={`${image}-${imageIndex}`}
-                            src={image}
-                            alt={`${promo.title} - foto ${imageIndex + 1}`}
-                            loading="lazy"
-                            data-catalog-animation={promo.promoAnimation || DEFAULT_CATALOG_ANIMATION}
-                            className={`catalog-photo-animation ${imageLayout} w-full rounded-xl border border-white/10 object-cover`}
-                          />
+                            type="button"
+                            onClick={() => setActiveImage({ src: image, alt: `${promo.title} - foto ${imageIndex + 1}` })}
+                            aria-label={`Perbesar foto ${imageIndex + 1} untuk ${promo.title}`}
+                            className={`${imageLayout} group/image overflow-hidden rounded-xl border border-white/10 bg-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500`}
+                          >
+                            <img
+                              src={image}
+                              alt={`${promo.title} - foto ${imageIndex + 1}`}
+                              loading="lazy"
+                              data-catalog-animation={promo.promoAnimation || DEFAULT_CATALOG_ANIMATION}
+                              className="catalog-photo-animation h-full w-full object-cover transition-transform duration-300 group-hover/image:scale-105"
+                            />
+                          </button>
                         );
                       })}
                     </div>
@@ -120,6 +137,31 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
           })}
         </div>
       </div>
+      {activeImage && (
+        <div
+          role="presentation"
+          onClick={() => setActiveImage(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeImage.alt}
+            onClick={(event) => event.stopPropagation()}
+            className="relative flex max-h-[92vh] max-w-[96vw] items-center justify-center"
+          >
+            <button
+              type="button"
+              aria-label="Tutup gambar promo"
+              onClick={() => setActiveImage(null)}
+              className="absolute -right-2 -top-2 z-10 rounded-full border border-white/20 bg-zinc-900 p-2 text-white shadow-lg hover:bg-zinc-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <img src={activeImage.src} alt={activeImage.alt} className="max-h-[88vh] max-w-[94vw] rounded-lg object-contain" />
+          </div>
+        </div>
+      )}
     </section>
   );
 };
