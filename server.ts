@@ -43,6 +43,37 @@ function readDb() {
   };
 }
 
+function escapeHtmlAttribute(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character] || character);
+}
+
+function renderSeoMetadata(html: string, settings: any = {}) {
+  const title = String(settings.seoTitle || 'Kredit Motor Honda | Simulasi Kredit & Harga Motor Honda').trim();
+  const description = String(settings.seoDescription || 'Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.').trim();
+  const keywords = String(settings.seoKeywords || 'kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda').trim();
+  const canonical = String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
+  const robots = String(settings.seoRobots || 'index, follow').trim();
+  const escape = escapeHtmlAttribute;
+
+  return html
+    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
+    .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
+    .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
+    .replace(/<meta\s+name="robots"[^>]*>/i, `<meta name="robots" content="${escape(robots)}" />`)
+    .replace(/<link\s+rel="canonical"[^>]*>/i, `<link rel="canonical" href="${escape(canonical)}" />`)
+    .replace(/<meta\s+property="og:title"[^>]*>/i, `<meta property="og:title" content="${escape(title)}" />`)
+    .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${escape(description)}" />`)
+    .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${escape(canonical)}" />`)
+    .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escape(title)}" />`)
+    .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`);
+}
+
 function writeDb(data: any) {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
@@ -120,21 +151,34 @@ function mergeFifPriceListWorkbook(buffer: Buffer, current: any) {
   };
 }
 
-function buildFifPriceListTemplate(priceList: any) {
+function normalizeFifModelName(name: string) {
+  return name.toLowerCase().replace(/\b(honda|all|new|evo)\b/g, ' ').replace(/[^a-z0-9]/g, '');
+}
+
+function buildFifPriceListTemplate(priceList: any, catalogMotors: any[] = []) {
   const rows: unknown[][] = [[
     'Model', 'Harga OTR', 'DP (%)', 'Nominal DP',
     ...FIF_TENORS.map((tenor) => `Cicilan ${tenor} bln`),
   ]];
-  for (const [name, model] of Object.entries<any>(priceList.models || {})) {
+  const priceListModels = Object.entries<any>(priceList.models || {});
+  const motors = Array.isArray(catalogMotors) ? catalogMotors : [];
+  for (const motor of motors) {
+    const name = String(motor.name || '').trim();
+    if (!name) continue;
+    const normalizedName = normalizeFifModelName(name);
+    const matchedModel = priceList.models?.[name]
+      || priceListModels.find(([modelName]) => normalizeFifModelName(modelName) === normalizedName)?.[1];
+    const price = numberFromCell(matchedModel?.price || motor.numericPrice || motor.price);
+    if (!price) continue;
+
     for (const percent of FIF_DP_PERCENTAGES) {
-      const option = model.options?.[String(percent)];
-      rows.push([
-        name,
-        model.price,
-        percent,
-        option?.[0] || '',
-        ...FIF_TENORS.map((_, index) => option?.[index + 1] || ''),
-      ]);
+      const option = matchedModel?.options?.[String(percent)];
+      if (option?.length >= FIF_TENORS.length + 1) {
+        rows.push([name, price, percent, ...option]);
+      } else {
+        const downPayment = Math.min(price, Math.ceil((price * percent / 100) / 100_000) * 100_000);
+        rows.push([name, price, percent, downPayment, ...FIF_TENORS.map(() => '')]);
+      }
     }
   }
   const workbook = XLSX.utils.book_new();
@@ -248,7 +292,8 @@ async function startServer() {
 
   app.get('/api/fif-price-list/template', (req, res) => {
     try {
-      const buffer = buildFifPriceListTemplate(currentFifPriceList());
+      const db = readDb();
+      const buffer = buildFifPriceListTemplate(currentFifPriceList(db), db.motors);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="template-price-list-fif-${new Date().toISOString().slice(0, 10)}.xlsx"`);
       res.send(buffer);
@@ -842,9 +887,26 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: 'spa',
     });
+    app.get('/', async (req, res, next) => {
+      try {
+        const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+        const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
+        res.type('html').send(renderSeoMetadata(transformedHtml, readDb().settings || {}));
+      } catch (error) {
+        next(error);
+      }
+    });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    app.get('/', (req, res, next) => {
+      try {
+        const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+        res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}));
+      } catch (error) {
+        next(error);
+      }
+    });
     app.use('/.well-known', express.static(path.join(distPath, '.well-known'), {
       dotfiles: 'allow',
       index: false,

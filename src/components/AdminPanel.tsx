@@ -380,18 +380,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const seoCanonicalUrl = settings?.seoCanonicalUrl || DEFAULT_SEO_CANONICAL_URL;
   const seoRobots = settings?.seoRobots || DEFAULT_SEO_ROBOTS;
   const focusKeywordLower = seoFocusKeyword.trim().toLocaleLowerCase();
+  const focusKeywordInMetadata = Boolean(focusKeywordLower)
+    && seoTitle.toLocaleLowerCase().includes(focusKeywordLower)
+    && seoDescription.toLocaleLowerCase().includes(focusKeywordLower);
+  const allowsSearchIndexing = /\bindex\b/i.test(seoRobots) && /\bfollow\b/i.test(seoRobots);
+  let seoDomain = 'kreditmotorhonda.tech';
   let canonicalUsesHttps = false;
   try {
-    canonicalUsesHttps = new URL(seoCanonicalUrl).protocol === 'https:';
+    const canonical = new URL(seoCanonicalUrl);
+    seoDomain = canonical.hostname;
+    canonicalUsesHttps = canonical.protocol === 'https:';
   } catch {
     canonicalUsesHttps = false;
   }
   const seoChecks = [
     { label: 'Judul SEO 30-60 karakter', passed: seoTitle.length >= 30 && seoTitle.length <= 60, detail: `${seoTitle.length} karakter` },
     { label: 'Deskripsi 120-160 karakter', passed: seoDescription.length >= 120 && seoDescription.length <= 160, detail: `${seoDescription.length} karakter` },
-    { label: 'Focus keyword ada di judul dan deskripsi', passed: Boolean(focusKeywordLower) && seoTitle.toLocaleLowerCase().includes(focusKeywordLower) && seoDescription.toLocaleLowerCase().includes(focusKeywordLower), detail: seoFocusKeyword || 'Belum diatur' },
+    { label: 'Focus keyword ada di judul dan deskripsi', passed: focusKeywordInMetadata, detail: seoFocusKeyword || 'Belum diatur' },
     { label: 'Canonical menggunakan HTTPS', passed: canonicalUsesHttps, detail: seoCanonicalUrl },
-    { label: 'Robots mengizinkan index dan follow', passed: /\bindex\b/i.test(seoRobots) && /\bfollow\b/i.test(seoRobots), detail: seoRobots },
+    { label: 'Robots mengizinkan index dan follow', passed: allowsSearchIndexing, detail: seoRobots },
     { label: 'Sitemap tersedia dan berformat XML', passed: seoFileChecks.sitemap === true, detail: seoFileChecks.sitemap === null ? 'Belum diperiksa' : seoFileChecks.sitemap ? 'Valid' : 'Perlu diperbaiki' },
     { label: 'Robots.txt memuat deklarasi Sitemap', passed: seoFileChecks.robots === true, detail: seoFileChecks.robots === null ? 'Belum diperiksa' : seoFileChecks.robots ? 'Valid' : 'Perlu diperbaiki' },
   ];
@@ -652,7 +659,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
-              { id: 'seo', label: 'Rank Math SEO', icon: Search },
+              { id: 'seo', label: 'Dashboard SEO', icon: Search },
               { id: 'customization', label: 'Customisasi', icon: SettingsIcon },
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
@@ -1561,18 +1568,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               <form onSubmit={handleSaveSettings} className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-bold text-white">Rank Math SEO</h2>
-                    <p className="mt-1 text-xs text-zinc-400">Kelola metadata pencarian dan pantau kesiapan SEO halaman utama.</p>
+                    <h2 className="text-lg font-bold text-white">Dashboard SEO</h2>
+                    <p className="mt-1 text-xs text-zinc-400">Pantau kesiapan halaman utama dan kelola metadata pencarian.</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleCheckSeoFiles()}
-                    disabled={isCheckingSeo}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
-                  >
-                    <RotateCcw className={`h-3.5 w-3.5 ${isCheckingSeo ? 'animate-spin' : ''}`} />
-                    {isCheckingSeo ? 'Memeriksa...' : 'Periksa sitemap & robots'}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a href={`https://www.google.com/search?q=${encodeURIComponent(`site:${seoDomain}`)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
+                      <Search className="h-3.5 w-3.5" />
+                      Cek hasil Google
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
+                      Buka Search Console
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void handleCheckSeoFiles()}
+                      disabled={isCheckingSeo}
+                      className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      <RotateCcw className={`h-3.5 w-3.5 ${isCheckingSeo ? 'animate-spin' : ''}`} />
+                      {isCheckingSeo ? 'Memeriksa...' : 'Periksa sitemap & robots'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">SEO Score</p>
+                    <p className="mt-2 text-2xl font-bold text-white">{seoScore}<span className="ml-1 text-sm font-medium text-zinc-500">/ 100</span></p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{seoChecks.filter((check) => check.passed).length} dari {seoChecks.length} pemeriksaan lolos</p>
+                  </section>
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">Focus keyword</p>
+                    <p className="mt-2 break-words text-sm font-semibold text-white">{seoFocusKeyword || 'Belum diatur'}</p>
+                    <p className={`mt-1 text-[11px] ${focusKeywordInMetadata ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {focusKeywordInMetadata ? 'Ada di judul dan deskripsi' : 'Perlu dicantumkan di judul dan deskripsi'}
+                    </p>
+                  </section>
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">Pengindeksan</p>
+                    <p className={`mt-2 text-sm font-semibold ${allowsSearchIndexing ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {allowsSearchIndexing ? 'Diizinkan oleh robots' : 'Dibatasi oleh robots'}
+                    </p>
+                    <p className="mt-1 break-all text-[11px] text-zinc-500">{seoRobots}</p>
+                  </section>
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">Sitemap</p>
+                    <p className={`mt-2 text-sm font-semibold ${seoFileChecks.sitemap === true ? 'text-emerald-400' : seoFileChecks.sitemap === false ? 'text-amber-400' : 'text-zinc-300'}`}>
+                      {seoFileChecks.sitemap === true ? 'Valid' : seoFileChecks.sitemap === false ? 'Perlu diperiksa' : 'Belum diperiksa'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{seoDomain}</p>
+                  </section>
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
