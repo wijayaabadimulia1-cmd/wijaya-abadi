@@ -149,6 +149,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     api.getAuditLogs().then(setAuditLogs).catch(() => undefined);
   }, [adminSession]);
 
+  useEffect(() => {
+    if (!adminSession || activeTab !== 'seo') return;
+
+    void handleCheckSeoFiles();
+    const intervalId = window.setInterval(() => {
+      void handleCheckSeoFiles();
+    }, 5 * 60 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [adminSession, activeTab]);
+
   const handleAdminLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoggingIn(true);
@@ -596,17 +607,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       setIsCheckingSeo(false);
     }
   };
-
-  useEffect(() => {
-    if (activeTab !== 'seo') return;
-
-    void handleCheckSeoFiles();
-    const intervalId = window.setInterval(() => {
-      void handleCheckSeoFiles();
-    }, 5 * 60 * 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [activeTab]);
 
   return (
     <div className={`admin-panel min-h-screen flex flex-col font-sans ${adminTheme === 'light' ? 'admin-theme-light bg-zinc-50 text-zinc-900' : 'bg-zinc-950 text-zinc-100'}`}>
