@@ -31,11 +31,11 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
 import { api, formatRupiah } from '../services/api';
-import { normalizeMotorOtrPrice } from '../services/fifPriceList';
-import { MAX_MOTOR_IMAGES } from '../constants';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
+import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from '../services/fifPriceList';
+import { MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from '../constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
   DEFAULT_CATALOG_ANIMATION,
@@ -53,7 +53,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'seo' | 'customization' | 'security' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'seo' | 'customization' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -79,6 +79,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [isCheckingSeo, setIsCheckingSeo] = useState(false);
   const [seoFileChecks, setSeoFileChecks] = useState<{ sitemap: boolean | null; robots: boolean | null }>({ sitemap: null, robots: null });
   const backupInputRef = useRef<HTMLInputElement>(null);
+  const [fifPriceList, setFifPriceList] = useState<FIFPriceList>(DEFAULT_FIF_PRICE_LIST);
+  const [isImportingFifPriceList, setIsImportingFifPriceList] = useState(false);
+  const fifPriceListInputRef = useRef<HTMLInputElement>(null);
 
   // Modals for CRUD
   const [isMotorModalOpen, setIsMotorModalOpen] = useState(false);
@@ -86,6 +89,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<Partial<Promo> | null>(null);
+  const [isUploadingPromoImages, setIsUploadingPromoImages] = useState(false);
 
   const [isTestiModalOpen, setIsTestiModalOpen] = useState(false);
   const [editingTesti, setEditingTesti] = useState<Partial<Testimonial> | null>(null);
@@ -109,16 +113,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, analyticsRes] = await Promise.all([
+      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, analyticsRes, priceListRes] = await Promise.all([
         api.getMotors(),
         api.getPromos(),
         api.getTestimonials(),
         api.getSettings(),
         api.getInterests(),
         api.getAnalytics(),
+        api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
       ]);
 
-      setMotors(motorsRes.map(normalizeMotorOtrPrice));
+      setFifPriceList(priceListRes);
+      setMotors(motorsRes.map((motor) => normalizeMotorOtrPrice(motor, priceListRes)));
       setPromos(promosRes);
       setTestimonials(testiRes);
       setSettings(settingsRes);
@@ -286,6 +292,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   // --- Promo CRUD Handlers ---
+  const handlePromoImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const files = Array.from(input.files || []);
+    if (!files.length || !editingPromo) return;
+
+    const existingImages = editingPromo.images || [];
+    const availableSlots = MAX_PROMO_IMAGES - existingImages.length;
+    if (files.length > availableSlots) {
+      alert(`Maksimal ${MAX_PROMO_IMAGES} foto per promo. Tersisa ${availableSlots} slot.`);
+      input.value = '';
+      return;
+    }
+    if (files.some((file) => !file.type.startsWith('image/'))) {
+      alert('Pilih file gambar yang valid.');
+      input.value = '';
+      return;
+    }
+
+    setIsUploadingPromoImages(true);
+    try {
+      const uploadedImages = await Promise.all(files.map((file) => api.uploadImage(file)));
+      setEditingPromo((current) => current ? { ...current, images: [...(current.images || []), ...uploadedImages] } : current);
+      showToast(`${uploadedImages.length} foto promo berhasil diunggah`);
+    } catch (error: any) {
+      alert(`Gagal upload foto promo: ${error.message}`);
+    } finally {
+      setIsUploadingPromoImages(false);
+      input.value = '';
+    }
+  };
+
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPromo || !editingPromo.title) return;
@@ -370,23 +407,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const seoTitle = settings?.seoTitle || DEFAULT_SEO_TITLE;
   const seoDescription = settings?.seoDescription || DEFAULT_SEO_DESCRIPTION;
-  const seoFocusKeyword = settings?.seoFocusKeyword || '';
+  const seoFocusKeyword = settings?.seoFocusKeyword || DEFAULT_SEO_FOCUS_KEYWORD;
   const seoKeywords = settings?.seoKeywords || DEFAULT_SEO_KEYWORDS;
   const seoCanonicalUrl = settings?.seoCanonicalUrl || DEFAULT_SEO_CANONICAL_URL;
   const seoRobots = settings?.seoRobots || DEFAULT_SEO_ROBOTS;
   const focusKeywordLower = seoFocusKeyword.trim().toLocaleLowerCase();
+  const focusKeywordInMetadata = Boolean(focusKeywordLower)
+    && seoTitle.toLocaleLowerCase().includes(focusKeywordLower)
+    && seoDescription.toLocaleLowerCase().includes(focusKeywordLower);
+  const allowsSearchIndexing = /\bindex\b/i.test(seoRobots) && /\bfollow\b/i.test(seoRobots);
+  let seoDomain = 'kreditmotorhonda.tech';
   let canonicalUsesHttps = false;
   try {
-    canonicalUsesHttps = new URL(seoCanonicalUrl).protocol === 'https:';
+    const canonical = new URL(seoCanonicalUrl);
+    seoDomain = canonical.hostname;
+    canonicalUsesHttps = canonical.protocol === 'https:';
   } catch {
     canonicalUsesHttps = false;
   }
   const seoChecks = [
     { label: 'Judul SEO 30-60 karakter', passed: seoTitle.length >= 30 && seoTitle.length <= 60, detail: `${seoTitle.length} karakter` },
     { label: 'Deskripsi 120-160 karakter', passed: seoDescription.length >= 120 && seoDescription.length <= 160, detail: `${seoDescription.length} karakter` },
-    { label: 'Focus keyword ada di judul dan deskripsi', passed: Boolean(focusKeywordLower) && seoTitle.toLocaleLowerCase().includes(focusKeywordLower) && seoDescription.toLocaleLowerCase().includes(focusKeywordLower), detail: seoFocusKeyword || 'Belum diatur' },
+    { label: 'Focus keyword ada di judul dan deskripsi', passed: focusKeywordInMetadata, detail: seoFocusKeyword || 'Belum diatur' },
     { label: 'Canonical menggunakan HTTPS', passed: canonicalUsesHttps, detail: seoCanonicalUrl },
-    { label: 'Robots mengizinkan index dan follow', passed: /\bindex\b/i.test(seoRobots) && /\bfollow\b/i.test(seoRobots), detail: seoRobots },
+    { label: 'Robots mengizinkan index dan follow', passed: allowsSearchIndexing, detail: seoRobots },
     { label: 'Sitemap tersedia dan berformat XML', passed: seoFileChecks.sitemap === true, detail: seoFileChecks.sitemap === null ? 'Belum diperiksa' : seoFileChecks.sitemap ? 'Valid' : 'Perlu diperbaiki' },
     { label: 'Robots.txt memuat deklarasi Sitemap', passed: seoFileChecks.robots === true, detail: seoFileChecks.robots === null ? 'Belum diperiksa' : seoFileChecks.robots ? 'Valid' : 'Perlu diperbaiki' },
   ];
@@ -496,6 +540,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       alert(error.message || 'Gagal memulihkan backup');
     } finally {
       setIsImportingBackup(false);
+      input.value = '';
+    }
+  };
+
+  const handleImportFifPriceList = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setIsImportingFifPriceList(true);
+    try {
+      const result = await api.importFifPriceList(file);
+      await loadAllData();
+      await onRefreshData();
+      showToast(`Price list berhasil diperbarui untuk ${result.modelCount} model`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal mengimpor price list FIF');
+    } finally {
+      setIsImportingFifPriceList(false);
       input.value = '';
     }
   };
@@ -639,9 +702,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
-              { id: 'seo', label: 'Rank Math SEO', icon: Search },
+              { id: 'seo', label: 'Dashboard SEO', icon: Search },
               { id: 'customization', label: 'Customisasi', icon: SettingsIcon },
               { id: 'security', label: 'Admin & Histori', icon: Shield },
+              { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -1547,18 +1611,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               <form onSubmit={handleSaveSettings} className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-bold text-white">Rank Math SEO</h2>
-                    <p className="mt-1 text-xs text-zinc-400">Kelola metadata pencarian dan pantau kesiapan SEO halaman utama.</p>
+                    <h2 className="text-lg font-bold text-white">Dashboard SEO</h2>
+                    <p className="mt-1 text-xs text-zinc-400">Pantau kesiapan halaman utama dan kelola metadata pencarian.</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleCheckSeoFiles()}
-                    disabled={isCheckingSeo}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
-                  >
-                    <RotateCcw className={`h-3.5 w-3.5 ${isCheckingSeo ? 'animate-spin' : ''}`} />
-                    {isCheckingSeo ? 'Memeriksa...' : 'Periksa sitemap & robots'}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a href={`https://www.google.com/search?q=${encodeURIComponent(`site:${seoDomain}`)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
+                      <Search className="h-3.5 w-3.5" />
+                      Cek hasil Google
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
+                      Buka Search Console
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void handleCheckSeoFiles()}
+                      disabled={isCheckingSeo}
+                      className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      <RotateCcw className={`h-3.5 w-3.5 ${isCheckingSeo ? 'animate-spin' : ''}`} />
+                      {isCheckingSeo ? 'Memeriksa...' : 'Periksa sitemap & robots'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">SEO Score</p>
+                    <p className="mt-2 text-2xl font-bold text-white">{seoScore}<span className="ml-1 text-sm font-medium text-zinc-500">/ 100</span></p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{seoChecks.filter((check) => check.passed).length} dari {seoChecks.length} pemeriksaan lolos</p>
+                  </section>
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">Focus keyword</p>
+                    <p className="mt-2 break-words text-sm font-semibold text-white">{seoFocusKeyword || 'Belum diatur'}</p>
+                    <p className={`mt-1 text-[11px] ${focusKeywordInMetadata ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {focusKeywordInMetadata ? 'Ada di judul dan deskripsi' : 'Perlu dicantumkan di judul dan deskripsi'}
+                    </p>
+                  </section>
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">Pengindeksan</p>
+                    <p className={`mt-2 text-sm font-semibold ${allowsSearchIndexing ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {allowsSearchIndexing ? 'Diizinkan oleh robots' : 'Dibatasi oleh robots'}
+                    </p>
+                    <p className="mt-1 break-all text-[11px] text-zinc-500">{seoRobots}</p>
+                  </section>
+                  <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+                    <p className="text-xs text-zinc-400">Sitemap</p>
+                    <p className={`mt-2 text-sm font-semibold ${seoFileChecks.sitemap === true ? 'text-emerald-400' : seoFileChecks.sitemap === false ? 'text-amber-400' : 'text-zinc-300'}`}>
+                      {seoFileChecks.sitemap === true ? 'Valid' : seoFileChecks.sitemap === false ? 'Perlu diperiksa' : 'Belum diperiksa'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{seoDomain}</p>
+                  </section>
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -1578,11 +1682,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Focus keyword
-                          <input value={settings.seoFocusKeyword || ''} onChange={(event) => setSettings({ ...settings, seoFocusKeyword: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="contoh: kredit motor Honda" />
+                          <input value={settings.seoFocusKeyword || DEFAULT_SEO_FOCUS_KEYWORD} onChange={(event) => setSettings({ ...settings, seoFocusKeyword: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="contoh: kredit motor Honda" />
                         </label>
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Kata kunci tambahan
                           <input value={settings.seoKeywords ?? DEFAULT_SEO_KEYWORDS} onChange={(event) => setSettings({ ...settings, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan kata kunci dengan koma" />
+                          <span className="block text-[11px] text-zinc-500">Google tidak menggunakan meta keywords sebagai faktor ranking. Masukkan variasi kata kunci secara alami ke konten dan judul section halaman.</span>
                         </label>
                       </div>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1740,6 +1845,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'credit' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Cicilan & Price List FIFGROUP</h2>
+                  <p className="text-xs text-zinc-400">Kelola tabel DP dan angsuran yang digunakan katalog serta kalkulator kredit.</p>
+                </div>
+
+                <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                  <div className="flex items-start gap-3">
+                    <FileSpreadsheet className="mt-0.5 h-5 w-5 text-emerald-400" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Price list cicilan FIFGROUP</h3>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {Object.keys(fifPriceList.models).length} model aktif · Sumber: {fifPriceList.source}
+                        {fifPriceList.updatedAt ? ` · Diperbarui ${new Date(fifPriceList.updatedAt).toLocaleString('id-ID')}` : ''}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500">Unduh template, isi nominal DP dan cicilan untuk setiap model, lalu unggah. Data yang diunggah langsung tersimpan dan memperbarui katalog serta kalkulator; model yang tidak disertakan tetap dipertahankan.</p>
+                    </div>
+                  </div>
+                  <input
+                    ref={fifPriceListInputRef}
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={(event) => void handleImportFifPriceList(event)}
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={isImportingFifPriceList}
+                      onClick={() => fifPriceListInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {isImportingFifPriceList ? 'Mengimpor price list...' : 'Upload price list Excel'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={activeExport !== null}
+                      onClick={() => void handleAdminExport('fif-template', () => api.downloadFifPriceListTemplate(), 'Template price list berhasil diunduh')}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      {activeExport === 'fif-template' ? 'Menyiapkan template...' : 'Download template Excel'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-zinc-500">Template berisi kolom model, harga OTR, DP 10%, 15%, 20%, 30%, 40%, serta cicilan tenor 11, 17, 23, 29, dan 35 bulan.</p>
+                </section>
               </div>
             )}
 
@@ -2008,7 +2164,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       {/* --- MODAL ADD / EDIT PROMO --- */}
       {isPromoModalOpen && editingPromo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-white/15 rounded-3xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-zinc-950 border border-white/15 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
               <h3 className="font-bold text-white text-sm">
                 {editingPromo.id ? 'Edit Promo' : 'Tambah Promo Baru'}
@@ -2031,6 +2187,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 />
               </div>
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-zinc-300">Foto Promo</label>
+                  <span className="text-zinc-500">{editingPromo.images?.length || 0}/{MAX_PROMO_IMAGES}</span>
+                </div>
+                {!!editingPromo.images?.length && (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {editingPromo.images.map((image, imageIndex) => (
+                      <div key={`${image}-${imageIndex}`} className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-zinc-900">
+                        <img src={image} alt={`Foto promo ${imageIndex + 1}`} className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          aria-label={`Hapus foto promo ${imageIndex + 1}`}
+                          onClick={() => setEditingPromo({ ...editingPromo, images: editingPromo.images?.filter((_, index) => index !== imageIndex) })}
+                          className="absolute right-1 top-1 rounded-md bg-black/75 p-1 text-white hover:bg-red-600"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 ${isUploadingPromoImages || (editingPromo.images?.length || 0) >= MAX_PROMO_IMAGES ? 'pointer-events-none opacity-50' : ''}`}>
+                  <Upload className="h-4 w-4" />
+                  {isUploadingPromoImages ? 'Mengunggah foto...' : 'Upload foto'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={isUploadingPromoImages || (editingPromo.images?.length || 0) >= MAX_PROMO_IMAGES}
+                    onChange={(event) => void handlePromoImageUpload(event)}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-[11px] text-zinc-500">Maksimal {MAX_PROMO_IMAGES} foto. Pilih beberapa gambar sekaligus.</p>
+              </div>
+
               <div>
                 <label className="block font-bold text-zinc-300 mb-1">Label Diskon / Badge</label>
                 <input
@@ -2040,6 +2233,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   placeholder="Contoh: DP 0% atau Cashback 2 Juta"
                   className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block font-bold text-zinc-300">
+                  Template Promo
+                  <select
+                    value={editingPromo.promoTemplate || 'classic'}
+                    onChange={(event) => setEditingPromo({ ...editingPromo, promoTemplate: event.target.value as Promo['promoTemplate'] })}
+                    className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 font-normal text-white"
+                  >
+                    <option value="classic">Kartu Standar</option>
+                    <option value="showcase">Sorotan Gambar</option>
+                    <option value="compact">Galeri Ringkas</option>
+                  </select>
+                </label>
+                <label className="block font-bold text-zinc-300">
+                  Animasi Promo
+                  <select
+                    value={editingPromo.promoAnimation || DEFAULT_CATALOG_ANIMATION}
+                    onChange={(event) => setEditingPromo({ ...editingPromo, promoAnimation: event.target.value as Promo['promoAnimation'] })}
+                    className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 font-normal text-white"
+                  >
+                    {CATALOG_ANIMATION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
               <div>
@@ -2072,7 +2292,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl"
+                  disabled={isUploadingPromoImages}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl disabled:opacity-50"
                 >
                   Simpan
                 </button>

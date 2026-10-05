@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
-import { CatalogAnimation, Motor } from '../types';
+import { CatalogAnimation, FIFPriceList, Motor } from '../types';
 import { formatRupiah } from '../services/api';
 import { getMotorOtrPrice } from '../services/fifPriceList';
 import {
@@ -12,6 +12,7 @@ import {
 
 interface CatalogSectionProps {
   motors: Motor[];
+  priceList: FIFPriceList;
   animation?: CatalogAnimation;
   animationSpeed?: number;
   compareList: Motor[];
@@ -128,6 +129,7 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
 
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   motors,
+  priceList,
   animation = DEFAULT_CATALOG_ANIMATION,
   animationSpeed = DEFAULT_CATALOG_ANIMATION_SPEED,
   compareList,
@@ -330,7 +332,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                           Mulai dari OTR Bandung
                         </span>
                         <div className="text-2xl font-black text-white mt-0.5">
-                          {formatRupiah(getMotorOtrPrice(motor))}
+                          {formatRupiah(getMotorOtrPrice(motor, priceList))}
                         </div>
                       </div>
                     </div>

@@ -4,12 +4,15 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
-import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES } from './src/constants';
+import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
 const DB_FILE = path.join(process.cwd(), 'data', 'db.json');
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
+const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
+const FIF_TENORS = [11, 17, 23, 29, 35];
+const FIF_DP_PERCENTAGES = [10, 15, 20, 30, 40];
 const sessions = new Map<string, { id: string; username: string; role: string; createdAt: string }>();
 
 // Ensure directories exist
@@ -40,6 +43,37 @@ function readDb() {
   };
 }
 
+function escapeHtmlAttribute(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character] || character);
+}
+
+function renderSeoMetadata(html: string, settings: any = {}) {
+  const title = String(settings.seoTitle || 'Kredit Motor Honda | Simulasi Kredit & Harga Motor Honda').trim();
+  const description = String(settings.seoDescription || 'Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.').trim();
+  const keywords = String(settings.seoKeywords || 'kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda').trim();
+  const canonical = String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
+  const robots = String(settings.seoRobots || 'index, follow').trim();
+  const escape = escapeHtmlAttribute;
+
+  return html
+    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
+    .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
+    .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
+    .replace(/<meta\s+name="robots"[^>]*>/i, `<meta name="robots" content="${escape(robots)}" />`)
+    .replace(/<link\s+rel="canonical"[^>]*>/i, `<link rel="canonical" href="${escape(canonical)}" />`)
+    .replace(/<meta\s+property="og:title"[^>]*>/i, `<meta property="og:title" content="${escape(title)}" />`)
+    .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${escape(description)}" />`)
+    .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${escape(canonical)}" />`)
+    .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escape(title)}" />`)
+    .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`);
+}
+
 function writeDb(data: any) {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
@@ -48,6 +82,108 @@ function writeDb(data: any) {
     console.error('Error writing db:', err);
     return false;
   }
+}
+
+function readDefaultFifPriceList() {
+  try {
+    return JSON.parse(fs.readFileSync(DEFAULT_FIF_PRICE_LIST_FILE, 'utf-8'));
+  } catch {
+    return { source: 'Bundled price list', tenors: FIF_TENORS, models: {} };
+  }
+}
+
+function currentFifPriceList(db = readDb()) {
+  return db.fifPriceList || readDefaultFifPriceList();
+}
+
+function numberFromCell(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const digits = String(value ?? '').replace(/[^0-9]/g, '');
+  return digits ? Number(digits) : 0;
+}
+
+function mergeFifPriceListWorkbook(buffer: Buffer, current: any) {
+  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+  const models: Record<string, any> = {};
+  const presets = new Set(FIF_DP_PERCENTAGES.map(String));
+
+  for (const sheetName of workbook.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json<any[]>(workbook.Sheets[sheetName], {
+      header: 1,
+      raw: true,
+      blankrows: false,
+    });
+    if (!rows.length) continue;
+
+    const header = (rows[0] || []).map((value) => String(value || '').trim().toLowerCase());
+    const modelColumn = header.indexOf('model');
+    const priceColumn = header.indexOf('harga otr');
+    const percentColumn = header.indexOf('dp (%)');
+    const downPaymentColumn = header.indexOf('nominal dp');
+    const tenorColumns = FIF_TENORS.map((tenor) => header.indexOf(`cicilan ${tenor} bln`));
+    if ([modelColumn, priceColumn, percentColumn, downPaymentColumn, ...tenorColumns].some((column) => column < 0)) continue;
+
+    for (const row of rows.slice(1)) {
+      const name = String(row[modelColumn] || '').trim();
+      const price = numberFromCell(row[priceColumn]);
+      const percent = numberFromCell(row[percentColumn]);
+      const downPayment = numberFromCell(row[downPaymentColumn]);
+      const installments = tenorColumns.map((column) => numberFromCell(row[column]));
+      if (!name || !price || !downPayment || !presets.has(String(percent)) || installments.some((value) => !value)) continue;
+
+      const existing = models[name] || { price, options: {} };
+      existing.price = price;
+      existing.options[String(percent)] = [downPayment, ...installments];
+      models[name] = existing;
+    }
+  }
+
+  if (!Object.keys(models).length) {
+    throw new Error('Tidak ada data valid. Gunakan template price list dan isi semua nominal DP serta cicilan tenor.');
+  }
+
+  return {
+    ...current,
+    source: 'Upload price list FIFGROUP',
+    updatedAt: new Date().toISOString(),
+    tenors: FIF_TENORS,
+    models: { ...(current.models || {}), ...models },
+  };
+}
+
+function normalizeFifModelName(name: string) {
+  return name.toLowerCase().replace(/\b(honda|all|new|evo)\b/g, ' ').replace(/[^a-z0-9]/g, '');
+}
+
+function buildFifPriceListTemplate(priceList: any, catalogMotors: any[] = []) {
+  const rows: unknown[][] = [[
+    'Model', 'Harga OTR', 'DP (%)', 'Nominal DP',
+    ...FIF_TENORS.map((tenor) => `Cicilan ${tenor} bln`),
+  ]];
+  const priceListModels = Object.entries<any>(priceList.models || {});
+  const motors = Array.isArray(catalogMotors) ? catalogMotors : [];
+  for (const motor of motors) {
+    const name = String(motor.name || '').trim();
+    if (!name) continue;
+    const normalizedName = normalizeFifModelName(name);
+    const matchedModel = priceList.models?.[name]
+      || priceListModels.find(([modelName]) => normalizeFifModelName(modelName) === normalizedName)?.[1];
+    const price = numberFromCell(matchedModel?.price || motor.numericPrice || motor.price);
+    if (!price) continue;
+
+    for (const percent of FIF_DP_PERCENTAGES) {
+      const option = matchedModel?.options?.[String(percent)];
+      if (option?.length >= FIF_TENORS.length + 1) {
+        rows.push([name, price, percent, ...option]);
+      } else {
+        const downPayment = Math.min(price, Math.ceil((price * percent / 100) / 100_000) * 100_000);
+        rows.push([name, price, percent, downPayment, ...FIF_TENORS.map(() => '')]);
+      }
+    }
+  }
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), 'Price List');
+  return XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 }
 
 function hashPassword(password: string, salt = crypto.randomBytes(16).toString('hex')) {
@@ -150,6 +286,44 @@ async function startServer() {
     res.json(db.settings || {});
   });
 
+  app.get('/api/fif-price-list', (req, res) => {
+    res.json(currentFifPriceList());
+  });
+
+  app.get('/api/fif-price-list/template', (req, res) => {
+    try {
+      const db = readDb();
+      const buffer = buildFifPriceListTemplate(currentFifPriceList(db), db.motors);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="template-price-list-fif-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Gagal membuat template price list' });
+    }
+  });
+
+  app.post('/api/fif-price-list/import', express.raw({
+    type: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'],
+    limit: Infinity,
+  }), (req, res) => {
+    try {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ error: 'File Excel kosong atau tidak terbaca.' });
+      }
+      const db = readDb();
+      db.fifPriceList = mergeFifPriceListWorkbook(req.body, currentFifPriceList(db));
+      if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan price list ke database.' });
+      return res.json({
+        success: true,
+        source: db.fifPriceList.source,
+        updatedAt: db.fifPriceList.updatedAt,
+        modelCount: Object.keys(db.fifPriceList.models).length,
+      });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'File price list tidak valid.' });
+    }
+  });
+
   app.put('/api/settings', (req, res) => {
     const db = readDb();
     db.settings = { ...db.settings, ...req.body, updated_at: new Date().toISOString() };
@@ -229,6 +403,12 @@ async function startServer() {
 
   app.post('/api/promos', (req, res) => {
     const db = readDb();
+    const images = Array.isArray(req.body.images)
+      ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
+      : [];
+    if (images.length > MAX_PROMO_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
+    }
     const newPromo = {
       id: req.body.id || `promo-${Date.now()}`,
       title: req.body.title || 'Promo Menarik',
@@ -236,6 +416,9 @@ async function startServer() {
       terms: req.body.terms || 'S&K Berlaku',
       badge: req.body.badge || 'Promo',
       discountValue: req.body.discountValue || '',
+      images,
+      promoAnimation: req.body.promoAnimation || 'fade',
+      promoTemplate: req.body.promoTemplate || 'classic',
       created_at: new Date().toISOString()
     };
     db.promos = [newPromo, ...(db.promos || [])];
@@ -247,7 +430,15 @@ async function startServer() {
     const db = readDb();
     const index = (db.promos || []).findIndex((p: any) => p.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Promo not found' });
-    db.promos[index] = { ...db.promos[index], ...req.body };
+    const images = req.body.images === undefined
+      ? db.promos[index].images || []
+      : Array.isArray(req.body.images)
+        ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
+        : [];
+    if (images.length > MAX_PROMO_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
+    }
+    db.promos[index] = { ...db.promos[index], ...req.body, images };
     writeDb(db);
     res.json(db.promos[index]);
   });
@@ -713,9 +904,26 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: 'spa',
     });
+    app.get('/', async (req, res, next) => {
+      try {
+        const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+        const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
+        res.type('html').send(renderSeoMetadata(transformedHtml, readDb().settings || {}));
+      } catch (error) {
+        next(error);
+      }
+    });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    app.get('/', (req, res, next) => {
+      try {
+        const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+        res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}));
+      } catch (error) {
+        next(error);
+      }
+    });
     app.use('/.well-known', express.static(path.join(distPath, '.well-known'), {
       dotfiles: 'allow',
       index: false,

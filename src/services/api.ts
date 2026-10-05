@@ -1,4 +1,4 @@
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
 import { MAX_IMAGE_UPLOAD_BYTES } from '../constants';
 
 const ADMIN_TOKEN_KEY = 'hwa-admin-token';
@@ -85,6 +85,31 @@ export const api = {
     const res = await fetch('/api/admin/audit', { headers: adminHeaders() });
     if (!res.ok) throw new Error('Gagal mengambil histori perubahan');
     return res.json();
+  },
+
+  async getFifPriceList(): Promise<FIFPriceList> {
+    const res = await fetch('/api/fif-price-list');
+    if (!res.ok) throw new Error('Gagal mengambil price list cicilan FIF');
+    return res.json();
+  },
+
+  async importFifPriceList(file: File): Promise<{ success: boolean; modelCount: number; updatedAt: string }> {
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    const res = await fetch('/api/fif-price-list/import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ...(token ? { 'x-admin-token': token } : {}),
+      },
+      body: file,
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengimpor price list FIF');
+    return result;
+  },
+
+  async downloadFifPriceListTemplate(): Promise<void> {
+    await downloadAdminFile('/api/fif-price-list/template', `template-price-list-fif-${new Date().toISOString().slice(0, 10)}.xlsx`);
   },
 
   // Settings

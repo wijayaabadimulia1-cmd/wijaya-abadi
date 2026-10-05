@@ -315,6 +315,15 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
               placeholder="Berkendara Anda"
             />
           </label>
+          <label className="space-y-1 text-xs font-medium text-zinc-300">
+            Label pada foto hero
+            <input
+              value={settings.heroBadge ?? 'Showroom Resmi Bandung'}
+              onChange={(event) => onSettingsChange({ ...settings, heroBadge: event.target.value })}
+              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+              placeholder="Showroom Resmi Bandung"
+            />
+          </label>
           <label className="space-y-1 text-xs font-medium text-zinc-300 md:col-span-2">
             Deskripsi
             <textarea

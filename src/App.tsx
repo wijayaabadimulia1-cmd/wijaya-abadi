@@ -1,8 +1,8 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { MessageSquare, Phone, Scale, Shield, Sparkles } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem } from './types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList } from './types';
 import { api } from './services/api';
-import { normalizeMotorOtrPrice } from './services/fifPriceList';
+import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from './services/fifPriceList';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { CatalogSection } from './components/CatalogSection';
@@ -58,6 +58,7 @@ export default function App() {
   });
 
   const [motors, setMotors] = useState<Motor[]>([]);
+  const [fifPriceList, setFifPriceList] = useState<FIFPriceList>(DEFAULT_FIF_PRICE_LIST);
   const [promos, setPromos] = useState<Promo[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [manifesto, setManifesto] = useState<ManifestoItem[]>([]);
@@ -85,19 +86,21 @@ export default function App() {
   // Fetch initial data from dynamic database
   const loadData = async () => {
     try {
-      const [settingsData, motorsData, promosData, testiData, manifestoData] = await Promise.all([
+      const [settingsData, motorsData, promosData, testiData, manifestoData, priceListData] = await Promise.all([
         api.getSettings().catch(() => null),
         api.getMotors().catch(() => []),
         api.getPromos().catch(() => []),
         api.getTestimonials().catch(() => []),
         api.getManifesto().catch(() => []),
+        api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
       ]);
 
+      setFifPriceList(priceListData);
       if (settingsData && settingsData.name) {
         setSettings(settingsData);
       }
       if (motorsData && motorsData.length > 0) {
-        setMotors(motorsData.map(normalizeMotorOtrPrice));
+        setMotors(motorsData.map((motor) => normalizeMotorOtrPrice(motor, priceListData)));
       }
       if (promosData && promosData.length > 0) {
         setPromos(promosData);
@@ -279,6 +282,7 @@ export default function App() {
         {/* Motorcycle Catalog */}
         <CatalogSection
           motors={motors}
+          priceList={fifPriceList}
           animation={settings.catalogAnimation}
           animationSpeed={settings.catalogAnimationSpeed}
           compareList={compareList}
@@ -290,6 +294,7 @@ export default function App() {
         {/* Interactive Credit Simulator */}
         <CreditSimulator
           motors={motors}
+          priceList={fifPriceList}
           selectedMotor={simulatorMotor}
           settings={settings}
           onApplyCredit={handleApplyFromSimulator}

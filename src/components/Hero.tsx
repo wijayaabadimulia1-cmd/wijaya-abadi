@@ -78,8 +78,8 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
             {/* Main Headline */}
             <h1 className="hero-editable-text hero-main-title font-black tracking-tight leading-[1.15]">
-              {settings.heroMainTitle || 'Partner Terpercaya'}{' '}
-              <span className="hero-highlight-text">
+              {settings.heroMainTitle || 'Partner Terpercaya'}
+              <span className="hero-highlight-text block">
                 {settings.heroTitleHighlight || 'Berkendara Anda'}
               </span>
             </h1>
@@ -217,7 +217,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   {/* Floating Promo Tag */}
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-red-600 to-red-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 border border-red-400/40">
                     <span className="text-yellow-300">★</span>
-                    <span>Showroom Resmi Bandung</span>
+                    <span>{settings.heroBadge || 'Showroom Resmi Bandung'}</span>
                   </div>
 
                   {/* Bottom Image Caption */}

@@ -1,4 +1,12 @@
-﻿User-agent: *
+User-agent: *
 Allow: /
-
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /login/
+Disallow: /api
+Disallow: /api/
+Disallow: /tmp
 Sitemap: https://kreditmotorhonda.tech/sitemap.xml
