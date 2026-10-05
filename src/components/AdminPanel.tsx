@@ -534,6 +534,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  useEffect(() => {
+    if (activeTab !== 'seo') return;
+
+    void handleCheckSeoFiles();
+    const intervalId = window.setInterval(() => {
+      void handleCheckSeoFiles();
+    }, 5 * 60 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeTab]);
+
   return (
     <div className={`admin-panel min-h-screen flex flex-col font-sans ${adminTheme === 'light' ? 'admin-theme-light bg-zinc-50 text-zinc-900' : 'bg-zinc-950 text-zinc-100'}`}>
       {/* Toast Notification */}
