@@ -933,14 +933,26 @@ body {
 }
 
 .website-shell #home .hero-main-title {
-  font-size: var(--hero-title-font-size, 58px);
+  display: block;
+  max-width: 12ch;
+  font-size: clamp(2.4rem, 5vw, var(--hero-title-font-size, 58px));
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .website-shell #home .hero-highlight-text {
-  font-size: var(--hero-highlight-font-size, 58px);
+  display: block;
+  max-width: 100%;
+  font-size: clamp(2.4rem, 5vw, var(--hero-highlight-font-size, 58px));
+  line-height: 0.95;
+  letter-spacing: -0.05em;
   color: var(--hero-highlight-color, #f97316) !important;
   background-image: none !important;
   -webkit-text-fill-color: currentColor;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .website-shell #home .hero-subtitle {
@@ -953,11 +965,15 @@ body {
 
 @media (max-width: 640px) {
   .website-shell #home .hero-main-title {
-    font-size: min(var(--hero-title-font-size, 58px), 40px);
+    max-width: 11ch;
+    font-size: clamp(2rem, 9vw, 2.8rem);
+    line-height: 0.96;
   }
 
   .website-shell #home .hero-highlight-text {
-    font-size: min(var(--hero-highlight-font-size, 58px), 40px);
+    max-width: 100%;
+    font-size: clamp(2rem, 9vw, 2.8rem);
+    line-height: 0.96;
   }
 
   .website-shell #home .hero-subtitle {

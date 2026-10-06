@@ -78,9 +78,10 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
             {/* Main Headline */}
             <h1 className="hero-editable-text hero-main-title font-black tracking-tight leading-[1.15]">
-              {settings.heroMainTitle || 'Partner Terpercaya'}
+              {settings.heroMainTitle || 'Satu Klik dapat'}
+              <br />
               <span className="hero-highlight-text block">
-                {settings.heroTitleHighlight || 'Berkendara Anda'}
+                {settings.heroTitleHighlight || 'sepeda motor impian'}
               </span>
             </h1>
 

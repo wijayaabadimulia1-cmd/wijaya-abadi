@@ -32,6 +32,8 @@ export default function App() {
     logo: '/uploads/logo.jpeg',
     heroImage: '/uploads/hero.jpeg',
     heroTitle: 'Dealer resmi Sepeda Motor Honda Bandung',
+    heroMainTitle: 'Satu Klik dapat',
+    heroTitleHighlight: 'sepeda motor impian',
     heroSubtitle:
       'Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.',
     footerText:
