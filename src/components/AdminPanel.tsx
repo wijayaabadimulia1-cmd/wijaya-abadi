@@ -344,6 +344,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       : `M 110 110 L ${start.x} ${start.y} A 94 94 0 ${sweepAngle > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
     return { ...item, color: dailyPieColors[index % dailyPieColors.length], path, sweepAngle };
   });
+  const topFiveHours = [...busyHourVisitors]
+    .sort((first: { visits: number }, second: { visits: number }) => Number(second.visits || 0) - Number(first.visits || 0))
+    .slice(0, 5);
+  const topHourMaxVisits = Math.max(...topFiveHours.map((item: { visits: number }) => Number(item.visits || 0)), 1);
+  const weeklyTrendVisitors = activeDailyVisitors.slice(-7);
+  const weeklyTrendMaxVisits = Math.max(...weeklyTrendVisitors.map((item: { visits: number }) => Number(item.visits || 0)), 1);
+  const weeklyTrendPoints = weeklyTrendVisitors.map((item: { label: string; visits: number; isoDate?: string }, index: number) => {
+    const x = 42 + (index / Math.max(weeklyTrendVisitors.length - 1, 1)) * 636;
+    const y = 168 - (Number(item.visits || 0) / weeklyTrendMaxVisits) * 122;
+    const dateLabel = item.isoDate
+      ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${item.isoDate}T12:00:00Z`))
+      : item.label;
+    return { ...item, x, y, dateLabel };
+  });
+  const weeklyTrendArea = weeklyTrendPoints.length > 1
+    ? `M ${weeklyTrendPoints[0].x} 174 L ${weeklyTrendPoints.map((point) => `${point.x} ${point.y}`).join(' L ')} L ${weeklyTrendPoints[weeklyTrendPoints.length - 1].x} 174 Z`
+    : '';
+  const previousDayVisitors = Number(weeklyTrendVisitors[weeklyTrendVisitors.length - 2]?.visits || 0);
+  const latestDayVisitors = Number(weeklyTrendVisitors[weeklyTrendVisitors.length - 1]?.visits || 0);
+  const weeklyTrendChange = previousDayVisitors
+    ? Math.round(((latestDayVisitors - previousDayVisitors) / previousDayVisitors) * 100)
+    : latestDayVisitors > 0 ? 100 : 0;
 
   const handleExportVisitorData = () => {
     const rows = [
@@ -1097,27 +1119,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                     <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-bold text-white">Jam Ramai</h4>
-                        <span className="text-[10px] text-zinc-400">Per jam</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Top 5 jam ramai</h4>
+                          <p className="mt-1 text-[10px] text-zinc-500">Akumulasi sesuai filter · WIB</p>
+                        </div>
+                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[10px] font-semibold text-cyan-300">{topFiveHours.length}/5</span>
                       </div>
-                      <div className="space-y-3">
-                        {activeHourlyVisitors.map((item: { label: string; visits: number }) => {
-                          const max = Math.max(...activeHourlyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
-                          const width = Number(item.visits || 0) > 0 ? Math.max(10, (Number(item.visits || 0) / max) * 100) : 0;
-                          return (
-                            <div key={`${item.label}-${item.visits}`} className="space-y-1">
-                              <div className="flex items-center justify-between text-[10px] text-zinc-300">
-                                <span>{item.label}</span>
-                                <span className="font-semibold text-zinc-400">{item.visits}</span>
+                      {topFiveHours.length ? (
+                        <div className="space-y-3">
+                          {topFiveHours.map((item: { label: string; visits: number }, index: number) => {
+                            const width = Math.max(8, (Number(item.visits || 0) / topHourMaxVisits) * 100);
+                            return (
+                              <div key={item.label} className="grid grid-cols-[24px_48px_1fr_42px] items-center gap-2">
+                                <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-black ${index === 0 ? 'bg-amber-400/15 text-amber-300' : 'bg-white/5 text-zinc-400'}`}>{index + 1}</span>
+                                <span className="text-[11px] font-semibold text-zinc-200">{item.label}</span>
+                                <div className="h-2.5 overflow-hidden rounded-full bg-zinc-800">
+                                  <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-300 transition-[width] duration-500" style={{ width: `${width}%` }} />
+                                </div>
+                                <span className="text-right text-[11px] font-bold text-white">{item.visits}</span>
                               </div>
-                              <div className="h-2.5 rounded-full bg-zinc-800 overflow-hidden">
-                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500" style={{ width: `${width}%` }} />
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-white/10 text-xs text-zinc-500">Belum ada kunjungan pada rentang ini.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-2xl border border-white/10 bg-zinc-950/70 p-4 sm:p-5">
+                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Tren pengunjung 7 hari</h4>
+                        <p className="mt-1 text-[10px] text-zinc-500">7 tanggal terakhir dalam filter aktif · data otomatis diperbarui</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">Total 7 hari</div>
+                          <div className="text-lg font-black text-white">{weeklyTrendVisitors.reduce((sum, item) => sum + Number(item.visits || 0), 0).toLocaleString('id-ID')}</div>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${weeklyTrendChange > 0 ? 'bg-emerald-400/10 text-emerald-300' : weeklyTrendChange < 0 ? 'bg-rose-400/10 text-rose-300' : 'bg-white/5 text-zinc-400'}`}>
+                          {weeklyTrendChange > 0 ? '+' : ''}{weeklyTrendChange}% vs hari sebelumnya
+                        </span>
                       </div>
                     </div>
+                    {weeklyTrendPoints.length ? (
+                      <svg viewBox="0 0 720 220" role="img" aria-label="Grafik tren pengunjung selama tujuh hari" className="h-56 w-full overflow-visible">
+                        <defs>
+                          <linearGradient id="visitor-trend-area" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.32" />
+                            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="visitor-trend-line" x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="0%" stopColor="#22d3ee" />
+                            <stop offset="100%" stopColor="#34d399" />
+                          </linearGradient>
+                        </defs>
+                        {[0, 1, 2, 3].map((line) => {
+                          const y = 48 + line * 42;
+                          return <line key={line} x1="42" x2="678" y1={y} y2={y} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 6" />;
+                        })}
+                        {weeklyTrendArea && <path d={weeklyTrendArea} fill="url(#visitor-trend-area)" />}
+                        {weeklyTrendPoints.length > 1 && (
+                          <polyline points={weeklyTrendPoints.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="url(#visitor-trend-line)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                        )}
+                        {weeklyTrendPoints.map((point, index) => (
+                          <g key={point.isoDate || index}>
+                            <circle cx={point.x} cy={point.y} r="5" fill="#22d3ee" stroke="#09090b" strokeWidth="2">
+                              <title>{`${point.dateLabel}: ${point.visits} pengunjung`}</title>
+                            </circle>
+                            <text x={point.x} y={point.y - 12} fill="#e4e4e7" fontSize="10" fontWeight="600" textAnchor="middle">{point.visits}</text>
+                            <text x={point.x} y="210" fill="#a1a1aa" fontSize="10" textAnchor="middle">{point.dateLabel}</text>
+                          </g>
+                        ))}
+                      </svg>
+                    ) : (
+                      <div className="flex h-52 items-center justify-center rounded-xl border border-dashed border-white/10 text-xs text-zinc-500">Grafik akan terisi setelah kunjungan pertama tercatat.</div>
+                    )}
                   </div>
                 </div>
 
