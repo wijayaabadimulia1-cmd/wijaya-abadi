@@ -40,6 +40,8 @@ export const api = {
   },
 
   async getAdminMe(): Promise<AdminSession> {
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (!token) throw new Error('Sesi admin tidak valid');
     const res = await fetch('/api/admin/me', { headers: adminHeaders() });
     if (!res.ok) throw new Error('Sesi admin tidak valid');
     return res.json();

@@ -142,6 +142,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('hwa-admin-token');
+    if (!token) {
+      setAdminSession(null);
+      return;
+    }
+
     api.getAdminMe().then(setAdminSession).catch(() => setAdminSession(null));
   }, []);
 
