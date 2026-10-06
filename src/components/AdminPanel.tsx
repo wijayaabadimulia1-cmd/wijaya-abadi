@@ -69,7 +69,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [settings, setSettings] = useState<DealerSettings | null>(null);
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
-  const [visitorFilter, setVisitorFilter] = useState<'all' | '7d' | '30d' | 'today'>('all');
+  const [visitorFilter, setVisitorFilter] = useState<'all' | '7d' | '30d' | 'today' | 'custom'>('all');
+  const [visitorStartDate, setVisitorStartDate] = useState('');
+  const [visitorEndDate, setVisitorEndDate] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -497,21 +499,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: '7d', label: '7 hari terakhir' },
     { value: '30d', label: '30 hari terakhir' },
     { value: 'today', label: 'Hari ini' },
+    { value: 'custom', label: 'Tanggal tertentu' },
   ] as const;
 
+  const dailyVisitorsWithDates = useMemo(() => {
+    const today = new Date();
+    return dailyVisitors.map((item, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (dailyVisitors.length - 1 - index));
+      return {
+        ...item,
+        isoDate: date.toISOString().slice(0, 10),
+      };
+    });
+  }, [dailyVisitors]);
+
   const filteredDailyVisitors = useMemo(() => {
-    if (visitorFilter === 'today') return dailyVisitors.slice(-1);
-    if (visitorFilter === '7d') return dailyVisitors.slice(-7);
-    if (visitorFilter === '30d') return dailyVisitors.slice(-30);
-    return dailyVisitors;
-  }, [dailyVisitors, visitorFilter]);
+    if (visitorFilter === 'today') return dailyVisitorsWithDates.slice(-1);
+    if (visitorFilter === '7d') return dailyVisitorsWithDates.slice(-7);
+    if (visitorFilter === '30d') return dailyVisitorsWithDates.slice(-30);
+    if (visitorFilter === 'custom') {
+      if (!visitorStartDate && !visitorEndDate) return dailyVisitorsWithDates;
+      const start = visitorStartDate ? new Date(`${visitorStartDate}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
+      const end = visitorEndDate ? new Date(`${visitorEndDate}T23:59:59`).getTime() : Number.POSITIVE_INFINITY;
+      return dailyVisitorsWithDates.filter((item) => {
+        const itemTime = new Date(`${item.isoDate}T00:00:00`).getTime();
+        return itemTime >= start && itemTime <= end;
+      });
+    }
+    return dailyVisitorsWithDates;
+  }, [dailyVisitorsWithDates, visitorEndDate, visitorFilter, visitorStartDate]);
 
   const filteredHourlyVisitors = useMemo(() => {
     if (visitorFilter === 'today') return hourlyVisitors.slice(-3);
+    if (visitorFilter === 'custom') {
+      if (!visitorStartDate && !visitorEndDate) return hourlyVisitors;
+      return hourlyVisitors;
+    }
     return hourlyVisitors;
-  }, [hourlyVisitors, visitorFilter]);
+  }, [hourlyVisitors, visitorEndDate, visitorFilter, visitorStartDate]);
 
-  const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitors;
+  const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitorsWithDates;
   const activeHourlyVisitors = filteredHourlyVisitors.length ? filteredHourlyVisitors : hourlyVisitors;
   const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
   const todayWebsiteVisitors = activeDailyVisitors.length ? activeDailyVisitors[activeDailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
@@ -873,17 +901,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <h3 className="text-base font-bold text-white">Pengunjung Website</h3>
                       <p className="text-xs text-zinc-400">Data kunjungan harian dan jam ramai pengunjung</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Filter</label>
-                      <select
-                        value={visitorFilter}
-                        onChange={(event) => setVisitorFilter(event.target.value as 'all' | '7d' | '30d' | 'today')}
-                        className="rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] font-medium text-zinc-200 focus:border-cyan-500 focus:outline-none"
-                      >
-                        {visitorFilterOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Filter</label>
+                        <select
+                          value={visitorFilter}
+                          onChange={(event) => setVisitorFilter(event.target.value as 'all' | '7d' | '30d' | 'today' | 'custom')}
+                          className="rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] font-medium text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                        >
+                          {visitorFilterOptions.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {visitorFilter === 'custom' && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={visitorStartDate}
+                            onChange={(event) => setVisitorStartDate(event.target.value)}
+                            className="rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-[10px] text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                            aria-label="Tanggal mulai"
+                          />
+                          <span className="text-[10px] text-zinc-500">sampai</span>
+                          <input
+                            type="date"
+                            value={visitorEndDate}
+                            onChange={(event) => setVisitorEndDate(event.target.value)}
+                            className="rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-[10px] text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                            aria-label="Tanggal akhir"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
