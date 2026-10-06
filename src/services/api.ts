@@ -1,4 +1,13 @@
 import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
+
+interface MotorSaveData extends Partial<Motor> {
+  fifPriceListModel?: {
+    name: string;
+    previousName?: string;
+    price: number;
+    options: Record<string, number[]>;
+  };
+}
 import { MAX_IMAGE_UPLOAD_BYTES } from '../constants';
 
 const ADMIN_TOKEN_KEY = 'hwa-admin-token';
@@ -141,7 +150,7 @@ export const api = {
     return res.json();
   },
 
-  async createMotor(data: Partial<Motor>): Promise<Motor> {
+  async createMotor(data: MotorSaveData): Promise<Motor> {
     const res = await fetch('/api/motors', {
       method: 'POST',
       headers: adminHeaders(),
@@ -151,7 +160,7 @@ export const api = {
     return res.json();
   },
 
-  async updateMotor(id: string, data: Partial<Motor>): Promise<Motor> {
+  async updateMotor(id: string, data: MotorSaveData): Promise<Motor> {
     const res = await fetch(`/api/motors/${id}`, {
       method: 'PUT',
       headers: adminHeaders(),

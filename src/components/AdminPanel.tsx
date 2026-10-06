@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
 import { api, formatRupiah } from '../services/api';
-import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from '../services/fifPriceList';
+import { DEFAULT_FIF_PRICE_LIST, FIF_DP_PERCENTAGES, FIF_TENORS, getFIFPriceListModel, normalizeMotorOtrPrice } from '../services/fifPriceList';
 import { MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from '../constants';
 import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
 import {
@@ -133,6 +133,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   // Local state for all dynamic data
   const [motors, setMotors] = useState<Motor[]>([]);
+  const [editingMotorFifOptions, setEditingMotorFifOptions] = useState<Record<string, string[]>>({});
   const [promos, setPromos] = useState<Promo[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
@@ -495,6 +496,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   // --- Motor CRUD Handlers ---
   const handleOpenAddMotor = () => {
+    setEditingMotorFifOptions(Object.fromEntries(FIF_DP_PERCENTAGES.map((percentage) => [String(percentage), Array(FIF_TENORS.length + 1).fill('')])));
     setEditingMotor({
       name: '',
       category: 'Matic',
@@ -509,6 +511,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   const handleOpenEditMotor = (motor: Motor) => {
+    const fifModel = getFIFPriceListModel(motor.name, fifPriceList);
+    setEditingMotorFifOptions(Object.fromEntries(FIF_DP_PERCENTAGES.map((percentage) => {
+      const values = fifModel?.options?.[String(percentage)] || [];
+      return [String(percentage), Array.from({ length: FIF_TENORS.length + 1 }, (_, index) => values[index] ? String(values[index]) : '')];
+    })));
     setEditingMotor({ ...motor, images: [...(motor.images || [motor.image]), ...Array(MAX_MOTOR_IMAGES).fill('')].slice(0, MAX_MOTOR_IMAGES) });
     setIsMotorModalOpen(true);
   };
@@ -518,12 +525,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     if (!editingMotor || !editingMotor.name) return;
 
     try {
+      const name = editingMotor.name.trim();
+      const numericPrice = Number(String(editingMotor.price || '').replace(/[^0-9]/g, ''));
+      if (!numericPrice) throw new Error('Harga OTR wajib diisi sebelum menyimpan motor dan template cicilan.');
+
+      const fifOptions: Record<string, number[]> = {};
+      for (const percentage of FIF_DP_PERCENTAGES) {
+        const key = String(percentage);
+        const rawValues = editingMotorFifOptions[key] || Array(FIF_TENORS.length + 1).fill('');
+        const values = rawValues.map((value) => Number(String(value || '').replace(/[^0-9]/g, '')));
+        if (values.every((value) => value === 0)) continue;
+        if (values.some((value) => value <= 0)) {
+          throw new Error(`Paket DP ${percentage}% belum lengkap. Isi nominal DP dan cicilan tenor ${FIF_TENORS.join(', ')} bulan, atau kosongkan seluruh baris.`);
+        }
+        if (values[0] > numericPrice) throw new Error(`Nominal DP ${percentage}% tidak boleh melebihi Harga OTR.`);
+        fifOptions[key] = values;
+      }
+
+      const previousName = editingMotor.id ? motors.find((motor) => motor.id === editingMotor.id)?.name : undefined;
+      const motorToSave = {
+        ...editingMotor,
+        name,
+        price: numericPrice.toLocaleString('id-ID'),
+        numericPrice,
+        fifPriceListModel: { name, previousName, price: numericPrice, options: fifOptions },
+      };
       if (editingMotor.id) {
-        await api.updateMotor(editingMotor.id, editingMotor);
-        showToast(`Motor "${editingMotor.name}" berhasil diperbarui`);
+        await api.updateMotor(editingMotor.id, motorToSave);
+        showToast(`Motor dan data cicilan "${name}" berhasil diperbarui`);
       } else {
-        await api.createMotor(editingMotor);
-        showToast(`Motor baru "${editingMotor.name}" berhasil ditambahkan`);
+        await api.createMotor(motorToSave);
+        showToast(`Motor dan template cicilan "${name}" berhasil ditambahkan`);
       }
       setIsMotorModalOpen(false);
       setEditingMotor(null);
@@ -2615,6 +2647,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <p className="mt-1 text-[10px] text-zinc-500">Harga OTR menjadi nilai awal motor ini pada template Excel price list.</p>
                 </div>
               </div>
+
+              <details open className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                <summary className="cursor-pointer list-none text-xs font-bold text-emerald-200">
+                  Input nominal DP & cicilan FIF
+                  <span className="ml-2 text-[10px] font-medium text-zinc-400">nilai ini ikut disimpan ke template Excel dan kalkulator</span>
+                </summary>
+                <p className="mt-2 text-[10px] text-zinc-400">Isi satu baris lengkap untuk setiap paket yang tersedia. Baris kosong boleh dilewati; cicilan tidak dibuat otomatis agar nominal tetap sesuai price list resmi.</p>
+                <div className="mt-3 max-h-[260px] overflow-auto rounded-lg border border-white/10">
+                  <table className="min-w-[760px] w-full text-left text-[10px]">
+                    <thead className="sticky top-0 z-10 bg-zinc-900 text-zinc-400">
+                      <tr>
+                        <th className="px-2 py-2">DP</th>
+                        <th className="px-2 py-2">Nominal DP</th>
+                        {FIF_TENORS.map((tenor) => <th key={tenor} className="px-2 py-2">{tenor} bln</th>)}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {FIF_DP_PERCENTAGES.map((percentage) => {
+                        const key = String(percentage);
+                        const values = editingMotorFifOptions[key] || Array(FIF_TENORS.length + 1).fill('');
+                        return (
+                          <tr key={key}>
+                            <th className="whitespace-nowrap px-2 py-2 font-bold text-zinc-300">{percentage}%</th>
+                            {values.map((value, valueIndex) => (
+                              <td key={valueIndex} className="px-1.5 py-1.5">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={value}
+                                  onChange={(event) => setEditingMotorFifOptions((current) => ({
+                                    ...current,
+                                    [key]: Array.from({ length: FIF_TENORS.length + 1 }, (_, index) => index === valueIndex ? event.target.value : current[key]?.[index] || ''),
+                                  }))}
+                                  placeholder={valueIndex === 0 ? 'DP Rp' : 'Rp'}
+                                  aria-label={valueIndex === 0 ? `Nominal DP ${percentage}%` : `Cicilan DP ${percentage}% tenor ${FIF_TENORS[valueIndex - 1]} bulan`}
+                                  className="w-24 rounded-md border border-white/10 bg-zinc-950 px-2 py-2 text-[10px] text-white placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
 
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">

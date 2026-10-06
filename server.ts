@@ -134,6 +134,46 @@ function numberFromCell(value: unknown): number {
   return digits ? Number(digits) : 0;
 }
 
+function saveMotorFifPriceListModel(db: any, input: any) {
+  if (!input) return;
+  const name = String(input.name || '').trim();
+  const catalogMotor = (db.motors || []).find((motor: any) => motor.name === name);
+  if (!catalogMotor) throw new Error('Simpan data motor sebelum menyimpan paket cicilan FIF.');
+
+  const price = numberFromCell(input.price);
+  if (!price) throw new Error('Harga OTR motor wajib diisi sebelum menyimpan template cicilan.');
+
+  const allowedDp = new Set(FIF_DP_PERCENTAGES.map(String));
+  const options: Record<string, number[]> = {};
+  for (const [percentage, rawValues] of Object.entries(input.options || {})) {
+    if (!allowedDp.has(percentage)) throw new Error(`Persentase DP ${percentage}% tidak tersedia di template.`);
+    if (!Array.isArray(rawValues)) throw new Error(`Format cicilan DP ${percentage}% tidak valid.`);
+    const values = rawValues.map(numberFromCell);
+    if (values.every((value) => value === 0)) continue;
+    if (values.length !== FIF_TENORS.length + 1 || values.some((value) => value <= 0)) {
+      throw new Error(`DP ${percentage}% harus memiliki nominal DP dan cicilan lengkap untuk tenor ${FIF_TENORS.join(', ')} bulan.`);
+    }
+    if (values[0] > price) throw new Error(`Nominal DP ${percentage}% tidak boleh melebihi Harga OTR.`);
+    options[percentage] = values;
+  }
+
+  const current = currentFifPriceList(db);
+  const models = { ...(current.models || {}) };
+  const previousName = String(input.previousName || '').trim();
+  if (previousName && previousName !== name) {
+    const oldModelName = Object.keys(models).find((modelName) => normalizeFifModelName(modelName) === normalizeFifModelName(previousName));
+    if (oldModelName) delete models[oldModelName];
+  }
+  models[name] = { price, options };
+  db.fifPriceList = {
+    ...current,
+    source: 'Input dari katalog motor',
+    updatedAt: new Date().toISOString(),
+    tenors: FIF_TENORS,
+    models,
+  };
+}
+
 function mergeFifPriceListWorkbook(buffer: Buffer, current: any, catalogMotors: any[] = []) {
   const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: false });
   const models: Record<string, any> = {};
@@ -440,6 +480,11 @@ async function startServer() {
       updated_at: new Date().toISOString()
     };
     db.motors = [newMotor, ...(db.motors || [])];
+    try {
+      saveMotorFifPriceListModel(db, req.body.fifPriceListModel);
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'Data cicilan FIF motor tidak valid.' });
+    }
     writeDb(db);
     res.status(201).json(newMotor);
   });
@@ -455,9 +500,10 @@ async function startServer() {
     if (images.length > MAX_MOTOR_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
     }
+    const { fifPriceListModel, ...motorData } = req.body || {};
     const updated = {
       ...db.motors[index],
-      ...req.body,
+      ...motorData,
       image: images[0] || '',
       images,
       numericPrice: req.body.numericPrice || (req.body.price ? Number(String(req.body.price).replace(/[^0-9]/g, '')) : db.motors[index].numericPrice),
@@ -465,6 +511,11 @@ async function startServer() {
       updated_at: new Date().toISOString()
     };
     db.motors[index] = updated;
+    try {
+      saveMotorFifPriceListModel(db, fifPriceListModel);
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'Data cicilan FIF motor tidak valid.' });
+    }
     writeDb(db);
     res.json(updated);
   });
