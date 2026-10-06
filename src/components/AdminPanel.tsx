@@ -44,7 +44,7 @@ import {
   MIN_CATALOG_ANIMATION_SPEED,
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
-import { createWhatsAppUrl } from '../utils/whatsapp';
+import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
 import { CustomizationPanel } from './CustomizationPanel';
 
 interface AdminPanelProps {
@@ -93,6 +93,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<Partial<Promo> | null>(null);
   const [isUploadingPromoImages, setIsUploadingPromoImages] = useState(false);
+  const [sharingPromo, setSharingPromo] = useState<Promo | null>(null);
+  const [promoRecipientPhone, setPromoRecipientPhone] = useState('');
 
   const [isTestiModalOpen, setIsTestiModalOpen] = useState(false);
   const [editingTesti, setEditingTesti] = useState<Partial<Testimonial> | null>(null);
@@ -546,6 +548,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     } catch (err: any) {
       alert('Gagal menyimpan promo: ' + err.message);
     }
+  };
+
+  const handleSharePromo = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!sharingPromo) return;
+
+    const recipient = normalizeWhatsAppNumber(promoRecipientPhone, '');
+    if (recipient.length < 9 || recipient.length > 15) {
+      alert('Masukkan nomor WhatsApp konsumen yang valid, termasuk kode negara bila diperlukan.');
+      return;
+    }
+
+    const promoImage = sharingPromo.images?.[0];
+    if (!promoImage) return;
+
+    const websiteLink = `${window.location.origin}/#promo`;
+    const imageLink = new URL(promoImage, window.location.origin).href;
+    const message = [
+      'Halo Kak, ada promo menarik dari Honda Wijaya Abadi:',
+      '',
+      `${sharingPromo.title}${sharingPromo.discountValue ? ` - ${sharingPromo.discountValue}` : ''}`,
+      sharingPromo.description,
+      `Syarat & ketentuan: ${sharingPromo.terms || 'Berlaku sesuai ketentuan dealer.'}`,
+      '',
+      `Foto promo: ${imageLink}`,
+      `Lihat promo: ${websiteLink}`,
+    ].join('\n');
+    const whatsappUrl = `https://web.whatsapp.com/send?${new URLSearchParams({ phone: recipient, text: message })}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    setSharingPromo(null);
+    setPromoRecipientPhone('');
   };
 
   const handleDeletePromo = async (id: string) => {
@@ -1577,6 +1610,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSharingPromo(p);
+                            setPromoRecipientPhone('');
+                          }}
+                          className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg text-xs flex items-center gap-1"
+                          title="Bagikan promo ke konsumen via WhatsApp"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Share WA</span>
+                        </button>
                         <button
                           onClick={() => {
                             setEditingPromo(p);
@@ -2712,6 +2757,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl disabled:opacity-50"
                 >
                   Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {sharingPromo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/15 bg-zinc-950 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <div>
+                <h3 className="text-sm font-bold text-white">Bagikan promo ke konsumen</h3>
+                <p className="mt-1 text-[11px] text-zinc-400">Preview pesan WhatsApp</p>
+              </div>
+              <button type="button" onClick={() => setSharingPromo(null)} aria-label="Tutup" className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSharePromo} className="space-y-4 p-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[160px_1fr]">
+                {sharingPromo.images?.[0] ? (
+                  <img src={sharingPromo.images[0]} alt={`Foto ${sharingPromo.title}`} className="h-36 w-full rounded-xl border border-white/10 bg-zinc-900 object-cover sm:h-32" />
+                ) : (
+                  <div className="flex h-36 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-amber-400/30 bg-amber-400/5 px-3 text-center sm:h-32">
+                    <Upload className="h-5 w-5 text-amber-300" />
+                    <span className="text-[10px] text-amber-200">Foto promo perlu ditambahkan</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingPromo(sharingPromo);
+                        setIsPromoModalOpen(true);
+                        setSharingPromo(null);
+                      }}
+                      className="text-[10px] font-bold text-cyan-300 underline underline-offset-2"
+                    >
+                      Edit & upload foto
+                    </button>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <span className="inline-flex rounded-md bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-300">{sharingPromo.badge || 'Promo'}</span>
+                  <h4 className="mt-2 text-base font-black text-white">{sharingPromo.title}</h4>
+                  {sharingPromo.discountValue && <p className="mt-1 text-xs font-bold text-amber-300">{sharingPromo.discountValue}</p>}
+                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-zinc-300">{sharingPromo.description}</p>
+                  <a href={`${window.location.origin}/#promo`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-300 hover:text-cyan-200">
+                    <ExternalLink className="h-3 w-3" />
+                    kreditmotorhonda.tech/#promo
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="promo-whatsapp-recipient" className="mb-1.5 block text-xs font-bold text-zinc-200">Nomor WhatsApp konsumen *</label>
+                <input
+                  id="promo-whatsapp-recipient"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  required
+                  value={promoRecipientPhone}
+                  onChange={(event) => setPromoRecipientPhone(event.target.value)}
+                  placeholder="Contoh: 0812 3456 7890"
+                  className="w-full rounded-xl border border-white/10 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none"
+                />
+                <p className="mt-1.5 text-[10px] text-zinc-500">Nomor akan dinormalisasi ke kode negara Indonesia (+62) bila dimulai dengan 0 atau 8.</p>
+              </div>
+
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-[11px] leading-relaxed text-zinc-300">
+                Foto promo dan tautan website akan ikut dalam pesan. WhatsApp Web akan meminta scan QR atau login jika belum aktif; periksa pesan lalu tekan <strong className="text-white">Kirim</strong> di WhatsApp.
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
+                <button type="button" onClick={() => setSharingPromo(null)} className="rounded-xl border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-white/5">Batal</button>
+                <button type="submit" disabled={!sharingPromo.images?.[0]} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
+                  <MessageSquare className="h-4 w-4" />
+                  Buka WhatsApp Web
                 </button>
               </div>
             </form>
