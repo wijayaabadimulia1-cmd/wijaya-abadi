@@ -52,6 +52,75 @@ interface AdminPanelProps {
   onRefreshData: () => void;
 }
 
+const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
+  angsuran: 'kredit',
+  cicilan: 'kredit',
+  pembiayaan: 'kredit',
+  sepeda: 'motor',
+  kendaraan: 'motor',
+  showroom: 'dealer',
+  penjual: 'dealer',
+  otr: 'harga',
+  price: 'harga',
+  diskon: 'promo',
+  cashback: 'promo',
+  gegerkalong: 'bandung',
+};
+
+function seoKeywordTokens(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('id-ID')
+    .match(/[a-z0-9]+/g) || [];
+}
+
+function seoKeywordConcept(term: string) {
+  return SEO_KEYWORD_CONCEPTS[term] || term;
+}
+
+function seoTermsAreClose(first: string, second: string) {
+  if (first === second) return true;
+  if (Math.abs(first.length - second.length) > 1 || Math.min(first.length, second.length) < 5) return false;
+
+  let firstIndex = 0;
+  let secondIndex = 0;
+  let edits = 0;
+  while (firstIndex < first.length && secondIndex < second.length) {
+    if (first[firstIndex] === second[secondIndex]) {
+      firstIndex += 1;
+      secondIndex += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+    if (first.length > second.length) firstIndex += 1;
+    else if (second.length > first.length) secondIndex += 1;
+    else {
+      firstIndex += 1;
+      secondIndex += 1;
+    }
+  }
+  return edits + (first.length - firstIndex) + (second.length - secondIndex) <= 1;
+}
+
+function matchFocusKeyword(keyword: string, title: string, description: string) {
+  const ignoredTerms = new Set(['dan', 'dari', 'di', 'ke', 'untuk', 'yang', 'dengan', 'pada']);
+  const focusTerms = [...new Set(seoKeywordTokens(keyword).filter((term) => !ignoredTerms.has(term)).map(seoKeywordConcept))];
+  const titleTerms = seoKeywordTokens(title).map(seoKeywordConcept);
+  const descriptionTerms = seoKeywordTokens(description).map(seoKeywordConcept);
+  const matches = (term: string, candidates: string[]) => candidates.some((candidate) => seoTermsAreClose(term, candidate));
+  const matchedTerms = focusTerms.filter((term) => matches(term, [...titleTerms, ...descriptionTerms]));
+  const minimumMatches = focusTerms.length <= 2 ? focusTerms.length : Math.ceil(focusTerms.length * 0.67);
+  const appearsInTitle = focusTerms.some((term) => matches(term, titleTerms));
+  const appearsInDescription = focusTerms.some((term) => matches(term, descriptionTerms));
+
+  return {
+    passed: focusTerms.length > 0 && matchedTerms.length >= minimumMatches && appearsInTitle && appearsInDescription,
+    detail: focusTerms.length ? `${matchedTerms.length}/${focusTerms.length} istilah relevan cocok` : 'Kata kunci belum diatur',
+  };
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'seo' | 'customization' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
@@ -651,10 +720,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const seoKeywords = settings?.seoKeywords || DEFAULT_SEO_KEYWORDS;
   const seoCanonicalUrl = settings?.seoCanonicalUrl || DEFAULT_SEO_CANONICAL_URL;
   const seoRobots = settings?.seoRobots || DEFAULT_SEO_ROBOTS;
-  const focusKeywordLower = seoFocusKeyword.trim().toLocaleLowerCase();
-  const focusKeywordInMetadata = Boolean(focusKeywordLower)
-    && seoTitle.toLocaleLowerCase().includes(focusKeywordLower)
-    && seoDescription.toLocaleLowerCase().includes(focusKeywordLower);
+  const focusKeywordMatch = matchFocusKeyword(seoFocusKeyword, seoTitle, seoDescription);
+  const focusKeywordInMetadata = focusKeywordMatch.passed;
   const allowsSearchIndexing = /\bindex\b/i.test(seoRobots) && /\bfollow\b/i.test(seoRobots);
   let seoDomain = 'kreditmotorhonda.tech';
   let canonicalUsesHttps = false;
@@ -668,7 +735,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const seoChecks = [
     { label: 'Judul SEO 30-60 karakter', passed: seoTitle.length >= 30 && seoTitle.length <= 60, detail: `${seoTitle.length} karakter` },
     { label: 'Deskripsi 120-160 karakter', passed: seoDescription.length >= 120 && seoDescription.length <= 160, detail: `${seoDescription.length} karakter` },
-    { label: 'Focus keyword ada di judul dan deskripsi', passed: focusKeywordInMetadata, detail: seoFocusKeyword || 'Belum diatur' },
+    { label: 'Kata kunci atau variasi relevan di judul/deskripsi', passed: focusKeywordInMetadata, detail: focusKeywordMatch.detail },
     { label: 'Canonical menggunakan HTTPS', passed: canonicalUsesHttps, detail: seoCanonicalUrl },
     { label: 'Robots mengizinkan index dan follow', passed: allowsSearchIndexing, detail: seoRobots },
     { label: 'Sitemap tersedia dan berformat XML', passed: seoFileChecks.sitemap === true, detail: seoFileChecks.sitemap === null ? 'Belum diperiksa' : seoFileChecks.sitemap ? 'Valid' : 'Perlu diperbaiki' },
@@ -2109,7 +2176,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <p className="text-xs text-zinc-400">Focus keyword</p>
                     <p className="mt-2 break-words text-sm font-semibold text-white">{seoFocusKeyword || 'Belum diatur'}</p>
                     <p className={`mt-1 text-[11px] ${focusKeywordInMetadata ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {focusKeywordInMetadata ? 'Ada di judul dan deskripsi' : 'Perlu dicantumkan di judul dan deskripsi'}
+                      {focusKeywordInMetadata ? `Cocok: ${focusKeywordMatch.detail}` : `Perlu variasi yang lebih relevan · ${focusKeywordMatch.detail}`}
                     </p>
                   </section>
                   <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
@@ -2146,6 +2213,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Focus keyword
                           <input value={settings.seoFocusKeyword || DEFAULT_SEO_FOCUS_KEYWORD} onChange={(event) => setSettings({ ...settings, seoFocusKeyword: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="contoh: kredit motor Honda" />
+                          <span className="block text-[11px] text-zinc-500">Tidak harus sama persis: Google memahami variasi dan sinonim yang relevan, misalnya kredit, cicilan, atau angsuran. Pemeriksaan ini panduan konten, bukan jaminan posisi di hasil Google.</span>
                         </label>
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Kata kunci tambahan
