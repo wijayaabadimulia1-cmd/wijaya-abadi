@@ -453,11 +453,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const pendingTestimonials = testimonials.filter((item) => item.approved === false);
   const totalReviewRating = testimonials.reduce((sum, item) => sum + Number(item.rating || 0), 0);
   const averageReviewRating = testimonials.length ? totalReviewRating / testimonials.length : 0;
-  const websiteVisitorTotal = analytics?.analytics?.totalViews ?? 4520;
-  const todayWebsiteVisitors = Math.max(128, Math.round(websiteVisitorTotal / 3.2));
-  const averageDailyWebsiteVisitors = Math.max(60, Math.round(websiteVisitorTotal / 30));
-  const peakWebsiteHour = '09.00 - 12.00';
-  const peakWebsiteHourVisitors = Math.round(todayWebsiteVisitors * 0.36);
+  const visitorAnalytics = analytics?.analytics || {
+    totalViews: 4520,
+    dailyVisitors: [
+      { label: 'Sen', visits: 310 },
+      { label: 'Sel', visits: 360 },
+      { label: 'Rab', visits: 420 },
+      { label: 'Kam', visits: 390 },
+      { label: 'Jum', visits: 470 },
+      { label: 'Sab', visits: 540 },
+      { label: 'Min', visits: 460 },
+    ],
+    hourlyVisitors: [
+      { label: '08:00', visits: 45 },
+      { label: '09:00', visits: 90 },
+      { label: '10:00', visits: 120 },
+      { label: '11:00', visits: 140 },
+      { label: '12:00', visits: 110 },
+      { label: '13:00', visits: 95 },
+      { label: '14:00', visits: 85 },
+      { label: '15:00', visits: 80 },
+      { label: '16:00', visits: 65 },
+      { label: '17:00', visits: 55 },
+    ],
+    peakHour: '09.00 - 12.00',
+  };
+  const dailyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.dailyVisitors)
+    ? visitorAnalytics.dailyVisitors.map((item: any) => ({
+        label: String(item?.label || ''),
+        visits: Number(item?.visits || 0),
+      }))
+    : [];
+  const hourlyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.hourlyVisitors)
+    ? visitorAnalytics.hourlyVisitors.map((item: any) => ({
+        label: String(item?.label || ''),
+        visits: Number(item?.visits || 0),
+      }))
+    : [];
+  const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
+  const todayWebsiteVisitors = dailyVisitors.length ? dailyVisitors[dailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
+  const averageDailyWebsiteVisitors = dailyVisitors.length
+    ? Math.round(dailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0) / dailyVisitors.length)
+    : Math.max(60, Math.round(websiteVisitorTotal / 30));
+  const peakWebsiteHour = visitorAnalytics.peakHour || '09.00 - 12.00';
+  const peakHourEntry: { label: string; visits: number } = hourlyVisitors.reduce(
+    (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
+    hourlyVisitors[0] || { label: '09:00', visits: 0 }
+  );
+  const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0) || Math.round(todayWebsiteVisitors * 0.36);
 
   const handleApproveAllTestimonials = async () => {
     if (pendingTestimonials.length === 0) {
@@ -829,6 +872,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">Jam ramai</p>
                       <div className="mt-2 text-2xl font-black text-white">{peakWebsiteHourVisitors.toLocaleString('id-ID')}</div>
                       <p className="mt-1 text-[11px] text-cyan-400">Puncak {peakWebsiteHour}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-bold text-white">Kunjungan 7 Hari Terakhir</h4>
+                        <span className="text-[10px] text-zinc-400">Pengunjung</span>
+                      </div>
+                      <div className="flex items-end gap-3 h-36">
+                        {dailyVisitors.map((item: { label: string; visits: number }) => {
+                          const max = Math.max(...dailyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
+                          const height = Math.max(18, (Number(item.visits || 0) / max) * 100);
+                          return (
+                            <div key={`${item.label}-${item.visits}`} className="flex-1 flex flex-col items-center gap-2">
+                              <div className="w-full flex items-end justify-center h-28">
+                                <div
+                                  className="w-full rounded-t-xl bg-gradient-to-t from-cyan-500 to-blue-400 shadow-lg shadow-cyan-500/20"
+                                  style={{ height: `${height}%` }}
+                                  title={`${item.label}: ${item.visits} pengunjung`}
+                                />
+                              </div>
+                              <span className="text-[10px] text-zinc-400">{item.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-bold text-white">Jam Ramai</h4>
+                        <span className="text-[10px] text-zinc-400">Per jam</span>
+                      </div>
+                      <div className="space-y-2">
+                        {hourlyVisitors.map((item: { label: string; visits: number }) => {
+                          const max = Math.max(...hourlyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
+                          const width = Math.max(10, (Number(item.visits || 0) / max) * 100);
+                          return (
+                            <div key={`${item.label}-${item.visits}`} className="grid grid-cols-[52px_1fr_36px] items-center gap-2 text-[10px] text-zinc-300">
+                              <span>{item.label}</span>
+                              <div className="h-2.5 rounded-full bg-zinc-800 overflow-hidden">
+                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500" style={{ width: `${width}%` }} />
+                              </div>
+                              <span className="text-right text-zinc-400">{item.visits}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

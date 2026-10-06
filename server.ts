@@ -590,6 +590,42 @@ async function startServer() {
       return acc;
     }, {});
 
+    const defaultAnalytics = {
+      totalViews: 4520,
+      simulatorUsed: 842,
+      compareUsed: 519,
+      dailyVisitors: [
+        { label: 'Sen', visits: 310 },
+        { label: 'Sel', visits: 360 },
+        { label: 'Rab', visits: 420 },
+        { label: 'Kam', visits: 390 },
+        { label: 'Jum', visits: 470 },
+        { label: 'Sab', visits: 540 },
+        { label: 'Min', visits: 460 },
+      ],
+      hourlyVisitors: [
+        { label: '08:00', visits: 45 },
+        { label: '09:00', visits: 90 },
+        { label: '10:00', visits: 120 },
+        { label: '11:00', visits: 140 },
+        { label: '12:00', visits: 110 },
+        { label: '13:00', visits: 95 },
+        { label: '14:00', visits: 85 },
+        { label: '15:00', visits: 80 },
+        { label: '16:00', visits: 65 },
+        { label: '17:00', visits: 55 },
+      ],
+      peakHour: '09.00 - 12.00',
+    };
+
+    const analyticsData = { ...defaultAnalytics, ...(db.analytics || {}) };
+    analyticsData.dailyVisitors = Array.isArray(analyticsData.dailyVisitors) && analyticsData.dailyVisitors.length
+      ? analyticsData.dailyVisitors
+      : defaultAnalytics.dailyVisitors;
+    analyticsData.hourlyVisitors = Array.isArray(analyticsData.hourlyVisitors) && analyticsData.hourlyVisitors.length
+      ? analyticsData.hourlyVisitors
+      : defaultAnalytics.hourlyVisitors;
+
     res.json({
       totalMotors: motors.length,
       totalPromos: (db.promos || []).length,
@@ -597,7 +633,7 @@ async function startServer() {
       totalInterests: interests.length,
       newInterests: interests.filter((i: any) => i.status === 'Baru').length,
       categoryBreakdown: categories,
-      analytics: db.analytics || { totalViews: 4520, simulatorUsed: 842, compareUsed: 519 }
+      analytics: analyticsData,
     });
   });
 
