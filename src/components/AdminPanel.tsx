@@ -116,13 +116,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, analyticsRes, priceListRes] = await Promise.all([
+      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, priceListRes] = await Promise.all([
         api.getMotors(),
         api.getPromos(),
         api.getTestimonials(),
         api.getSettings(),
         api.getInterests(),
-        api.getAnalytics(),
         api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
       ]);
 
@@ -132,7 +131,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       setTestimonials(testiRes);
       setSettings(settingsRes);
       setLeads(leadsRes);
-      setAnalytics(analyticsRes);
     } catch (err) {
       console.error('Failed to load admin data:', err);
       showToast('Gagal memuat beberapa data dari database');
@@ -212,32 +210,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   const visitorAnalytics = analytics?.analytics || {
-    totalViews: 4520,
-    dailyVisitors: [
-      { label: 'Sen', visits: 310 },
-      { label: 'Sel', visits: 360 },
-      { label: 'Rab', visits: 420 },
-      { label: 'Kam', visits: 390 },
-      { label: 'Jum', visits: 470 },
-      { label: 'Sab', visits: 540 },
-      { label: 'Min', visits: 460 },
-    ],
-    hourlyVisitors: [
-      { label: '08:00', visits: 45 },
-      { label: '09:00', visits: 90 },
-      { label: '10:00', visits: 120 },
-      { label: '11:00', visits: 140 },
-      { label: '12:00', visits: 110 },
-      { label: '13:00', visits: 95 },
-      { label: '14:00', visits: 85 },
-      { label: '15:00', visits: 80 },
-      { label: '16:00', visits: 65 },
-      { label: '17:00', visits: 55 },
-    ],
-    peakHour: '09.00 - 12.00',
+    totalViews: 0,
+    dailyVisitors: [],
+    hourlyVisitors: [],
+    peakHour: '-',
   };
   const dailyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.dailyVisitors)
     ? visitorAnalytics.dailyVisitors.map((item: any) => ({
+        isoDate: String(item?.date || ''),
         label: String(item?.label || ''),
         visits: Number(item?.visits || 0),
       }))
@@ -257,62 +237,137 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'custom', label: 'Tanggal tertentu' },
   ] as const;
 
-  const dailyVisitorsWithDates = useMemo(() => {
-    const today = new Date();
-    return dailyVisitors.map((item, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (dailyVisitors.length - 1 - index));
-      return {
-        ...item,
-        isoDate: date.toISOString().slice(0, 10),
-      };
-    });
-  }, [dailyVisitors]);
+  const visitorFilterPresets = visitorFilterOptions.filter((option) => option.value !== 'custom');
 
-  const filteredDailyVisitors = useMemo(() => {
-    if (visitorFilter === 'today') return dailyVisitorsWithDates.slice(-1);
-    if (visitorFilter === '7d') return dailyVisitorsWithDates.slice(-7);
-    if (visitorFilter === '30d') return dailyVisitorsWithDates.slice(-30);
-    if (visitorFilter === 'custom') {
-      if (!visitorStartDate && !visitorEndDate) return dailyVisitorsWithDates;
-      const start = visitorStartDate ? new Date(`${visitorStartDate}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
-      const end = visitorEndDate ? new Date(`${visitorEndDate}T23:59:59`).getTime() : Number.POSITIVE_INFINITY;
-      return dailyVisitorsWithDates.filter((item) => {
-        const itemTime = new Date(`${item.isoDate}T00:00:00`).getTime();
-        return itemTime >= start && itemTime <= end;
-      });
+  const todayIsoDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+
+  useEffect(() => {
+    if (visitorFilter !== 'custom') return;
+    if (!visitorStartDate && !visitorEndDate) {
+      setVisitorStartDate(todayIsoDate);
+      setVisitorEndDate(todayIsoDate);
     }
-    return dailyVisitorsWithDates;
-  }, [dailyVisitorsWithDates, visitorEndDate, visitorFilter, visitorStartDate]);
+  }, [todayIsoDate, visitorFilter, visitorStartDate, visitorEndDate]);
 
-  const filteredHourlyVisitors = useMemo(() => {
-    if (visitorFilter === 'today') return hourlyVisitors.slice(-3);
-    if (visitorFilter === 'custom') {
-      if (!visitorStartDate && !visitorEndDate) return hourlyVisitors;
-      return hourlyVisitors;
-    }
-    return hourlyVisitors;
-  }, [hourlyVisitors, visitorEndDate, visitorFilter, visitorStartDate]);
+  const effectiveVisitorStartDate = visitorStartDate || todayIsoDate;
+  const effectiveVisitorEndDate = visitorEndDate || effectiveVisitorStartDate;
+  const daysAgo = (date: string, days: number) => {
+    const shifted = new Date(`${date}T00:00:00.000Z`);
+    shifted.setUTCDate(shifted.getUTCDate() - days);
+    return shifted.toISOString().slice(0, 10);
+  };
+  const analyticsStartDate = visitorFilter === 'today'
+    ? todayIsoDate
+    : visitorFilter === '7d'
+      ? daysAgo(todayIsoDate, 6)
+      : visitorFilter === '30d'
+        ? daysAgo(todayIsoDate, 29)
+        : visitorFilter === 'custom'
+          ? effectiveVisitorStartDate
+          : undefined;
+  const analyticsEndDate = visitorFilter === 'custom'
+    ? effectiveVisitorEndDate
+    : visitorFilter === 'all'
+      ? undefined
+      : todayIsoDate;
 
-  const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitorsWithDates;
-  const activeHourlyVisitors = filteredHourlyVisitors.length ? filteredHourlyVisitors : hourlyVisitors;
+  useEffect(() => {
+    if (!adminSession) return;
+
+    let isCurrent = true;
+    const refreshVisitorAnalytics = async () => {
+      try {
+        const result = await api.getAnalytics(analyticsStartDate, analyticsEndDate);
+        if (isCurrent) setAnalytics(result);
+      } catch (error) {
+        console.error('Failed to refresh visitor analytics:', error);
+      }
+    };
+
+    void refreshVisitorAnalytics();
+    const intervalId = window.setInterval(() => void refreshVisitorAnalytics(), 15_000);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(intervalId);
+    };
+  }, [adminSession, analyticsEndDate, analyticsStartDate]);
+
+  const activeDailyVisitors = dailyVisitors;
+  const activeHourlyVisitors = hourlyVisitors;
 
   const totalSelectedVisitors = activeDailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0);
   const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
-  const todayWebsiteVisitors = activeDailyVisitors.length
-    ? Number(activeDailyVisitors[activeDailyVisitors.length - 1]?.visits || 0)
-    : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
+  const todayWebsiteVisitors = totalSelectedVisitors;
   const averageDailyWebsiteVisitors = activeDailyVisitors.length
     ? Math.round(totalSelectedVisitors / activeDailyVisitors.length)
-    : Math.max(60, Math.round(websiteVisitorTotal / 30));
-  const peakHourEntry: { label: string; visits: number } = activeHourlyVisitors.length
-    ? activeHourlyVisitors.reduce(
+    : 0;
+  const busyHourVisitors = activeHourlyVisitors.filter((item: { visits: number }) => Number(item.visits || 0) > 0);
+  const peakHourEntry: { label: string; visits: number } = busyHourVisitors.length
+    ? busyHourVisitors.reduce(
         (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
-        activeHourlyVisitors[0]
+        busyHourVisitors[0]
       )
     : { label: '09:00', visits: 0 };
   const peakWebsiteHour = peakHourEntry.label || visitorAnalytics.peakHour || '09.00 - 12.00';
-  const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0) || Math.round(todayWebsiteVisitors * 0.36);
+  const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0);
+  const dailyPieColors = ['#22d3ee', '#fb7185', '#fbbf24', '#34d399', '#818cf8', '#f97316', '#a3e635'];
+  const dailyPieEntries = activeDailyVisitors
+    .filter((item: { visits: number }) => Number(item.visits || 0) > 0)
+    .map((item: { label: string; visits: number; isoDate?: string }) => ({
+      label: item.isoDate
+        ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${item.isoDate}T12:00:00Z`))
+        : item.label,
+      visits: Number(item.visits || 0),
+    }));
+  const rankedPieEntries = [...dailyPieEntries].sort((first, second) => second.visits - first.visits);
+  const dailyPieDisplayEntries = rankedPieEntries.length > 7
+    ? [
+        ...rankedPieEntries.slice(0, 6),
+        { label: 'Hari lainnya', visits: rankedPieEntries.slice(6).reduce((sum, item) => sum + item.visits, 0) },
+      ]
+    : dailyPieEntries;
+  const dailyPieTotal = dailyPieDisplayEntries.reduce((sum, item) => sum + item.visits, 0);
+  let pieStartAngle = -90;
+  const dailyPieSlices = dailyPieDisplayEntries.map((item, index) => {
+    const sweepAngle = dailyPieTotal ? item.visits / dailyPieTotal * 360 : 0;
+    const startAngle = pieStartAngle;
+    const endAngle = startAngle + sweepAngle;
+    pieStartAngle = endAngle;
+    const pointAt = (angle: number) => {
+      const radians = angle * Math.PI / 180;
+      return { x: 110 + 94 * Math.cos(radians), y: 110 + 94 * Math.sin(radians) };
+    };
+    const start = pointAt(startAngle);
+    const end = pointAt(endAngle);
+    const path = sweepAngle >= 359.99
+      ? ''
+      : `M 110 110 L ${start.x} ${start.y} A 94 94 0 ${sweepAngle > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
+    return { ...item, color: dailyPieColors[index % dailyPieColors.length], path, sweepAngle };
+  });
+
+  const handleExportVisitorData = () => {
+    const rows = [
+      ['Tanggal', 'Nama hari', 'Pengunjung'],
+      ...activeDailyVisitors.map((item: { label: string; visits: number; isoDate?: string }) => [
+        item.isoDate || item.label,
+        item.label,
+        String(item.visits || 0),
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `visitor-data-${visitorFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Data pengunjung berhasil diekspor');
+  };
 
   if (!adminSession) {
     return (
@@ -903,7 +958,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                   <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
-                      <span className="text-xs font-semibold uppercase">Pengunjung Website</span>
+                      <span className="text-xs font-semibold uppercase">Pengunjung sesuai filter</span>
                       <Users className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div className="text-3xl font-black text-white">{todayWebsiteVisitors.toLocaleString('id-ID')}</div>
@@ -917,55 +972,79 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
                     <div>
                       <h3 className="text-base font-bold text-white">Pengunjung Website</h3>
-                      <p className="text-xs text-zinc-400">Data kunjungan harian dan jam ramai pengunjung</p>
+                      <p className="text-xs text-zinc-400">Log tersimpan di database · diperbarui otomatis setiap 15 detik · WIB</p>
                     </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Filter</label>
-                        <select
-                          value={visitorFilter}
-                          onChange={(event) => setVisitorFilter(event.target.value as 'all' | '7d' | '30d' | 'today' | 'custom')}
-                          className="rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] font-medium text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {visitorFilterPresets.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setVisitorFilter(option.value as 'all' | '7d' | '30d' | 'today')}
+                            className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold transition-colors ${
+                              visitorFilter === option.value
+                                ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300'
+                                : 'border-white/10 bg-zinc-950 text-zinc-300 hover:border-cyan-500/40 hover:text-white'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setVisitorFilter('custom')}
+                          className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold transition-colors ${
+                            visitorFilter === 'custom'
+                              ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300'
+                              : 'border-white/10 bg-zinc-950 text-zinc-300 hover:border-cyan-500/40 hover:text-white'
+                          }`}
                         >
-                          {visitorFilterOptions.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
+                          Tanggal tertentu
+                        </button>
                       </div>
 
                       {visitorFilter === 'custom' && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-950 px-2 py-1.5">
                           <input
                             type="date"
                             value={visitorStartDate}
                             onChange={(event) => setVisitorStartDate(event.target.value)}
-                            className="rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-[10px] text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                            className="rounded-lg border border-white/10 bg-zinc-950 px-2 py-1.5 text-[10px] text-zinc-200 focus:border-cyan-500 focus:outline-none"
                             aria-label="Tanggal mulai"
                           />
-                          <span className="text-[10px] text-zinc-500">sampai</span>
+                          <span className="text-[10px] text-zinc-500">s/d</span>
                           <input
                             type="date"
                             value={visitorEndDate}
                             onChange={(event) => setVisitorEndDate(event.target.value)}
-                            className="rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-[10px] text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                            className="rounded-lg border border-white/10 bg-zinc-950 px-2 py-1.5 text-[10px] text-zinc-200 focus:border-cyan-500 focus:outline-none"
                             aria-label="Tanggal akhir"
                           />
                         </div>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={handleExportVisitorData}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Export CSV
+                      </button>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">Hari ini</p>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">Total periode</p>
                       <div className="mt-2 text-2xl font-black text-white">{todayWebsiteVisitors.toLocaleString('id-ID')}</div>
-                      <p className="mt-1 text-[11px] text-zinc-500">Pengunjung aktif di situs</p>
+                      <p className="mt-1 text-[11px] text-zinc-500">Total pada rentang filter aktif</p>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
                       <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">Rata-rata / hari</p>
                       <div className="mt-2 text-2xl font-black text-white">{averageDailyWebsiteVisitors.toLocaleString('id-ID')}</div>
-                      <p className="mt-1 text-[11px] text-zinc-500">Kunjungan harian dalam sebulan</p>
+                      <p className="mt-1 text-[11px] text-zinc-500">Rata-rata harian pada rentang aktif</p>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
@@ -978,27 +1057,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-bold text-white">Kunjungan 7 Hari Terakhir</h4>
-                        <span className="text-[10px] text-zinc-400">Pengunjung</span>
+                        <h4 className="text-sm font-bold text-white">Tren pengunjung harian</h4>
+                        <span className="text-[10px] text-emerald-300">Live · {visitorAnalytics.timeZone || 'Asia/Jakarta'}</span>
                       </div>
-                      <div className="flex items-end gap-3 h-36">
-                        {activeDailyVisitors.map((item: { label: string; visits: number }) => {
-                          const max = Math.max(...activeDailyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
-                          const height = Math.max(18, (Number(item.visits || 0) / max) * 100);
-                          return (
-                            <div key={`${item.label}-${item.visits}`} className="flex-1 flex flex-col items-center gap-2">
-                              <div className="w-full flex items-end justify-center h-28">
-                                <div
-                                  className="w-full rounded-t-xl bg-gradient-to-t from-cyan-500 to-blue-400 shadow-lg shadow-cyan-500/20"
-                                  style={{ height: `${height}%` }}
-                                  title={`${item.label}: ${item.visits} pengunjung`}
-                                />
+                      <p className="mb-3 text-[10px] text-zinc-500">Komposisi jumlah pengunjung untuk setiap tanggal pada periode terpilih</p>
+                      {dailyPieSlices.length ? (
+                        <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[220px_1fr]">
+                          <svg viewBox="0 0 220 220" role="img" aria-label="Diagram pie komposisi pengunjung harian" className="mx-auto h-52 w-52 drop-shadow-[0_8px_24px_rgba(34,211,238,0.12)]">
+                            {dailyPieSlices.map((slice, index) => slice.sweepAngle >= 359.99 ? (
+                              <circle key={slice.label} cx="110" cy="110" r="94" fill={slice.color} />
+                            ) : (
+                              <path key={`${slice.label}-${index}`} d={slice.path} fill={slice.color} stroke="#09090b" strokeWidth="2">
+                                <title>{`${slice.label}: ${slice.visits} pengunjung`}</title>
+                              </path>
+                            ))}
+                            <circle cx="110" cy="110" r="57" fill="#09090b" stroke="rgba(255,255,255,0.08)" />
+                            <text x="110" y="104" fill="#a1a1aa" fontSize="10" textAnchor="middle">TOTAL PENGUNJUNG</text>
+                            <text x="110" y="129" fill="#ffffff" fontSize="23" fontWeight="700" textAnchor="middle">{totalSelectedVisitors.toLocaleString('id-ID')}</text>
+                          </svg>
+                          <div className="space-y-2">
+                            {dailyPieSlices.map((slice, index) => (
+                              <div key={`${slice.label}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} />
+                                  <span className="truncate text-[11px] font-medium text-zinc-300">{slice.label}</span>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <span className="text-[11px] font-bold text-white">{slice.visits.toLocaleString('id-ID')}</span>
+                                  <span className="ml-2 text-[10px] text-zinc-500">{dailyPieTotal ? Math.round(slice.visits / dailyPieTotal * 100) : 0}%</span>
+                                </div>
                               </div>
-                              <span className="text-[10px] text-zinc-400">{item.label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-52 items-center justify-center rounded-xl border border-dashed border-white/10 text-xs text-zinc-500">Belum ada log pengunjung pada rentang ini.</div>
+                      )}
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
@@ -1006,17 +1100,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         <h4 className="text-sm font-bold text-white">Jam Ramai</h4>
                         <span className="text-[10px] text-zinc-400">Per jam</span>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {activeHourlyVisitors.map((item: { label: string; visits: number }) => {
                           const max = Math.max(...activeHourlyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
-                          const width = Math.max(10, (Number(item.visits || 0) / max) * 100);
+                          const width = Number(item.visits || 0) > 0 ? Math.max(10, (Number(item.visits || 0) / max) * 100) : 0;
                           return (
-                            <div key={`${item.label}-${item.visits}`} className="grid grid-cols-[52px_1fr_36px] items-center gap-2 text-[10px] text-zinc-300">
-                              <span>{item.label}</span>
-                              <div className="h-2.5 rounded-full bg-zinc-800 overflow-hidden">
-                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500" style={{ width: `${width}%` }} />
+                            <div key={`${item.label}-${item.visits}`} className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-zinc-300">
+                                <span>{item.label}</span>
+                                <span className="font-semibold text-zinc-400">{item.visits}</span>
                               </div>
-                              <span className="text-right text-zinc-400">{item.visits}</span>
+                              <div className="h-2.5 rounded-full bg-zinc-800 overflow-hidden">
+                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500" style={{ width: `${width}%` }} />
+                              </div>
                             </div>
                           );
                         })}

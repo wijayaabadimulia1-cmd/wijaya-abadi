@@ -43,6 +43,38 @@ function readDb() {
   };
 }
 
+function getJakartaDateParts(timestamp: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    date: `${values.year}-${values.month}-${values.day}`,
+    hour: `${values.hour}:00`,
+  };
+}
+
+function isValidDateKey(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function buildDateKeys(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00.000Z`);
+  const end = new Date(`${endDate}T00:00:00.000Z`);
+  const dates: string[] = [];
+  for (const cursor = new Date(start); cursor <= end && dates.length < 3661; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    dates.push(cursor.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
 function escapeHtmlAttribute(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',
@@ -255,7 +287,7 @@ async function startServer() {
   app.use('/api', (req, res, next) => {
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit');
     if (req.method === 'GET' || isPublicWrite) return next();
     return requireAdmin(req, res, () => {
       const session = (req as any).adminSession;
@@ -580,6 +612,30 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  // Visitor events are stored without IP addresses or other personal identifiers.
+  app.post('/api/analytics/visit', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const pagePath = String(req.body?.path || '/');
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !pagePath.startsWith('/') || pagePath.length > 200 || pagePath.startsWith('/admin')) {
+      return res.status(400).json({ error: 'Data kunjungan tidak valid.' });
+    }
+
+    const db = readDb();
+    db.visitorLogs = Array.isArray(db.visitorLogs) ? db.visitorLogs : [];
+    const existing = db.visitorLogs.find((entry: any) => entry.sessionId === sessionId);
+    if (existing) return res.status(200).json({ recorded: false });
+
+    const visit = {
+      id: `visit-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      sessionId,
+      timestamp: new Date().toISOString(),
+      path: pagePath,
+    };
+    db.visitorLogs.push(visit);
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan log pengunjung.' });
+    return res.status(201).json({ recorded: true });
+  });
+
   // Analytics & Stats
   app.get('/api/analytics', (req, res) => {
     const db = readDb();
@@ -589,42 +645,45 @@ async function startServer() {
       acc[m.category] = (acc[m.category] || 0) + 1;
       return acc;
     }, {});
+    const visitorLogs: Array<{ timestamp: string; path?: string }> = Array.isArray(db.visitorLogs) ? db.visitorLogs : [];
+    const validStart = isValidDateKey(req.query.startDate) ? req.query.startDate : '';
+    const validEnd = isValidDateKey(req.query.endDate) ? req.query.endDate : '';
+    let startDate = validStart;
+    let endDate = validEnd;
+    if (startDate && endDate && startDate > endDate) [startDate, endDate] = [endDate, startDate];
 
-    const defaultAnalytics = {
-      totalViews: 4520,
-      simulatorUsed: 842,
-      compareUsed: 519,
-      dailyVisitors: [
-        { label: 'Sen', visits: 310 },
-        { label: 'Sel', visits: 360 },
-        { label: 'Rab', visits: 420 },
-        { label: 'Kam', visits: 390 },
-        { label: 'Jum', visits: 470 },
-        { label: 'Sab', visits: 540 },
-        { label: 'Min', visits: 460 },
-      ],
-      hourlyVisitors: [
-        { label: '08:00', visits: 45 },
-        { label: '09:00', visits: 90 },
-        { label: '10:00', visits: 120 },
-        { label: '11:00', visits: 140 },
-        { label: '12:00', visits: 110 },
-        { label: '13:00', visits: 95 },
-        { label: '14:00', visits: 85 },
-        { label: '15:00', visits: 80 },
-        { label: '16:00', visits: 65 },
-        { label: '17:00', visits: 55 },
-      ],
-      peakHour: '09.00 - 12.00',
-    };
+    const datedLogs = visitorLogs.map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }));
+    const filteredLogs = datedLogs.filter((log) =>
+      (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate)
+    );
+    const dailyCounts = new Map<string, number>();
+    const hourlyCounts = new Map<string, number>();
+    for (const log of filteredLogs) {
+      dailyCounts.set(log.date, (dailyCounts.get(log.date) || 0) + 1);
+      hourlyCounts.set(log.hour, (hourlyCounts.get(log.hour) || 0) + 1);
+    }
 
-    const analyticsData = { ...defaultAnalytics, ...(db.analytics || {}) };
-    analyticsData.dailyVisitors = Array.isArray(analyticsData.dailyVisitors) && analyticsData.dailyVisitors.length
-      ? analyticsData.dailyVisitors
-      : defaultAnalytics.dailyVisitors;
-    analyticsData.hourlyVisitors = Array.isArray(analyticsData.hourlyVisitors) && analyticsData.hourlyVisitors.length
-      ? analyticsData.hourlyVisitors
-      : defaultAnalytics.hourlyVisitors;
+    let dateKeys: string[];
+    if (startDate || endDate) {
+      const rangeStart = startDate || filteredLogs.map((log) => log.date).sort()[0] || endDate;
+      const rangeEnd = endDate || filteredLogs.map((log) => log.date).sort().at(-1) || startDate;
+      dateKeys = rangeStart && rangeEnd ? buildDateKeys(rangeStart, rangeEnd) : [];
+    } else {
+      const recordedDates = [...dailyCounts.keys()].sort();
+      dateKeys = recordedDates.length ? buildDateKeys(recordedDates[0], recordedDates[recordedDates.length - 1]) : [];
+    }
+
+    const dailyVisitors = dateKeys.map((date) => ({
+      date,
+      label: new Intl.DateTimeFormat('id-ID', { weekday: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(`${date}T12:00:00+07:00`)).replace('.', ''),
+      visits: dailyCounts.get(date) || 0,
+    }));
+    const hourlyVisitors = Array.from({ length: 24 }, (_, hour) => {
+      const label = `${String(hour).padStart(2, '0')}:00`;
+      return { label, visits: hourlyCounts.get(label) || 0 };
+    });
+    const peakHour = hourlyVisitors.reduce((peak, item) => item.visits > peak.visits ? item : peak, hourlyVisitors[0]);
+    const totalViews = filteredLogs.length;
 
     res.json({
       totalMotors: motors.length,
@@ -633,7 +692,16 @@ async function startServer() {
       totalInterests: interests.length,
       newInterests: interests.filter((i: any) => i.status === 'Baru').length,
       categoryBreakdown: categories,
-      analytics: analyticsData,
+      analytics: {
+        totalViews,
+        simulatorUsed: Number(db.analytics?.simulatorUsed || 0),
+        compareUsed: Number(db.analytics?.compareUsed || 0),
+        dailyVisitors,
+        hourlyVisitors,
+        peakHour: peakHour.visits ? peakHour.label : '-',
+        visitorLogCount: visitorLogs.length,
+        timeZone: 'Asia/Jakarta',
+      },
     });
   });
 

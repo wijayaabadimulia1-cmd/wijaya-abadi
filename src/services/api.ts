@@ -290,10 +290,24 @@ export const api = {
   },
 
   // Analytics
-  async getAnalytics(): Promise<any> {
-    const res = await fetch('/api/analytics');
+  async getAnalytics(startDate?: string, endDate?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const query = params.toString();
+    const res = await fetch(`/api/analytics${query ? `?${query}` : ''}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil data analitik');
     return res.json();
+  },
+
+  async trackVisitor(sessionId: string, path: string): Promise<void> {
+    const res = await fetch('/api/analytics/visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, path }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error('Gagal menyimpan kunjungan website');
   },
 
   // Upload image

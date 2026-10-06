@@ -125,6 +125,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isAdminRoute) return;
+
+    const sessionKey = 'hwa-visitor-session';
+    let sessionId = sessionStorage.getItem(sessionKey);
+    if (!sessionId) {
+      sessionId = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `visit_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(sessionKey, sessionId);
+    }
+
+    const trackedKey = `hwa-visitor-tracked:${sessionId}`;
+    if (sessionStorage.getItem(trackedKey)) return;
+    sessionStorage.setItem(trackedKey, 'pending');
+    void api.trackVisitor(sessionId, window.location.pathname)
+      .then(() => sessionStorage.setItem(trackedKey, 'done'))
+      .catch(() => sessionStorage.removeItem(trackedKey));
+  }, [isAdminRoute]);
+
+  useEffect(() => {
     localStorage.setItem('hwa-color-mode', colorMode);
   }, [colorMode]);
 
