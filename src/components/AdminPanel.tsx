@@ -211,6 +211,103 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const visitorAnalytics = analytics?.analytics || {
+    totalViews: 4520,
+    dailyVisitors: [
+      { label: 'Sen', visits: 310 },
+      { label: 'Sel', visits: 360 },
+      { label: 'Rab', visits: 420 },
+      { label: 'Kam', visits: 390 },
+      { label: 'Jum', visits: 470 },
+      { label: 'Sab', visits: 540 },
+      { label: 'Min', visits: 460 },
+    ],
+    hourlyVisitors: [
+      { label: '08:00', visits: 45 },
+      { label: '09:00', visits: 90 },
+      { label: '10:00', visits: 120 },
+      { label: '11:00', visits: 140 },
+      { label: '12:00', visits: 110 },
+      { label: '13:00', visits: 95 },
+      { label: '14:00', visits: 85 },
+      { label: '15:00', visits: 80 },
+      { label: '16:00', visits: 65 },
+      { label: '17:00', visits: 55 },
+    ],
+    peakHour: '09.00 - 12.00',
+  };
+  const dailyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.dailyVisitors)
+    ? visitorAnalytics.dailyVisitors.map((item: any) => ({
+        label: String(item?.label || ''),
+        visits: Number(item?.visits || 0),
+      }))
+    : [];
+  const hourlyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.hourlyVisitors)
+    ? visitorAnalytics.hourlyVisitors.map((item: any) => ({
+        label: String(item?.label || ''),
+        visits: Number(item?.visits || 0),
+      }))
+    : [];
+
+  const visitorFilterOptions = [
+    { value: 'all', label: 'Semua data' },
+    { value: '7d', label: '7 hari terakhir' },
+    { value: '30d', label: '30 hari terakhir' },
+    { value: 'today', label: 'Hari ini' },
+    { value: 'custom', label: 'Tanggal tertentu' },
+  ] as const;
+
+  const dailyVisitorsWithDates = useMemo(() => {
+    const today = new Date();
+    return dailyVisitors.map((item, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (dailyVisitors.length - 1 - index));
+      return {
+        ...item,
+        isoDate: date.toISOString().slice(0, 10),
+      };
+    });
+  }, [dailyVisitors]);
+
+  const filteredDailyVisitors = useMemo(() => {
+    if (visitorFilter === 'today') return dailyVisitorsWithDates.slice(-1);
+    if (visitorFilter === '7d') return dailyVisitorsWithDates.slice(-7);
+    if (visitorFilter === '30d') return dailyVisitorsWithDates.slice(-30);
+    if (visitorFilter === 'custom') {
+      if (!visitorStartDate && !visitorEndDate) return dailyVisitorsWithDates;
+      const start = visitorStartDate ? new Date(`${visitorStartDate}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
+      const end = visitorEndDate ? new Date(`${visitorEndDate}T23:59:59`).getTime() : Number.POSITIVE_INFINITY;
+      return dailyVisitorsWithDates.filter((item) => {
+        const itemTime = new Date(`${item.isoDate}T00:00:00`).getTime();
+        return itemTime >= start && itemTime <= end;
+      });
+    }
+    return dailyVisitorsWithDates;
+  }, [dailyVisitorsWithDates, visitorEndDate, visitorFilter, visitorStartDate]);
+
+  const filteredHourlyVisitors = useMemo(() => {
+    if (visitorFilter === 'today') return hourlyVisitors.slice(-3);
+    if (visitorFilter === 'custom') {
+      if (!visitorStartDate && !visitorEndDate) return hourlyVisitors;
+      return hourlyVisitors;
+    }
+    return hourlyVisitors;
+  }, [hourlyVisitors, visitorEndDate, visitorFilter, visitorStartDate]);
+
+  const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitorsWithDates;
+  const activeHourlyVisitors = filteredHourlyVisitors.length ? filteredHourlyVisitors : hourlyVisitors;
+  const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
+  const todayWebsiteVisitors = activeDailyVisitors.length ? activeDailyVisitors[activeDailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
+  const averageDailyWebsiteVisitors = activeDailyVisitors.length
+    ? Math.round(activeDailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0) / activeDailyVisitors.length)
+    : Math.max(60, Math.round(websiteVisitorTotal / 30));
+  const peakWebsiteHour = visitorAnalytics.peakHour || '09.00 - 12.00';
+  const peakHourEntry: { label: string; visits: number } = activeHourlyVisitors.reduce(
+    (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
+    activeHourlyVisitors[0] || { label: '09:00', visits: 0 }
+  );
+  const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0) || Math.round(todayWebsiteVisitors * 0.36);
+
   if (!adminSession) {
     return (
       <div className={`admin-panel relative min-h-screen flex items-center justify-center px-4 ${adminTheme === 'light' ? 'admin-theme-light bg-zinc-50 text-zinc-900' : 'bg-zinc-950 text-zinc-100'}`}>
@@ -467,102 +564,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const pendingTestimonials = testimonials.filter((item) => item.approved === false);
   const totalReviewRating = testimonials.reduce((sum, item) => sum + Number(item.rating || 0), 0);
   const averageReviewRating = testimonials.length ? totalReviewRating / testimonials.length : 0;
-  const visitorAnalytics = analytics?.analytics || {
-    totalViews: 4520,
-    dailyVisitors: [
-      { label: 'Sen', visits: 310 },
-      { label: 'Sel', visits: 360 },
-      { label: 'Rab', visits: 420 },
-      { label: 'Kam', visits: 390 },
-      { label: 'Jum', visits: 470 },
-      { label: 'Sab', visits: 540 },
-      { label: 'Min', visits: 460 },
-    ],
-    hourlyVisitors: [
-      { label: '08:00', visits: 45 },
-      { label: '09:00', visits: 90 },
-      { label: '10:00', visits: 120 },
-      { label: '11:00', visits: 140 },
-      { label: '12:00', visits: 110 },
-      { label: '13:00', visits: 95 },
-      { label: '14:00', visits: 85 },
-      { label: '15:00', visits: 80 },
-      { label: '16:00', visits: 65 },
-      { label: '17:00', visits: 55 },
-    ],
-    peakHour: '09.00 - 12.00',
-  };
-  const dailyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.dailyVisitors)
-    ? visitorAnalytics.dailyVisitors.map((item: any) => ({
-        label: String(item?.label || ''),
-        visits: Number(item?.visits || 0),
-      }))
-    : [];
-  const hourlyVisitors: Array<{ label: string; visits: number }> = Array.isArray(visitorAnalytics.hourlyVisitors)
-    ? visitorAnalytics.hourlyVisitors.map((item: any) => ({
-        label: String(item?.label || ''),
-        visits: Number(item?.visits || 0),
-      }))
-    : [];
-
-  const visitorFilterOptions = [
-    { value: 'all', label: 'Semua data' },
-    { value: '7d', label: '7 hari terakhir' },
-    { value: '30d', label: '30 hari terakhir' },
-    { value: 'today', label: 'Hari ini' },
-    { value: 'custom', label: 'Tanggal tertentu' },
-  ] as const;
-
-  const dailyVisitorsWithDates = useMemo(() => {
-    const today = new Date();
-    return dailyVisitors.map((item, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (dailyVisitors.length - 1 - index));
-      return {
-        ...item,
-        isoDate: date.toISOString().slice(0, 10),
-      };
-    });
-  }, [dailyVisitors]);
-
-  const filteredDailyVisitors = useMemo(() => {
-    if (visitorFilter === 'today') return dailyVisitorsWithDates.slice(-1);
-    if (visitorFilter === '7d') return dailyVisitorsWithDates.slice(-7);
-    if (visitorFilter === '30d') return dailyVisitorsWithDates.slice(-30);
-    if (visitorFilter === 'custom') {
-      if (!visitorStartDate && !visitorEndDate) return dailyVisitorsWithDates;
-      const start = visitorStartDate ? new Date(`${visitorStartDate}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
-      const end = visitorEndDate ? new Date(`${visitorEndDate}T23:59:59`).getTime() : Number.POSITIVE_INFINITY;
-      return dailyVisitorsWithDates.filter((item) => {
-        const itemTime = new Date(`${item.isoDate}T00:00:00`).getTime();
-        return itemTime >= start && itemTime <= end;
-      });
-    }
-    return dailyVisitorsWithDates;
-  }, [dailyVisitorsWithDates, visitorEndDate, visitorFilter, visitorStartDate]);
-
-  const filteredHourlyVisitors = useMemo(() => {
-    if (visitorFilter === 'today') return hourlyVisitors.slice(-3);
-    if (visitorFilter === 'custom') {
-      if (!visitorStartDate && !visitorEndDate) return hourlyVisitors;
-      return hourlyVisitors;
-    }
-    return hourlyVisitors;
-  }, [hourlyVisitors, visitorEndDate, visitorFilter, visitorStartDate]);
-
-  const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitorsWithDates;
-  const activeHourlyVisitors = filteredHourlyVisitors.length ? filteredHourlyVisitors : hourlyVisitors;
-  const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
-  const todayWebsiteVisitors = activeDailyVisitors.length ? activeDailyVisitors[activeDailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
-  const averageDailyWebsiteVisitors = activeDailyVisitors.length
-    ? Math.round(activeDailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0) / activeDailyVisitors.length)
-    : Math.max(60, Math.round(websiteVisitorTotal / 30));
-  const peakWebsiteHour = visitorAnalytics.peakHour || '09.00 - 12.00';
-  const peakHourEntry: { label: string; visits: number } = activeHourlyVisitors.reduce(
-    (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
-    activeHourlyVisitors[0] || { label: '09:00', visits: 0 }
-  );
-  const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0) || Math.round(todayWebsiteVisitors * 0.36);
 
   const handleApproveAllTestimonials = async () => {
     if (pendingTestimonials.length === 0) {
