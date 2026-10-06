@@ -1609,36 +1609,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         </p>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                      <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
                         <button
                           type="button"
                           onClick={() => {
                             setSharingPromo(p);
                             setPromoRecipientPhone('');
                           }}
-                          className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg text-xs flex items-center gap-1"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500 px-3 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-950/30 transition-colors hover:bg-emerald-400"
                           title="Bagikan promo ke konsumen via WhatsApp"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Share WA</span>
+                          <span>Kirim Promo via WhatsApp</span>
                         </button>
-                        <button
-                          onClick={() => {
-                            setEditingPromo(p);
-                            setIsPromoModalOpen(true);
-                          }}
-                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeletePromo(p.id)}
-                          className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Hapus</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingPromo(p);
+                              setIsPromoModalOpen(true);
+                            }}
+                            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeletePromo(p.id)}
+                            className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
