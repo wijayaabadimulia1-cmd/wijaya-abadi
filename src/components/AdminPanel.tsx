@@ -296,16 +296,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitorsWithDates;
   const activeHourlyVisitors = filteredHourlyVisitors.length ? filteredHourlyVisitors : hourlyVisitors;
+
+  const totalSelectedVisitors = activeDailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0);
   const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
-  const todayWebsiteVisitors = activeDailyVisitors.length ? activeDailyVisitors[activeDailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
+  const todayWebsiteVisitors = activeDailyVisitors.length
+    ? Number(activeDailyVisitors[activeDailyVisitors.length - 1]?.visits || 0)
+    : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
   const averageDailyWebsiteVisitors = activeDailyVisitors.length
-    ? Math.round(activeDailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0) / activeDailyVisitors.length)
+    ? Math.round(totalSelectedVisitors / activeDailyVisitors.length)
     : Math.max(60, Math.round(websiteVisitorTotal / 30));
-  const peakWebsiteHour = visitorAnalytics.peakHour || '09.00 - 12.00';
-  const peakHourEntry: { label: string; visits: number } = activeHourlyVisitors.reduce(
-    (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
-    activeHourlyVisitors[0] || { label: '09:00', visits: 0 }
-  );
+  const peakHourEntry: { label: string; visits: number } = activeHourlyVisitors.length
+    ? activeHourlyVisitors.reduce(
+        (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
+        activeHourlyVisitors[0]
+      )
+    : { label: '09:00', visits: 0 };
+  const peakWebsiteHour = peakHourEntry.label || visitorAnalytics.peakHour || '09.00 - 12.00';
   const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0) || Math.round(todayWebsiteVisitors * 0.36);
 
   if (!adminSession) {
