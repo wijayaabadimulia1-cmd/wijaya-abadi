@@ -134,10 +134,19 @@ function numberFromCell(value: unknown): number {
   return digits ? Number(digits) : 0;
 }
 
-function mergeFifPriceListWorkbook(buffer: Buffer, current: any) {
+function mergeFifPriceListWorkbook(buffer: Buffer, current: any, catalogMotors: any[] = []) {
   const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: false });
   const models: Record<string, any> = {};
   const presets = new Set(FIF_DP_PERCENTAGES.map(String));
+  const catalogNames = new Map<string, string>(
+    catalogMotors
+      .map((motor) => String(motor.name || '').trim())
+      .filter(Boolean)
+      .map((name) => [name.toLocaleLowerCase('id-ID'), name]),
+  );
+  const mismatchedNames = new Set<string>();
+  const rowIssues: string[] = [];
+  let foundTemplateSheet = false;
 
   for (const sheetName of workbook.SheetNames) {
     const rows = XLSX.utils.sheet_to_json<any[]>(workbook.Sheets[sheetName], {
@@ -154,22 +163,63 @@ function mergeFifPriceListWorkbook(buffer: Buffer, current: any) {
     const downPaymentColumn = header.indexOf('nominal dp');
     const tenorColumns = FIF_TENORS.map((tenor) => header.indexOf(`cicilan ${tenor} bln`));
     if ([modelColumn, priceColumn, percentColumn, downPaymentColumn, ...tenorColumns].some((column) => column < 0)) continue;
+    foundTemplateSheet = true;
 
-    for (const row of rows.slice(1)) {
+    for (const [rowIndex, row] of rows.slice(1).entries()) {
+      const rowNumber = rowIndex + 2;
       const name = String(row[modelColumn] || '').trim();
+      if (!name) {
+        if (row.some((value) => String(value ?? '').trim())) rowIssues.push(`Baris ${rowNumber}: nama model kosong.`);
+        continue;
+      }
+      const catalogName = catalogNames.get(name.toLocaleLowerCase('id-ID'));
+      if (!catalogName) {
+        mismatchedNames.add(name);
+        continue;
+      }
+
       const price = numberFromCell(row[priceColumn]);
       const percent = numberFromCell(row[percentColumn]);
       const downPayment = numberFromCell(row[downPaymentColumn]);
       const installments = tenorColumns.map((column) => numberFromCell(row[column]));
-      if (!name || !price || !downPayment || !presets.has(String(percent)) || installments.some((value) => !value)) continue;
+      const problems: string[] = [];
+      if (price <= 0) problems.push('Harga OTR harus diisi');
+      if (!presets.has(String(percent))) problems.push(`DP harus salah satu dari ${FIF_DP_PERCENTAGES.join('%, ')}%`);
+      if (downPayment <= 0) problems.push('Nominal DP harus diisi');
+      if (price > 0 && downPayment > price) problems.push('Nominal DP melebihi Harga OTR');
+      const missingTenors = FIF_TENORS.filter((_, index) => installments[index] <= 0);
+      if (missingTenors.length) problems.push(`Cicilan tenor ${missingTenors.join(', ')} bulan belum diisi`);
+      if (problems.length) {
+        rowIssues.push(`Baris ${rowNumber} (${catalogName}): ${problems.join('; ')}.`);
+        continue;
+      }
 
-      const existing = models[name] || { price, options: {} };
+      const existing = models[catalogName] || { price, options: {} };
+      if (existing.options[String(percent)]) {
+        rowIssues.push(`Baris ${rowNumber} (${catalogName}): DP ${percent}% tercantum lebih dari sekali.`);
+        continue;
+      }
+      if (existing.price !== price) {
+        rowIssues.push(`Baris ${rowNumber} (${catalogName}): Harga OTR berbeda antarbaris model yang sama.`);
+        continue;
+      }
       existing.price = price;
       existing.options[String(percent)] = [downPayment, ...installments];
-      models[name] = existing;
+      models[catalogName] = existing;
     }
   }
 
+  if (!foundTemplateSheet) {
+    throw new Error(`Format kolom tidak sesuai template. Unduh template terbaru; kolom wajib: Model, Harga OTR, DP (%), Nominal DP, dan Cicilan ${FIF_TENORS.map((tenor) => `${tenor} bln`).join(', ')}.`);
+  }
+  if (mismatchedNames.size) {
+    throw new Error(`Nama motor tidak cocok dengan katalog/template: ${[...mismatchedNames].join(', ')}. Samakan nama pada kolom Model persis dengan nama motor di katalog, lalu unduh template terbaru.`);
+  }
+  if (rowIssues.length) {
+    const visibleIssues = rowIssues.slice(0, 12);
+    const remainingCount = rowIssues.length - visibleIssues.length;
+    throw new Error(`Periksa data price list berikut:\n${visibleIssues.join('\n')}${remainingCount > 0 ? `\nDan ${remainingCount} kesalahan lainnya.` : ''}`);
+  }
   if (!Object.keys(models).length) {
     throw new Error('Tidak ada data valid. Gunakan template price list dan isi semua nominal DP serta cicilan tenor.');
   }
@@ -201,15 +251,14 @@ function buildFifPriceListTemplate(priceList: any, catalogMotors: any[] = []) {
     const matchedModel = priceList.models?.[name]
       || priceListModels.find(([modelName]) => normalizeFifModelName(modelName) === normalizedName)?.[1];
     const price = numberFromCell(matchedModel?.price || motor.numericPrice || motor.price);
-    if (!price) continue;
 
     for (const percent of FIF_DP_PERCENTAGES) {
       const option = matchedModel?.options?.[String(percent)];
       if (option?.length >= FIF_TENORS.length + 1) {
-        rows.push([name, price, percent, ...option]);
+        rows.push([name, price || '', percent, ...option]);
       } else {
-        const downPayment = Math.min(price, Math.ceil((price * percent / 100) / 100_000) * 100_000);
-        rows.push([name, price, percent, downPayment, ...FIF_TENORS.map(() => '')]);
+        const downPayment = price ? Math.min(price, Math.ceil((price * percent / 100) / 100_000) * 100_000) : '';
+        rows.push([name, price || '', percent, downPayment, ...FIF_TENORS.map(() => '')]);
       }
     }
   }
@@ -343,7 +392,7 @@ async function startServer() {
         return res.status(400).json({ error: 'File Excel kosong atau tidak terbaca.' });
       }
       const db = readDb();
-      db.fifPriceList = mergeFifPriceListWorkbook(req.body, currentFifPriceList(db));
+      db.fifPriceList = mergeFifPriceListWorkbook(req.body, currentFifPriceList(db), db.motors || []);
       if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan price list ke database.' });
       return res.json({
         success: true,

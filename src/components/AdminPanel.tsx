@@ -2324,7 +2324,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <div>
                       <h3 className="text-sm font-bold text-white">Price list cicilan FIFGROUP</h3>
                       <p className="mt-1 text-xs text-zinc-400">
-                        {Object.keys(fifPriceList.models).length} model aktif · Sumber: {fifPriceList.source}
+                        {motors.length} model katalog · {Object.keys(fifPriceList.models).length} model price list · Sumber: {fifPriceList.source}
                         {fifPriceList.updatedAt ? ` · Diperbarui ${new Date(fifPriceList.updatedAt).toLocaleString('id-ID')}` : ''}
                       </p>
                       <p className="mt-1 text-xs text-zinc-500">Unduh template, isi nominal DP dan cicilan untuk setiap model, lalu unggah. Data yang diunggah langsung tersimpan dan memperbarui katalog serta kalkulator; model yang tidak disertakan tetap dipertahankan.</p>
@@ -2358,6 +2358,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     </button>
                   </div>
                   <p className="text-[11px] text-zinc-500">Template berisi kolom model, harga OTR, DP 10%, 15%, 20%, 30%, 40%, serta cicilan tenor 11, 17, 23, 29, dan 35 bulan.</p>
+                  <div className="overflow-hidden rounded-xl border border-white/10">
+                    <div className="grid grid-cols-[minmax(0,1fr)_120px_110px] gap-3 border-b border-white/10 bg-zinc-950/80 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-zinc-400">
+                      <span>Model motor</span>
+                      <span>Harga OTR</span>
+                      <span>DP + cicilan</span>
+                    </div>
+                    <div className="max-h-[225px] overflow-y-auto overscroll-contain divide-y divide-white/5">
+                      {motors.map((motor) => {
+                        const normalizedMotorName = motor.name.toLocaleLowerCase('id-ID').replace(/\b(honda|all|new|evo)\b/g, ' ').replace(/[^a-z0-9]/g, '');
+                        const configuredModel = fifPriceList.models[motor.name]
+                          || Object.entries(fifPriceList.models).find(([modelName]) => modelName.toLocaleLowerCase('id-ID').replace(/\b(honda|all|new|evo)\b/g, ' ').replace(/[^a-z0-9]/g, '') === normalizedMotorName)?.[1];
+                        const readyDpPackages = Object.values(configuredModel?.options || {}).filter((option) => option.length >= 6 && option.every((amount) => Number(amount) > 0)).length;
+                        const motorPrice = configuredModel?.price || motor.numericPrice || motor.price;
+                        return (
+                          <div key={motor.id} className="grid min-h-11 grid-cols-[minmax(0,1fr)_120px_110px] items-center gap-3 px-3 py-2 text-[11px]">
+                            <span className="truncate font-semibold text-zinc-200" title={motor.name}>{motor.name}</span>
+                            <span className="truncate text-zinc-300">{formatRupiah(motorPrice)}</span>
+                            <span className={readyDpPackages === 5 ? 'font-semibold text-emerald-300' : 'font-medium text-amber-300'}>{readyDpPackages}/5 paket siap</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">5 model terlihat sekaligus. Scroll daftar untuk melihat model lain; template mengikuti nama dan harga OTR katalog terbaru.</p>
                 </section>
               </div>
             )}
@@ -2490,6 +2514,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   placeholder="Contoh: Honda Vario 160 ABS"
                   className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500 focus:outline-none"
                 />
+                <p className="mt-1 text-[10px] text-zinc-500">Nama ini akan dipakai sebagai nama model di template price list. Gunakan satu nama yang konsisten.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -2519,6 +2544,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     placeholder="20.775.000"
                     className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500 focus:outline-none"
                   />
+                  <p className="mt-1 text-[10px] text-zinc-500">Harga OTR menjadi nilai awal motor ini pada template Excel price list.</p>
                 </div>
               </div>
 
@@ -2527,7 +2553,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   Gambar Motor (maksimal {MAX_MOTOR_IMAGES} foto, URL atau Upload File)
                 </label>
                 <p className="mb-2 text-[11px] text-zinc-500">Foto pertama menjadi cover kartu katalog. Foto kosong tidak ditampilkan di website.</p>
-                <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+                <p className="mb-2 text-[10px] text-zinc-500">5 slot foto terlihat sekaligus; scroll untuk mengisi hingga {MAX_MOTOR_IMAGES} foto.</p>
+                <div className="max-h-[220px] space-y-2 overflow-y-auto overscroll-contain pr-1">
                   {Array.from({ length: MAX_MOTOR_IMAGES }, (_, imageIndex) => {
                     const images = editingMotor.images || [editingMotor.image || ''];
                     const imageValue = images[imageIndex] || '';
