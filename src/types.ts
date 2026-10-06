@@ -69,7 +69,7 @@ export interface ManifestoItem {
   created_at?: string;
 }
 
-export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom';
+export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban';
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
 export type ThemeMode = 'light' | 'dark';

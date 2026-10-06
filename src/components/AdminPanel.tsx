@@ -412,6 +412,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'luxury', label: 'Luxury', accent: 'bg-amber-300', description: 'Elegan dengan nuansa premium dan refined.' },
     { value: 'sport', label: 'Sport', accent: 'bg-cyan-500', description: 'Tampilan dinamis dengan fokus pada energi dan aksi.' },
     { value: 'showroom', label: 'Showroom', accent: 'bg-red-700', description: 'Layout dealer resmi dengan hero, statistik, dan katalog yang jelas.' },
+    { value: 'signature', label: 'Signature', accent: 'bg-gradient-to-r from-red-600 to-amber-500', description: 'Branding premium dengan sentuhan eksklusif dan elegan.' },
+    { value: 'urban', label: 'Urban', accent: 'bg-gradient-to-r from-slate-700 to-zinc-900', description: 'Modern urban untuk tampilan dealer yang lebih fresh dan stylish.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -1429,11 +1431,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       })}
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-zinc-950 p-4">
+                    <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.32)]">
                       <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
                         Live Preview
                       </div>
-                      <div className={`website-template-${settings.websiteTemplate || 'classic'} rounded-2xl border p-4 shadow-inner`}>
+                      <div className={`website-template-${settings.websiteTemplate || 'classic'} overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 p-4 shadow-inner`}>
                         <div className="flex items-center justify-between gap-3 mb-3">
                           <div className={`h-3 w-16 rounded-full ${currentTemplate.accent}`} />
                           <div className="flex gap-2">

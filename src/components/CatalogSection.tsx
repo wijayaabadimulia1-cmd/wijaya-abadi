@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X } from 'lucide-react';
+import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CatalogAnimation, FIFPriceList, Motor } from '../types';
 import { formatRupiah } from '../services/api';
 import { getMotorOtrPrice } from '../services/fifPriceList';
@@ -84,7 +84,7 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
       type="button"
       ref={imageButtonRef}
       onClick={() => onPreview(images, imageIndex, motor.name)}
-      className="relative h-64 w-full overflow-hidden bg-zinc-950 flex items-center justify-center p-6 cursor-zoom-in"
+      className="catalog-photo-frame relative h-64 w-full overflow-hidden flex items-center justify-center p-6 cursor-zoom-in"
       aria-label={`Lihat foto ${motor.name} ukuran penuh`}
     >
       <img
@@ -305,11 +305,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
                     {/* Content area */}
                     <div className="p-6">
-                      <h3 className="break-words [overflow-wrap:anywhere] text-xl font-bold text-white group-hover:text-red-400 transition-colors">
+                      <h3 className="catalog-product-title break-words [overflow-wrap:anywhere] text-xl font-bold transition-colors">
                         {motor.name}
                       </h3>
 
-                      <p className="mt-2 break-words [overflow-wrap:anywhere] text-zinc-400 text-xs sm:text-sm">
+                      <p className="catalog-product-description mt-2 break-words [overflow-wrap:anywhere] text-xs sm:text-sm">
                         {motor.description || 'Pilihan tepat untuk kenyamanan mobilitas harian Anda.'}
                       </p>
 
@@ -319,7 +319,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                           motor.specs.slice(0, 4).map((spec, idx) => (
                             <span
                               key={idx}
-                              className="bg-zinc-800/60 border border-white/10 px-2.5 py-1 rounded-full text-[11px] text-zinc-300"
+                              className="catalog-spec-tag border px-2.5 py-1 rounded-full text-[11px]"
                             >
                               {spec}
                             </span>
@@ -328,10 +328,10 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
                       {/* Price Section */}
                       <div className="mt-6 pt-4 border-t border-white/10">
-                        <span className="text-[11px] text-zinc-400 uppercase tracking-wider block">
+                        <span className="catalog-price-label text-[11px] uppercase tracking-wider block">
                           Mulai dari OTR Bandung
                         </span>
-                        <div className="text-2xl font-black text-white mt-0.5">
+                        <div className="catalog-price-value text-2xl font-black mt-0.5">
                           {formatRupiah(getMotorOtrPrice(motor, priceList))}
                         </div>
                       </div>
@@ -345,7 +345,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                       <button
                         onClick={() => onOpenInterest(motor)}
                         data-testid={`motor-interest-${motor.id}`}
-                        className="w-full py-2.5 px-3 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-red-900/30 flex items-center justify-center gap-1.5"
+                        className="catalog-cta-primary w-full py-2.5 px-3 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>Saya Tertarik</span>
@@ -355,9 +355,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                       <button
                         onClick={() => onOpenSimulator(motor)}
                         data-testid={`motor-simulator-${motor.id}`}
-                        className="w-full py-2.5 px-3 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs rounded-xl border border-white/10 transition-colors flex items-center justify-center gap-1.5"
+                        className="catalog-cta-secondary w-full py-2.5 px-3 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
                       >
-                        <Calculator className="w-3.5 h-3.5 text-red-400" />
+                        <Calculator className="w-3.5 h-3.5" />
                         <span>Simulasi Kredit</span>
                       </button>
                     </div>
@@ -366,10 +366,10 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                     <button
                       onClick={() => onToggleCompare(motor)}
                       data-testid={`motor-compare-${motor.id}`}
-                      className={`w-full py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center space-x-2 transition-all duration-300 border ${
+                      className={`catalog-compare-button w-full py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center space-x-2 transition-all duration-300 ${
                         selectedForCompare
-                          ? 'bg-red-600/20 border-red-500/50 text-red-400 shadow-inner'
-                          : 'bg-transparent border-white/10 text-zinc-400 hover:bg-red-600/10 hover:text-red-400 hover:border-red-500/30'
+                          ? 'catalog-compare-button-active'
+                          : ''
                       }`}
                     >
                       <Scale className="w-3.5 h-3.5" />
@@ -396,10 +396,10 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index - 1 + selectedGallery.images.length) % selectedGallery.images.length })}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-2xl text-zinc-900 shadow-xl hover:bg-red-50"
+                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200"
                 aria-label="Foto sebelumnya"
               >
-                ‹
+                <ChevronLeft className="h-5 w-5" />
               </button>
             )}
             <img
@@ -410,7 +410,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             <button
               type="button"
               onClick={() => setSelectedGallery(null)}
-              className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-zinc-900 shadow-xl hover:bg-red-50"
+              className="gallery-close-button absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full shadow-xl transition-all duration-200"
               aria-label="Tutup foto"
             >
               <X className="h-5 w-5" />
@@ -419,13 +419,13 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index + 1) % selectedGallery.images.length })}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-2xl text-zinc-900 shadow-xl hover:bg-red-50"
+                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200"
                 aria-label="Foto berikutnya"
               >
-                ›
+                <ChevronRight className="h-5 w-5" />
               </button>
             )}
-            <p className="absolute -bottom-8 left-0 right-0 text-center text-sm font-semibold text-white">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</p>
+            <p className="gallery-caption absolute -bottom-8 left-0 right-0 text-center text-sm font-semibold text-white">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</p>
           </div>
         </div>
       )}
