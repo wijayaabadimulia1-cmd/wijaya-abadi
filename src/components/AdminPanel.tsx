@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Bike,
   Plus,
@@ -69,6 +69,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [settings, setSettings] = useState<DealerSettings | null>(null);
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [visitorFilter, setVisitorFilter] = useState<'all' | '7d' | '30d' | 'today'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -490,15 +491,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         visits: Number(item?.visits || 0),
       }))
     : [];
+
+  const visitorFilterOptions = [
+    { value: 'all', label: 'Semua data' },
+    { value: '7d', label: '7 hari terakhir' },
+    { value: '30d', label: '30 hari terakhir' },
+    { value: 'today', label: 'Hari ini' },
+  ] as const;
+
+  const filteredDailyVisitors = useMemo(() => {
+    if (visitorFilter === 'today') return dailyVisitors.slice(-1);
+    if (visitorFilter === '7d') return dailyVisitors.slice(-7);
+    if (visitorFilter === '30d') return dailyVisitors.slice(-30);
+    return dailyVisitors;
+  }, [dailyVisitors, visitorFilter]);
+
+  const filteredHourlyVisitors = useMemo(() => {
+    if (visitorFilter === 'today') return hourlyVisitors.slice(-3);
+    return hourlyVisitors;
+  }, [hourlyVisitors, visitorFilter]);
+
+  const activeDailyVisitors = filteredDailyVisitors.length ? filteredDailyVisitors : dailyVisitors;
+  const activeHourlyVisitors = filteredHourlyVisitors.length ? filteredHourlyVisitors : hourlyVisitors;
   const websiteVisitorTotal = Number(visitorAnalytics.totalViews || 0);
-  const todayWebsiteVisitors = dailyVisitors.length ? dailyVisitors[dailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
-  const averageDailyWebsiteVisitors = dailyVisitors.length
-    ? Math.round(dailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0) / dailyVisitors.length)
+  const todayWebsiteVisitors = activeDailyVisitors.length ? activeDailyVisitors[activeDailyVisitors.length - 1].visits : Math.max(128, Math.round(websiteVisitorTotal / 3.2));
+  const averageDailyWebsiteVisitors = activeDailyVisitors.length
+    ? Math.round(activeDailyVisitors.reduce((sum: number, item: { label: string; visits: number }) => sum + Number(item.visits || 0), 0) / activeDailyVisitors.length)
     : Math.max(60, Math.round(websiteVisitorTotal / 30));
   const peakWebsiteHour = visitorAnalytics.peakHour || '09.00 - 12.00';
-  const peakHourEntry: { label: string; visits: number } = hourlyVisitors.reduce(
+  const peakHourEntry: { label: string; visits: number } = activeHourlyVisitors.reduce(
     (max: { label: string; visits: number }, item: { label: string; visits: number }) => Number(item.visits || 0) > Number(max.visits || 0) ? item : max,
-    hourlyVisitors[0] || { label: '09:00', visits: 0 }
+    activeHourlyVisitors[0] || { label: '09:00', visits: 0 }
   );
   const peakWebsiteHourVisitors = Number(peakHourEntry.visits || 0) || Math.round(todayWebsiteVisitors * 0.36);
 
@@ -845,14 +868,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
 
                 <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-6">
-                  <div className="flex items-center justify-between gap-3 mb-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
                     <div>
                       <h3 className="text-base font-bold text-white">Pengunjung Website</h3>
                       <p className="text-xs text-zinc-400">Data kunjungan harian dan jam ramai pengunjung</p>
                     </div>
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                      +12,4% vs hari lalu
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Filter</label>
+                      <select
+                        value={visitorFilter}
+                        onChange={(event) => setVisitorFilter(event.target.value as 'all' | '7d' | '30d' | 'today')}
+                        className="rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] font-medium text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                      >
+                        {visitorFilterOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -882,8 +914,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         <span className="text-[10px] text-zinc-400">Pengunjung</span>
                       </div>
                       <div className="flex items-end gap-3 h-36">
-                        {dailyVisitors.map((item: { label: string; visits: number }) => {
-                          const max = Math.max(...dailyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
+                        {activeDailyVisitors.map((item: { label: string; visits: number }) => {
+                          const max = Math.max(...activeDailyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
                           const height = Math.max(18, (Number(item.visits || 0) / max) * 100);
                           return (
                             <div key={`${item.label}-${item.visits}`} className="flex-1 flex flex-col items-center gap-2">
@@ -907,8 +939,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         <span className="text-[10px] text-zinc-400">Per jam</span>
                       </div>
                       <div className="space-y-2">
-                        {hourlyVisitors.map((item: { label: string; visits: number }) => {
-                          const max = Math.max(...hourlyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
+                        {activeHourlyVisitors.map((item: { label: string; visits: number }) => {
+                          const max = Math.max(...activeHourlyVisitors.map((entry: { label: string; visits: number }) => Number(entry.visits || 0)), 1);
                           const width = Math.max(10, (Number(item.visits || 0) / max) * 100);
                           return (
                             <div key={`${item.label}-${item.visits}`} className="grid grid-cols-[52px_1fr_36px] items-center gap-2 text-[10px] text-zinc-300">
