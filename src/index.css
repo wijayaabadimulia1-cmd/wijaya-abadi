@@ -90,14 +90,14 @@
 }
 
 .website-template-honda-wijaya.site-mode-dark {
-  --site-bg: #17191d;
-  --site-panel: #22252a;
-  --site-card: #2b2f36;
+  --site-bg: #25282d;
+  --site-panel: #34383f;
+  --site-card: #3d424a;
   --site-text: #ffffff;
-  --site-muted: #d1d5db;
+  --site-muted: #e0e3e8;
   --site-accent: #ff3548;
   --site-accent-soft: rgba(255, 53, 72, 0.18);
-  --site-border: rgba(255, 255, 255, 0.12);
+  --site-border: #59616b;
 }
 
 .website-shell.website-template-honda-wijaya,
