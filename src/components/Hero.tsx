@@ -28,7 +28,11 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   }, [imageSignature]);
 
   useEffect(() => {
-    if (heroImages.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (
+      heroImages.length < 2
+      || window.matchMedia('(max-width: 1023px)').matches
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) return;
     const timer = window.setInterval(() => {
       setActiveSlide((current) => (current + 1) % heroImages.length);
     }, animationSpeed * 1000);

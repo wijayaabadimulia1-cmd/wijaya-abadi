@@ -86,14 +86,22 @@ function escapeHtmlAttribute(value: string) {
 }
 
 function renderSeoMetadata(html: string, settings: any = {}) {
-  const title = String(settings.seoTitle || 'Kredit Motor Honda | Simulasi Kredit & Harga Motor Honda').trim();
+  const title = String(settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
   const description = String(settings.seoDescription || 'Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.').trim();
   const keywords = String(settings.seoKeywords || 'kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda').trim();
   const canonical = String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
   const robots = String(settings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
+  const firstHeroImage = Array.isArray(settings.heroImages) ? settings.heroImages[0] : settings.heroImage;
+  const heroFileName = typeof firstHeroImage === 'string' && firstHeroImage.startsWith('/uploads/')
+    ? path.basename(firstHeroImage)
+    : '';
+  const heroPreload = heroFileName && fs.existsSync(path.join(UPLOADS_DIR, heroFileName))
+    ? `<link rel="preload" as="image" href="/uploads/${escape(heroFileName)}" fetchpriority="high" />`
+    : '';
 
   return html
+    .replace(/<\/head>/i, `${heroPreload}</head>`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
