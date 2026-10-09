@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, ShieldCheck, Wrench, Clock, CheckCircle2, ChevronLeft, ChevronRight, MessageSquare, Calculator } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Wrench, Clock, CheckCircle2, ChevronLeft, ChevronRight, MessageSquare, Calculator, Tag } from 'lucide-react';
 import { MAX_HERO_IMAGES } from '../constants';
 import { DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED, normalizeCatalogAnimationSpeed } from '../catalogAnimation';
@@ -56,7 +56,8 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
         '--hero-highlight-color': settings.customization?.heroTitleHighlightColor || settings.customization?.accentColor || '#f97316',
         '--hero-badge-font-size': `${settings.customization?.heroBadgeFontSize || 12}px`,
         '--hero-title-font-size': `${settings.customization?.heroTitleFontSize || 58}px`,
-        '--hero-highlight-font-size': `${settings.customization?.heroHighlightFontSize || 58}px`,
+        '--hero-highlight-font-size': `${settings.customization?.heroHighlightFontSize ?? 42}px`,
+        '--hero-headline-gap': `${settings.customization?.heroHeadlineGap ?? 4}px`,
         '--hero-subtitle-font-size': `${settings.customization?.heroSubtitleFontSize || 18}px`,
         '--hero-caption-font-size': `${settings.customization?.heroCaptionFontSize || 12}px`,
       } as React.CSSProperties}
@@ -74,7 +75,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
           {/* Left Column: Headlines & Call-to-actions */}
           <div className="lg:col-span-7 text-center lg:text-left space-y-6">
             {/* Dealer Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-red-500/30 text-xs font-semibold text-zinc-300 shadow-inner">
+            <div className="hero-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-red-500/30 text-xs font-semibold text-zinc-300 shadow-inner">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span className="w-2 h-2 rounded-full bg-red-500 -ml-3" />
               <span className="hero-editable-text hero-badge-text">{settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
@@ -125,7 +126,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             </div>
 
             {/* Trust Badges Bar */}
-            <div className="pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
+            <div className="pt-6 border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <ShieldCheck className="w-5 h-5" />
@@ -146,13 +147,23 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 col-span-2 sm:col-span-1">
+              <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-white text-xs font-bold">Kredit Instan</p>
-                  <p className="text-zinc-400 text-[11px]">Approval 1 Hari</p>
+                  <p className="text-white text-xs font-bold">Simulasi Kredit</p>
+                  <p className="text-zinc-400 text-[11px]">Pilih DP dan tenor</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+                  <Tag className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-white text-xs font-bold">Harga & Promo</p>
+                  <p className="text-zinc-400 text-[11px]">Konfirmasi program berlaku</p>
                 </div>
               </div>
             </div>

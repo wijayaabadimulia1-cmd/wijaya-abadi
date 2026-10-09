@@ -29,9 +29,13 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   const customization = settings.customization || {};
   const basePalette: ThemeColorPalette = {
     primaryColor: customization.primaryColor || '#dc2626',
+    secondaryColor: customization.secondaryColor || '#38bdf8',
     accentColor: customization.accentColor || '#f97316',
     backgroundColor: customization.backgroundColor || '#000000',
     panelColor: customization.panelColor || '#111827',
+    cardColor: customization.cardColor || '#1d2a3d',
+    elevatedColor: customization.elevatedColor || '#24354b',
+    borderColor: customization.borderColor || '#334155',
     textColor: customization.textColor || '#f4f4f5',
     mutedColor: customization.mutedColor || '#a1a1aa',
     font: customization.font || 'jakarta',
@@ -44,9 +48,13 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   };
   const themeColorFields: Array<{ key: Exclude<keyof ThemeColorPalette, 'font'>; label: string; fallback: string }> = [
     { key: 'primaryColor', label: 'Warna utama', fallback: '#dc2626' },
+    { key: 'secondaryColor', label: 'Warna sekunder', fallback: '#38bdf8' },
     { key: 'accentColor', label: 'Warna aksen', fallback: '#f97316' },
     { key: 'backgroundColor', label: 'Warna latar', fallback: '#000000' },
     { key: 'panelColor', label: 'Warna panel', fallback: '#111827' },
+    { key: 'cardColor', label: 'Warna kartu', fallback: '#1d2a3d' },
+    { key: 'elevatedColor', label: 'Warna surface tinggi', fallback: '#24354b' },
+    { key: 'borderColor', label: 'Warna border', fallback: '#334155' },
     { key: 'textColor', label: 'Warna teks', fallback: '#f4f4f5' },
     { key: 'mutedColor', label: 'Warna teks sekunder', fallback: '#a1a1aa' },
     { key: 'heroTextColor', label: 'Warna teks hero', fallback: '#f4f4f5' },
@@ -55,7 +63,9 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   const heroTextSizeFields = [
     { key: 'heroBadgeFontSize', label: 'Ukuran label kecil', min: 10, max: 24, fallback: 12 },
     { key: 'heroTitleFontSize', label: 'Ukuran judul utama', min: 28, max: 76, fallback: 58 },
-    { key: 'heroHighlightFontSize', label: 'Ukuran sorotan judul', min: 28, max: 76, fallback: 58 },
+    { key: 'heroHighlightFontSize', label: 'Ukuran sorotan judul', min: 24, max: 58, fallback: 42 },
+    { key: 'heroHeadlineGap', label: 'Jarak antarbaris headline', min: 0, max: 32, fallback: 4 },
+    { key: 'heroHeadlineGap', label: 'Jarak antarbaris headline', min: 0, max: 32, fallback: 4 },
     { key: 'heroSubtitleFontSize', label: 'Ukuran deskripsi', min: 12, max: 30, fallback: 18 },
     { key: 'heroCaptionFontSize', label: 'Ukuran caption foto', min: 10, max: 24, fallback: 12 },
   ] as const;

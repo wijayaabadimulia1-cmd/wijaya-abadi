@@ -69,7 +69,7 @@ export interface ManifestoItem {
   created_at?: string;
 }
 
-export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban';
+export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban' | 'mulia-cerah';
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
 export type ThemeMode = 'light' | 'dark';
@@ -79,9 +79,13 @@ export type { CatalogAnimation } from './catalogAnimation';
 
 export interface ThemeColorPalette {
   primaryColor?: string;
+  secondaryColor?: string;
   accentColor?: string;
   backgroundColor?: string;
   panelColor?: string;
+  cardColor?: string;
+  elevatedColor?: string;
+  borderColor?: string;
   textColor?: string;
   mutedColor?: string;
   font?: SiteFont;
@@ -91,9 +95,13 @@ export interface ThemeColorPalette {
 
 export interface WebsiteCustomization {
   primaryColor?: string;
+  secondaryColor?: string;
   accentColor?: string;
   backgroundColor?: string;
   panelColor?: string;
+  cardColor?: string;
+  elevatedColor?: string;
+  borderColor?: string;
   textColor?: string;
   mutedColor?: string;
   font?: SiteFont;
@@ -104,12 +112,15 @@ export interface WebsiteCustomization {
   heroBadgeFontSize?: number;
   heroTitleFontSize?: number;
   heroHighlightFontSize?: number;
+  heroHeadlineGap?: number;
   heroSubtitleFontSize?: number;
   heroCaptionFontSize?: number;
   heroTitleHighlightColor?: string;
   heroOverlayColor?: string;
   heroOverlayOpacity?: number;
+  themeBackgroundAnimation?: boolean;
   colorPalettes?: Partial<Record<ThemeMode, ThemeColorPalette>>;
+  templatePaletteBackup?: Partial<Record<ThemeMode, ThemeColorPalette>>;
 }
 
 export interface DealerSettings {

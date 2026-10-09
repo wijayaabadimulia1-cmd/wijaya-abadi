@@ -742,6 +742,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'showroom', label: 'Showroom', accent: 'bg-red-700', description: 'Layout dealer resmi dengan hero, statistik, dan katalog yang jelas.' },
     { value: 'signature', label: 'Signature', accent: 'bg-gradient-to-r from-red-600 to-amber-500', description: 'Branding premium dengan sentuhan eksklusif dan elegan.' },
     { value: 'urban', label: 'Urban', accent: 'bg-gradient-to-r from-slate-700 to-zinc-900', description: 'Modern urban untuk tampilan dealer yang lebih fresh dan stylish.' },
+    { value: 'mulia-cerah', label: 'Mulia Cerah', accent: 'bg-gradient-to-r from-blue-600 to-cyan-400', description: 'Tema otomotif modern dengan palette biru-cyan yang konsisten di mode terang dan gelap.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -806,11 +807,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const handleTemplateChange = async (template: DealerSettings['websiteTemplate']) => {
     if (!settings) return;
 
-    const nextSettings = { ...settings, websiteTemplate: template };
+    const isMuliaCerah = template === 'mulia-cerah';
+    const isLeavingMuliaCerah = settings.websiteTemplate === 'mulia-cerah' && !isMuliaCerah;
+    const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
+    const previousColorPalettes = settings.websiteTemplate === 'mulia-cerah'
+      ? templatePaletteBackup
+      : colorPalettes;
+    const customization = isMuliaCerah
+      ? {
+          ...settings.customization,
+          themeBackgroundAnimation: true,
+          templatePaletteBackup: previousColorPalettes,
+          colorPalettes: {
+            ...colorPalettes,
+            light: {
+              primaryColor: '#1769FF',
+              secondaryColor: '#38BDF8',
+              accentColor: '#06B6D4',
+              backgroundColor: '#F7FAFF',
+              panelColor: '#FFFFFF',
+              cardColor: '#FFFFFF',
+              elevatedColor: '#FFFFFF',
+              borderColor: '#E2EAF5',
+              textColor: '#14213D',
+              mutedColor: '#52627A',
+              heroTextColor: '#14213D',
+              heroTitleHighlightColor: '#1769FF',
+            },
+            dark: {
+              primaryColor: '#3B82F6',
+              secondaryColor: '#38BDF8',
+              accentColor: '#22D3EE',
+              backgroundColor: '#07111F',
+              panelColor: '#0B1729',
+              cardColor: '#101F35',
+              elevatedColor: '#152943',
+              borderColor: '#233750',
+              textColor: '#F1F5F9',
+              mutedColor: '#B8C7DB',
+              heroTextColor: '#F1F5F9',
+              heroTitleHighlightColor: '#38BDF8',
+            },
+          },
+        }
+      : isLeavingMuliaCerah
+          ? {
+              ...baseCustomization,
+              ...(templatePaletteBackup ? { colorPalettes: templatePaletteBackup } : {}),
+            }
+        : settings.customization;
+    const headlineSettings = isMuliaCerah
+      ? {
+          heroMainTitle: 'Satu Klik Dapat',
+          heroTitleHighlight: 'Sepeda Motor Impian',
+          heroSubtitle: 'Melayani pembelian cash dan kredit. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit yang mudah.',
+        }
+      : {};
+    const nextSettings = { ...settings, ...headlineSettings, websiteTemplate: template, customization };
     setSettings(nextSettings);
 
     try {
-      const saved = await api.updateSettings({ websiteTemplate: template });
+      const saved = await api.updateSettings({
+        websiteTemplate: template,
+        ...headlineSettings,
+        ...(isMuliaCerah || isLeavingMuliaCerah ? { customization } : {}),
+      });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);
       onRefreshData();
@@ -2090,6 +2151,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <option value="soft">Soft</option>
                           <option value="round">Rounded</option>
                         </select>
+                      </label>
+                    </div>
+
+                    {settings.websiteTemplate === 'mulia-cerah' && (
+                      <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-zinc-200">
+                        <input
+                          type="checkbox"
+                          checked={settings.customization?.themeBackgroundAnimation !== false}
+                          onChange={(event) => setSettings({
+                            ...settings,
+                            customization: { ...settings.customization, themeBackgroundAnimation: event.target.checked },
+                          })}
+                          className="h-4 w-4 accent-blue-500"
+                        />
+                        <span>Animasi gradien latar</span>
+                        <span className="ml-auto text-[11px] text-zinc-400">
+                          {settings.customization?.themeBackgroundAnimation === false ? 'Off' : 'On'}
+                        </span>
+                      </label>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="text-[11px] text-zinc-400">
+                        <span className="mb-1 flex items-center justify-between">
+                          <span>Ukuran teks aksen hero</span>
+                          <span>{settings.customization?.heroHighlightFontSize ?? 42}px</span>
+                        </span>
+                        <input
+                          type="range"
+                          min="24"
+                          max="58"
+                          step="1"
+                          value={settings.customization?.heroHighlightFontSize ?? 42}
+                          onChange={(event) => setSettings({
+                            ...settings,
+                            customization: { ...settings.customization, heroHighlightFontSize: Number(event.target.value) },
+                          })}
+                          className="w-full accent-blue-500"
+                        />
+                      </label>
+                      <label className="text-[11px] text-zinc-400">
+                        <span className="mb-1 flex items-center justify-between">
+                          <span>Jarak antarbaris headline</span>
+                          <span>{settings.customization?.heroHeadlineGap ?? 4}px</span>
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="32"
+                          step="1"
+                          value={settings.customization?.heroHeadlineGap ?? 4}
+                          onChange={(event) => setSettings({
+                            ...settings,
+                            customization: { ...settings.customization, heroHeadlineGap: Number(event.target.value) },
+                          })}
+                          className="w-full accent-blue-500"
+                        />
                       </label>
                     </div>
                   </div>

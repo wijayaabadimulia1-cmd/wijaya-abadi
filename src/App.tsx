@@ -82,7 +82,9 @@ export default function App() {
   // Admin CMS toggle state
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(isAdminRoute);
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => {
-    return localStorage.getItem('hwa-color-mode') === 'light' ? 'light' : 'dark';
+    const savedMode = localStorage.getItem('hwa-color-mode');
+    if (savedMode === 'light' || savedMode === 'dark') return savedMode;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
 
   // Fetch initial data from dynamic database
@@ -146,6 +148,10 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('hwa-color-mode', colorMode);
+    document.documentElement.dataset.colorMode = colorMode;
+    document.documentElement.style.colorScheme = colorMode;
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = colorMode === 'light' ? '#F7FAFF' : '#07111F';
   }, [colorMode]);
 
   useEffect(() => {
@@ -236,13 +242,20 @@ export default function App() {
   const activePalette = { ...customization, ...customization.colorPalettes?.[colorMode] };
   const customizationStyle = {
     '--custom-primary': activePalette.primaryColor || undefined,
+    '--custom-secondary': activePalette.secondaryColor || undefined,
     '--custom-accent': activePalette.accentColor || undefined,
     '--custom-bg': activePalette.backgroundColor || undefined,
     '--custom-panel': activePalette.panelColor || undefined,
+    '--custom-card': activePalette.cardColor || undefined,
+    '--custom-elevated': activePalette.elevatedColor || undefined,
+    '--custom-border': activePalette.borderColor || undefined,
     '--custom-text': activePalette.textColor || undefined,
     '--custom-muted': activePalette.mutedColor || undefined,
   } as React.CSSProperties;
   const customizationClass = `site-font-${activePalette.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
+  const gradientMotionClass = settings.websiteTemplate === 'mulia-cerah' && customization.themeBackgroundAnimation !== false
+    ? 'mulia-gradient-motion'
+    : '';
   const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
   )}`;
@@ -263,7 +276,7 @@ export default function App() {
   }
 
   return (
-    <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+    <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
       {/* Navbar */}
       <Navbar
         settings={settings}

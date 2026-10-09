@@ -3,6 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        let mode = '';
+        try {
+          mode = localStorage.getItem('hwa-color-mode') || '';
+        } catch {}
+        if (mode !== 'light' && mode !== 'dark') {
+          mode = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.dataset.colorMode = mode;
+        document.documentElement.style.colorScheme = mode;
+      })();
+    </script>
     
     <!-- Primary Meta Tags -->
     <title>Dealer Motor Honda Bandung | Harga & Kredit</title>
@@ -33,7 +46,7 @@
     <meta name="twitter:image" content="https://kreditmotorhonda.tech/uploads/logo.jpeg" />
     
     <!-- Additional SEO Meta Tags -->
-    <meta name="theme-color" content="#dc2626" />
+    <meta name="theme-color" content="#07111f" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
