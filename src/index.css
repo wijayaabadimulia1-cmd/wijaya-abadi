@@ -90,14 +90,25 @@
 }
 
 .website-template-honda-wijaya.site-mode-dark {
-  --site-bg: #080a0d;
-  --site-panel: #111318;
-  --site-card: #171b22;
+  --site-bg: #17191d;
+  --site-panel: #22252a;
+  --site-card: #2b2f36;
   --site-text: #ffffff;
-  --site-muted: #c4c6cd;
-  --site-accent: #ff2638;
-  --site-accent-soft: rgba(255, 38, 56, 0.18);
-  --site-border: rgba(255, 255, 255, 0.08);
+  --site-muted: #d1d5db;
+  --site-accent: #ff3548;
+  --site-accent-soft: rgba(255, 53, 72, 0.18);
+  --site-border: rgba(255, 255, 255, 0.12);
+}
+
+.website-shell.website-template-honda-wijaya,
+.website-shell.website-template-honda-wijaya.site-mode-light,
+.website-shell.website-template-honda-wijaya.site-mode-dark {
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
 }
 
 .website-shell.website-template-honda-wijaya {
@@ -252,6 +263,33 @@
 
 .website-shell.website-template-honda-wijaya.site-mode-dark .site-navbar-light {
   background: rgba(15, 17, 22, 0.88);
+}
+
+.website-shell.website-template-honda-wijaya #katalog .catalog-card {
+  background: var(--site-card-effective);
+  border-color: var(--site-border);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
+}
+
+.website-shell.website-template-honda-wijaya #katalog .catalog-product-title,
+.website-shell.website-template-honda-wijaya #katalog .catalog-price-value {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-honda-wijaya #katalog .catalog-product-description,
+.website-shell.website-template-honda-wijaya #katalog .catalog-compare-button {
+  color: var(--site-muted-effective);
+}
+
+.website-shell.website-template-honda-wijaya #katalog .catalog-spec-tag,
+.website-shell.website-template-honda-wijaya #katalog .catalog-cta-secondary {
+  background: var(--site-panel-effective);
+  border-color: var(--site-border);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-honda-wijaya #katalog .catalog-price-label {
+  color: var(--site-accent-effective);
 }
 
 .website-template-signature {
