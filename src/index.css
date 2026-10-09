@@ -78,6 +78,182 @@
   --site-border: rgba(56, 189, 248, 0.25);
 }
 
+.website-template-honda-wijaya {
+  --site-bg: #f7f7f8;
+  --site-panel: #ffffff;
+  --site-card: #ffffff;
+  --site-text: #171717;
+  --site-muted: #52525b;
+  --site-accent: #e60012;
+  --site-accent-soft: rgba(230, 0, 18, 0.12);
+  --site-border: rgba(23, 23, 23, 0.08);
+}
+
+.website-template-honda-wijaya.site-mode-dark {
+  --site-bg: #080a0d;
+  --site-panel: #111318;
+  --site-card: #171b22;
+  --site-text: #ffffff;
+  --site-muted: #c4c6cd;
+  --site-accent: #ff2638;
+  --site-accent-soft: rgba(255, 38, 56, 0.18);
+  --site-border: rgba(255, 255, 255, 0.08);
+}
+
+.website-shell.website-template-honda-wijaya {
+  background: var(--site-bg);
+  color: var(--site-text);
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar {
+  border-bottom: 1px solid var(--site-border);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar-light {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar-dark {
+  background: rgba(8, 10, 13, 0.86);
+  backdrop-filter: blur(14px);
+}
+
+.website-shell.website-template-honda-wijaya #home {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 247, 248, 1) 100%);
+  overflow: hidden;
+}
+
+.website-shell.website-template-honda-wijaya.site-mode-dark #home {
+  background: linear-gradient(180deg, rgba(8, 10, 13, 1) 0%, rgba(17, 19, 24, 1) 100%);
+}
+
+.website-shell.website-template-honda-wijaya #home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(230, 0, 18, 0.12), transparent 25%),
+    radial-gradient(circle at 90% 8%, rgba(230, 0, 18, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(230, 0, 18, 0.06), transparent 44%, rgba(230, 0, 18, 0.04));
+  pointer-events: none;
+}
+
+.website-shell.website-template-honda-wijaya #home::after {
+  content: "";
+  position: absolute;
+  width: 36%;
+  height: 160%;
+  top: -18%;
+  right: -8%;
+  background: linear-gradient(135deg, rgba(230, 0, 18, 0.18), rgba(230, 0, 18, 0.02));
+  transform: skewX(-18deg);
+  border-radius: 60px;
+  pointer-events: none;
+}
+
+.website-shell.website-template-honda-wijaya #home .hero-badge {
+  background: rgba(230, 0, 18, 0.08);
+  border-color: rgba(230, 0, 18, 0.24);
+  color: var(--site-accent);
+  font-weight: 800;
+}
+
+.website-shell.website-template-honda-wijaya #home .hero-editable-text,
+.website-shell.website-template-honda-wijaya #home .hero-subtitle,
+.website-shell.website-template-honda-wijaya #home .hero-caption-text {
+  color: var(--site-text) !important;
+}
+
+.website-shell.website-template-honda-wijaya #home .hero-main-title {
+  color: var(--site-text) !important;
+  line-height: 0.92;
+}
+
+.website-shell.website-template-honda-wijaya #home .hero-highlight-text {
+  color: var(--site-accent) !important;
+}
+
+.website-shell.website-template-honda-wijaya #home .hero-subtitle {
+  color: var(--site-muted) !important;
+  max-width: 32rem;
+}
+
+.website-shell.website-template-honda-wijaya #home .bg-zinc-900\/90,
+.website-shell.website-template-honda-wijaya #home .bg-zinc-900\/80,
+.website-shell.website-template-honda-wijaya #home .bg-zinc-900 {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(23, 23, 23, 0.08) !important;
+}
+
+.website-shell.website-template-honda-wijaya.site-mode-dark #home .bg-zinc-900\/90,
+.website-shell.website-template-honda-wijaya.site-mode-dark #home .bg-zinc-900\/80,
+.website-shell.website-template-honda-wijaya.site-mode-dark #home .bg-zinc-900 {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.website-shell.website-template-honda-wijaya #home .group > .relative {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(247, 247, 248, 0.96));
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.12);
+}
+
+.website-shell.website-template-honda-wijaya.site-mode-dark #home .group > .relative {
+  background: linear-gradient(135deg, rgba(21, 23, 29, 1), rgba(17, 19, 24, 1));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+}
+
+.website-shell.website-template-honda-wijaya #home .hero-slide-image {
+  filter: drop-shadow(0 24px 26px rgba(30, 41, 59, 0.18));
+}
+
+.website-shell.website-template-honda-wijaya #home .group .absolute.top-4.left-4 {
+  background: linear-gradient(135deg, var(--site-accent), #b8000e);
+  box-shadow: 0 12px 25px rgba(230, 0, 18, 0.2);
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar .text-zinc-900,
+.website-shell.website-template-honda-wijaya .site-navbar .text-zinc-300,
+.website-shell.website-template-honda-wijaya .site-navbar .text-white {
+  transition: color 220ms ease;
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar-light .text-zinc-900,
+.website-shell.website-template-honda-wijaya .site-navbar-light .text-zinc-300 {
+  color: #171717 !important;
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar-dark .text-zinc-300,
+.website-shell.website-template-honda-wijaya .site-navbar-dark .text-white {
+  color: #f8fafc !important;
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar a,
+.website-shell.website-template-honda-wijaya .site-navbar button {
+  border-radius: 0.85rem;
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar .text-red-400,
+.website-shell.website-template-honda-wijaya .site-navbar .text-red-500 {
+  color: var(--site-accent) !important;
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar .bg-red-600 {
+  background: var(--site-accent) !important;
+}
+
+.website-shell.website-template-honda-wijaya .site-navbar .bg-emerald-600 {
+  background: #16a765 !important;
+}
+
+.website-shell.website-template-honda-wijaya.site-mode-dark .site-navbar-light {
+  background: rgba(15, 17, 22, 0.88);
+}
+
 .website-template-signature {
   --site-bg: #120d0d;
   --site-panel: #1d1414;

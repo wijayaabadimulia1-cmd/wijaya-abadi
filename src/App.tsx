@@ -31,11 +31,11 @@ export default function App() {
     workingHours: 'Senin - Sabtu: 08.00 - 17.00 WIB',
     logo: '/uploads/logo.jpeg',
     heroImage: '/uploads/hero.jpeg',
-    heroTitle: 'Dealer resmi Sepeda Motor Honda Bandung',
-    heroMainTitle: 'Satu Klik dapat',
-    heroTitleHighlight: 'sepeda motor impian',
+    heroTitle: 'Dealer Resmi Sepeda Motor Honda Bandung',
+    heroMainTitle: 'Saatnya Punya',
+    heroTitleHighlight: 'Motor Honda Impian Anda',
     heroSubtitle:
-      'Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.',
+      'Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.',
     footerText:
       'Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.',
     seoTitle: DEFAULT_SEO_TITLE,
@@ -43,16 +43,16 @@ export default function App() {
     seoKeywords: DEFAULT_SEO_KEYWORDS,
     seoCanonicalUrl: DEFAULT_SEO_CANONICAL_URL,
     seoRobots: DEFAULT_SEO_ROBOTS,
-    websiteTemplate: 'classic',
+    websiteTemplate: 'honda-wijaya',
     catalogAnimation: DEFAULT_CATALOG_ANIMATION,
     catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
     customization: {
-      primaryColor: '#dc2626',
-      accentColor: '#f97316',
-      backgroundColor: '#000000',
-      panelColor: '#111827',
-      textColor: '#f4f4f5',
-      mutedColor: '#a1a1aa',
+      primaryColor: '#e60012',
+      accentColor: '#ff2638',
+      backgroundColor: '#f7f7f8',
+      panelColor: '#ffffff',
+      textColor: '#171717',
+      mutedColor: '#52525b',
       font: 'jakarta',
       heroAlignment: 'left',
       cardRadius: 'round',
@@ -84,7 +84,7 @@ export default function App() {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => {
     const savedMode = localStorage.getItem('hwa-color-mode');
     if (savedMode === 'light' || savedMode === 'dark') return savedMode;
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return 'light';
   });
 
   // Fetch initial data from dynamic database
@@ -124,6 +124,28 @@ export default function App() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const handleAdminSettingsUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<DealerSettings>).detail;
+      if (!detail) return;
+
+      setSettings((currentSettings) => {
+        const mergedCustomization = detail.customization && currentSettings.customization
+          ? { ...currentSettings.customization, ...detail.customization }
+          : detail.customization || currentSettings.customization;
+
+        return {
+          ...currentSettings,
+          ...detail,
+          customization: mergedCustomization,
+        };
+      });
+    };
+
+    window.addEventListener('hwa-admin-settings-update', handleAdminSettingsUpdate);
+    return () => window.removeEventListener('hwa-admin-settings-update', handleAdminSettingsUpdate);
   }, []);
 
   useEffect(() => {

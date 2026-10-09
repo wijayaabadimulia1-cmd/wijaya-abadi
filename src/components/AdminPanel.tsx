@@ -181,6 +181,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     localStorage.setItem('hwa-admin-theme', adminTheme);
   }, [adminTheme]);
 
+  useEffect(() => {
+    if (!settings) return;
+    window.dispatchEvent(new CustomEvent('hwa-admin-settings-update', { detail: settings }));
+  }, [settings]);
+
   const toggleAdminTheme = () => {
     setAdminTheme((mode) => mode === 'dark' ? 'light' : 'dark');
   };

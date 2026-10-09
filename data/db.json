@@ -9,12 +9,13 @@
     "workingHours": "Senin - Sabtu: 08.00 - 17.00 WIB",
     "logo": "/uploads/logo.jpeg",
     "heroImage": "/uploads/hero.jpeg",
-    "heroTitle": "Dealer resmi Sepeda Motor Honda Bandung",
-    "heroTitleHighlight": "Honda Wijaya Abadi",
-    "heroSubtitle": "Partner Terpercaya Berkendara Anda. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit cepat tanpa ribet.",
+    "heroTitle": "Dealer Resmi Sepeda Motor Honda Bandung",
+    "heroMainTitle": "Saatnya Punya",
+    "heroTitleHighlight": "Motor Honda Impian Anda",
+    "heroSubtitle": "Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.",
     "footerText": "Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.",
     "updated_at": "2026-09-22T04:23:25.075Z",
-    "websiteTemplate": "classic"
+    "websiteTemplate": "honda-wijaya"
   },
   "motors": [
     {
