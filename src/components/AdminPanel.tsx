@@ -35,7 +35,7 @@ import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem,
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, FIF_DP_PERCENTAGES, FIF_TENORS, getFIFPriceListModel, normalizeMotorOtrPrice } from '../services/fifPriceList';
 import { MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from '../constants';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from '../constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
   DEFAULT_CATALOG_ANIMATION,
@@ -814,9 +814,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     if (!settings) return;
 
     const isMuliaCerah = template === 'mulia-cerah';
-    const isLeavingMuliaCerah = settings.websiteTemplate === 'mulia-cerah' && !isMuliaCerah;
+    const isHondaWijaya = template === 'honda-wijaya';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
-    const previousColorPalettes = settings.websiteTemplate === 'mulia-cerah'
+    const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
       : colorPalettes;
     const customization = isMuliaCerah
@@ -825,7 +827,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           themeBackgroundAnimation: true,
           templatePaletteBackup: previousColorPalettes,
           colorPalettes: {
-            ...colorPalettes,
+            ...(previousColorPalettes || {}),
             light: {
               primaryColor: '#1769FF',
               secondaryColor: '#38BDF8',
@@ -856,7 +858,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             },
           },
         }
-      : isLeavingMuliaCerah
+      : isHondaWijaya
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              ...HONDA_WIJAYA_COLOR_PALETTES,
+            },
+          }
+      : isLeavingManagedPalette
           ? {
               ...baseCustomization,
               ...(templatePaletteBackup ? { colorPalettes: templatePaletteBackup } : {}),
@@ -868,6 +879,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           heroTitleHighlight: 'Sepeda Motor Impian',
           heroSubtitle: 'Melayani pembelian cash dan kredit. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit yang mudah.',
         }
+      : isHondaWijaya
+        ? {
+            heroTitle: 'Dealer Resmi Sepeda Motor Honda Bandung',
+            heroMainTitle: 'Saatnya Punya',
+            heroTitleHighlight: 'Motor Honda Impian Anda',
+            heroSubtitle: 'Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.',
+          }
       : {};
     const nextSettings = { ...settings, ...headlineSettings, websiteTemplate: template, customization };
     setSettings(nextSettings);
@@ -876,7 +894,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isLeavingMuliaCerah ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);

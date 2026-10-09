@@ -14,7 +14,7 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE } from './constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from './constants';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel: panel }) => ({ default: panel })));
 
@@ -261,7 +261,10 @@ export default function App() {
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
   const customization = settings.customization || {};
-  const activePalette = { ...customization, ...customization.colorPalettes?.[colorMode] };
+  const templatePalette = settings.websiteTemplate === 'honda-wijaya'
+    ? HONDA_WIJAYA_COLOR_PALETTES[colorMode]
+    : {};
+  const activePalette = { ...customization, ...templatePalette, ...customization.colorPalettes?.[colorMode] };
   const customizationStyle = {
     '--custom-primary': activePalette.primaryColor || undefined,
     '--custom-secondary': activePalette.secondaryColor || undefined,
