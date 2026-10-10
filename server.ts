@@ -747,6 +747,83 @@ async function startServer() {
     res.json(db.motors || []);
   });
 
+  app.post('/api/motors/import-csv', express.raw({ type: ['text/csv', 'application/csv', 'application/octet-stream'], limit: '5mb' }), (req, res) => {
+    try {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'File CSV kosong atau tidak terbaca.' });
+
+      const workbook = XLSX.read(req.body, { type: 'buffer', raw: false });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!worksheet) return res.status(400).json({ error: 'File CSV tidak memiliki data.' });
+
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false, blankrows: false }) as unknown[][];
+      const headers = (rows[0] || []).map((value) => String(value ?? '').replace(/^\uFEFF/, '').trim().toLocaleLowerCase('id-ID'));
+      const requiredHeaders = ['id', 'nama motor', 'kategori', 'harga otr', 'spesifikasi', 'bestseller', 'deskripsi'];
+      const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
+      if (missingHeaders.length > 0) return res.status(400).json({ error: `Kolom CSV tidak lengkap: ${missingHeaders.join(', ')}.` });
+      if (rows.length > 501) return res.status(400).json({ error: 'Maksimal 500 motor per file CSV.' });
+
+      const columnIndex = Object.fromEntries(requiredHeaders.map((header) => [header, headers.indexOf(header)]));
+      const stagedMotors: Array<{ id: string; name: string; category: string; price: string; numericPrice: number; specs: string[]; is_bestseller: boolean; description: string }> = [];
+      const seenIds = new Set<string>();
+      const rowErrors: string[] = [];
+
+      for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+        const row = rows[rowIndex];
+        if (!row.some((value) => String(value ?? '').trim())) continue;
+        const cell = (header: string) => String(row[columnIndex[header]] ?? '').trim();
+        const id = cell('id');
+        const name = cell('nama motor');
+        const category = cell('kategori') || 'Matic';
+        const numericPrice = Number(cell('harga otr').replace(/[^0-9]/g, ''));
+        const rowNumber = rowIndex + 1;
+
+        if (!name) rowErrors.push(`Baris ${rowNumber}: nama motor wajib diisi.`);
+        if (!Number.isSafeInteger(numericPrice) || numericPrice <= 0) rowErrors.push(`Baris ${rowNumber}: harga OTR tidak valid.`);
+        if (id && seenIds.has(id)) rowErrors.push(`Baris ${rowNumber}: ID ${id} muncul lebih dari sekali.`);
+        if (id) seenIds.add(id);
+
+        stagedMotors.push({
+          id: id || `motor-${Date.now()}-${rowIndex}`,
+          name,
+          category,
+          price: numericPrice > 0 ? numericPrice.toLocaleString('id-ID') : '',
+          numericPrice,
+          specs: cell('spesifikasi').split(/[;,]/).map((spec) => spec.trim()).filter(Boolean),
+          is_bestseller: /^(ya|yes|true|1|iya)$/i.test(cell('bestseller')),
+          description: cell('deskripsi'),
+        });
+      }
+
+      if (stagedMotors.length === 0) return res.status(400).json({ error: 'Tidak ada baris motor untuk diimpor.' });
+      if (rowErrors.length > 0) return res.status(400).json({ error: rowErrors.slice(0, 10).join(' ') });
+
+      const db = readDb();
+      const motors = [...(Array.isArray(db.motors) ? db.motors : [])];
+      let created = 0;
+      let updated = 0;
+      const now = new Date().toISOString();
+
+      for (const importedMotor of stagedMotors) {
+        const existingIndex = motors.findIndex((motor: any) => String(motor.id) === importedMotor.id);
+        if (existingIndex >= 0) {
+          const existingMotor = motors[existingIndex];
+          const images = Array.isArray(existingMotor.images) ? existingMotor.images : (existingMotor.image ? [existingMotor.image] : []);
+          motors[existingIndex] = { ...existingMotor, ...importedMotor, images, image: existingMotor.image || images[0] || '', updated_at: now };
+          updated += 1;
+        } else {
+          motors.unshift({ ...importedMotor, image: '', images: [], interest_count: 0, created_at: now, updated_at: now });
+          created += 1;
+        }
+      }
+
+      db.motors = motors;
+      if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan katalog motor.' });
+      return res.json({ created, updated, total: stagedMotors.length });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message || 'File CSV motor tidak valid.' });
+    }
+  });
+
   app.post('/api/motors', (req, res) => {
     const db = readDb();
     const images = normalizeMotorImages(req.body.images, [req.body.image]);

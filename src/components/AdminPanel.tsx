@@ -172,6 +172,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   // Search in motors
   const [motorSearch, setMotorSearch] = useState('');
+  const [isImportingMotors, setIsImportingMotors] = useState(false);
+  const motorCsvInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -620,6 +622,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       alert(error.message || 'Gagal memindahkan gambar eksternal');
     } finally {
       setIsMigratingExternalImages(false);
+    }
+  };
+
+  const handleImportMotorsCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!window.confirm('Motor dengan ID yang sama akan diperbarui, sedangkan ID baru akan ditambahkan. Foto dan paket cicilan yang sudah ada tetap dipertahankan. Lanjutkan?')) {
+      input.value = '';
+      return;
+    }
+
+    setIsImportingMotors(true);
+    try {
+      const result = await api.importMotorsCsv(file);
+      await loadAllData();
+      onRefreshData();
+      showToast(`Impor selesai: ${result.created} motor ditambahkan, ${result.updated} diperbarui`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal mengimpor katalog motor');
+    } finally {
+      setIsImportingMotors(false);
+      input.value = '';
     }
   };
 
@@ -1547,6 +1572,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    <input ref={motorCsvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportMotorsCsv} />
+                    <button
+                      type="button"
+                      onClick={() => void handleAdminExport('motors-csv', () => api.downloadCsv('motors'), 'CSV katalog motor berhasil diunduh')}
+                      disabled={activeExport === 'motors-csv'}
+                      className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:cursor-wait disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shrink-0"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>{activeExport === 'motors-csv' ? 'Menyiapkan...' : 'Unduh Massal'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => motorCsvInputRef.current?.click()}
+                      disabled={isImportingMotors}
+                      className="px-3 py-2.5 bg-blue-700 hover:bg-blue-600 disabled:cursor-wait disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shrink-0"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>{isImportingMotors ? 'Mengimpor...' : 'Upload Massal'}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleMigrateExternalImages}

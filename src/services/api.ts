@@ -394,6 +394,21 @@ export const api = {
     await downloadAdminFile(`/api/export/csv/${type}`, `honda-wijaya-abadi-${type}-${new Date().toISOString().slice(0, 10)}.csv`);
   },
 
+  async importMotorsCsv(file: File): Promise<{ created: number; updated: number; total: number }> {
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    const res = await fetch('/api/motors/import-csv', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        ...(token ? { 'x-admin-token': token } : {}),
+      },
+      body: file,
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengimpor katalog motor');
+    return result;
+  },
+
   async importDatabase(jsonData: any): Promise<any> {
     const res = await fetch('/api/import/all', {
       method: 'POST',
