@@ -11,7 +11,7 @@ export default defineConfig(({ command }) => {
   const isBuild = command === 'build';
 
   return {
-    base: isBuild ? './' : '/',
+    base: '/',
     plugins: [
       react(),
       tailwindcss(),
