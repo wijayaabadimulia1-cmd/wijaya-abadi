@@ -1,6 +1,21 @@
 {
-  "name": "Honda Wijaya Abadi Motor",
-  "description": "Website resmi dealer Honda Wijaya Abadi Mulia Motor Bandung dengan katalog motor responsif, simulasi kredit, komparasi motor, dan CMS terintegrasi database.",
+  "name": "Honda Wijaya Abadi Mulia Motor",
+  "description": "Dealer motor Honda Bandung resmi di Gegerkalong dengan katalog motor, promo Honda Bandung, simulasi kredit, cicilan motor, dan harga OTR terbaru.",
+  "siteUrl": "https://kreditmotorhonda.tech/",
+  "language": "id-ID",
+  "keywords": [
+    "promo honda bandung",
+    "kredit motor honda bandung",
+    "dealer honda bandung",
+    "simulasi kredit honda bandung",
+    "harga motor honda bandung",
+    "Honda Wijaya Abadi Mulia",
+    "Honda Beat Bandung",
+    "Honda Scoopy Bandung",
+    "Honda Vario Bandung",
+    "Honda PCX Bandung",
+    "Honda ADV Bandung"
+  ],
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

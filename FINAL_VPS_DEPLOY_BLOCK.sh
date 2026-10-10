@@ -3,20 +3,24 @@ set -euo pipefail
 
 # ==========================================================
 # FINAL DEPLOY BLOCK FOR UBUNTU 22.04 + NODE + PM2 + NGINX
-# DOMAIN: wijaya.kreditmotorhonda.id
+# DOMAIN: kreditmotorhonda.tech
 # ==========================================================
 
 export DEBIAN_FRONTEND=noninteractive
 APP_DIR="/var/www/wijaya.kreditmotorhonda.id"
 REPO_URL="https://github.com/wijayaabadimulia1-cmd/wijaya-abadi.git"
-DOMAIN="wijaya.kreditmotorhonda.id"
-SITE_URL="https://kreditmotorhonda.tech"
+DOMAIN="kreditmotorhonda.tech"
+SITE_URL="https://${DOMAIN}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@kreditmotorhonda.tech}"
 PORT=3000
 
 echo "==> Updating system"
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl git nginx certbot python3-certbot-nginx ufw
-sudo apt install -y nodejs npm
+if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 22 ]; then
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo apt install -y nodejs
+fi
 sudo npm install -g pm2
 
 echo "==> Preparing app directory"
@@ -26,8 +30,29 @@ sudo chown -R "$USER:$USER" "$APP_DIR"
 if [ ! -d "$APP_DIR/.git" ]; then
   cd "$APP_DIR"
   git clone "$REPO_URL" .
-else
-  cd "$APP_DIR"
+fi
+
+cd "$APP_DIR"
+PERSISTENT_DIR="/var/lib/honda-wijaya-abadi"
+DATA_DIR="$PERSISTENT_DIR/data"
+UPLOADS_DIR="$PERSISTENT_DIR/uploads"
+if [ ! -f "$DATA_DIR/db.json" ] || [ ! -d "$UPLOADS_DIR" ]; then
+  if command -v pm2 >/dev/null 2>&1 && pm2 describe honda-wijaya-abadi >/dev/null 2>&1; then
+    pm2 stop honda-wijaya-abadi
+  fi
+fi
+sudo mkdir -p "$DATA_DIR" "$UPLOADS_DIR"
+sudo chown -R "$USER:$USER" "$PERSISTENT_DIR"
+if [ ! -f "$DATA_DIR/db.json" ] && [ -f "$APP_DIR/data/db.json" ]; then
+  cp "$APP_DIR/data/db.json" "$DATA_DIR/db.json"
+fi
+if [ -d "$APP_DIR/public/uploads" ]; then
+  cp -an "$APP_DIR/public/uploads/." "$UPLOADS_DIR/"
+fi
+if [ -d "$APP_DIR/.git" ]; then
+  if ! git diff --quiet -- data/db.json; then
+    git checkout -- data/db.json
+  fi
   git fetch origin main
   git checkout main
   git pull origin main
@@ -35,14 +60,9 @@ fi
 
 if [ ! -f "$APP_DIR/.env" ]; then
   cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+  echo "Created $APP_DIR/.env from the example. Set production values, then rerun this script." >&2
+  exit 1
 fi
-
-cat > "$APP_DIR/.env" <<EOF
-NODE_ENV=production
-PORT=3000
-APP_URL=https://wijaya.kreditmotorhonda.id
-GEMINI_API_KEY=your_gemini_api_key_here
-EOF
 
 cd "$APP_DIR"
 npm install
@@ -53,14 +73,15 @@ if [ ! -f "$APP_DIR/ecosystem.config.cjs" ]; then
   exit 1
 fi
 
-pm2 reload "$APP_DIR/ecosystem.config.cjs" --update-env || pm2 start "$APP_DIR/ecosystem.config.cjs"
+mkdir -p logs
+pm2 startOrReload "$APP_DIR/ecosystem.config.cjs" --update-env
 pm2 save
 
 sudo tee /etc/nginx/sites-available/$DOMAIN > /dev/null <<EOF
 server {
     listen 80;
     server_name $DOMAIN;
-  client_max_body_size 0;
+    client_max_body_size 100m;
 
     location / {
         proxy_pass http://127.0.0.1:$PORT;
@@ -79,7 +100,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 if [ ! -d /etc/letsencrypt/live/$DOMAIN ]; then
-  sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m admin@wijaya.kreditmotorhonda.id
+  sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$CERTBOT_EMAIL"
 fi
 
 pm2 status

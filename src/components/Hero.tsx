@@ -47,6 +47,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
   const heroFont = settings.customization?.heroTextFont || settings.customization?.font;
   const fontFamily = getHeroFontStack(heroFont);
+  const naturalCoolLeaves = Array.from({ length: 9 }, (_, index) => index);
 
   useEffect(() => {
     loadHeroFont(heroFont);
@@ -55,7 +56,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   return (
     <section
       id="home"
-      className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-black py-16 sm:py-24"
+      className="natural-cool-hero relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-black py-16 sm:py-24"
       style={{
         fontFamily,
         '--hero-text-color': settings.customization?.heroTextColor || '#f4f4f5',
@@ -68,6 +69,24 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
         '--hero-caption-font-size': `${settings.customization?.heroCaptionFontSize || 12}px`,
       } as React.CSSProperties}
     >
+      <div className="natural-cool-scene" aria-hidden="true">
+        <div className="natural-cool-haze natural-cool-haze-left" />
+        <div className="natural-cool-haze natural-cool-haze-right" />
+        <div className="natural-cool-glow" />
+        <div className="natural-cool-mountain natural-cool-mountain-back" />
+        <div className="natural-cool-mountain natural-cool-mountain-front" />
+        <div className="natural-cool-cloud natural-cool-cloud-one" />
+        <div className="natural-cool-cloud natural-cool-cloud-two" />
+        <div className="natural-cool-arc natural-cool-arc-one" />
+        <div className="natural-cool-arc natural-cool-arc-two" />
+        <div className="natural-cool-urban" />
+        <div className="natural-cool-ribbon natural-cool-ribbon-one" />
+        <div className="natural-cool-ribbon natural-cool-ribbon-two" />
+        {naturalCoolLeaves.map((leaf) => (
+          <span key={leaf} className={`natural-cool-leaf leaf-${leaf + 1}`} />
+        ))}
+      </div>
+
       {/* Background radial glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-red-900/10 rounded-full blur-[100px] pointer-events-none" />
@@ -81,7 +100,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
           {/* Left Column: Headlines & Call-to-actions */}
           <div className="lg:col-span-7 text-center lg:text-left space-y-6">
             {/* Dealer Badge */}
-            <div className="hero-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-red-500/30 text-xs font-semibold text-zinc-300 shadow-inner">
+            <div className="hero-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 border border-red-500/25 text-xs font-semibold text-zinc-700 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span className="w-2 h-2 rounded-full bg-red-500 -ml-3" />
               <span className="hero-editable-text hero-badge-text">{contentOverride?.badge || settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
@@ -110,7 +129,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
               <a
                 href="#katalog"
-                className="px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-900/40 hover:shadow-red-600/30 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="hero-cta-primary px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl font-bold text-sm shadow-[0_18px_35px_rgba(220,38,38,0.28)] hover:shadow-[0_18px_35px_rgba(220,38,38,0.38)] flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
               >
                 <span>Lihat Katalog Motor</span>
                 <ArrowRight className="w-4 h-4" />
@@ -118,7 +137,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
               <button
                 onClick={onOpenSimulator}
-                className="px-5 py-3.5 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/15 hover:border-red-500/50 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all"
+                className="hero-cta-secondary px-5 py-3.5 bg-white/10 hover:bg-white/15 text-white border border-white/15 hover:border-red-500/50 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 backdrop-blur-sm"
               >
                 <Calculator className="w-4 h-4 text-red-400" />
                 <span>Simulasi Kredit</span>
@@ -128,7 +147,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-3.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all"
+                className="hero-cta-whatsapp px-5 py-3.5 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/35 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5"
               >
                 <MessageSquare className="w-4 h-4 text-emerald-400" />
                 <span>Chat WhatsApp</span>
@@ -136,8 +155,8 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             </div>
 
             {/* Trust Badges Bar */}
-            <div className="pt-6 border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-              <div className="flex items-center gap-3">
+            <div className="hero-trust-grid pt-6 border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+              <div className="hero-trust-item flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm shadow-[0_12px_24px_rgba(15,23,42,0.06)]">
                 <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
@@ -147,7 +166,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="hero-trust-item flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm shadow-[0_12px_24px_rgba(15,23,42,0.06)]">
                 <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <Wrench className="w-5 h-5" />
                 </div>
@@ -157,7 +176,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="hero-trust-item flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm shadow-[0_12px_24px_rgba(15,23,42,0.06)]">
                 <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
@@ -167,7 +186,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="hero-trust-item flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm shadow-[0_12px_24px_rgba(15,23,42,0.06)]">
                 <div className="w-9 h-9 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
                   <Tag className="w-5 h-5" />
                 </div>
@@ -185,7 +204,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
               {/* Outer Glow */}
               <div className="absolute inset-0 bg-gradient-to-tr from-red-600/30 to-orange-500/10 rounded-3xl blur-2xl group-hover:opacity-100 opacity-70 transition-all duration-700" />
 
-              <div className="relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-3xl p-4 sm:p-6 overflow-hidden shadow-2xl">
+              <div className="relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-[28px] p-4 sm:p-6 overflow-hidden shadow-[0_32px_60px_rgba(15,23,42,0.28)] ring-1 ring-white/5">
                 {/* Image showcase */}
                 <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-zinc-950 flex items-center justify-center border border-white/5">
                   {heroImages.length > 0 ? (

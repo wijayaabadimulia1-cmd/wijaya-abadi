@@ -32,10 +32,10 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
             <span>Penawaran Terbatas</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Promo Spesial Honda Bulan Ini
+            Promo Honda Bandung & Kredit Motor Honda Terbaik
           </h2>
           <p className="text-zinc-400 text-sm sm:text-base">
-            Nikmati kemudahan memiliki sepeda motor Honda dengan berbagai keuntungan eksklusif dari Honda Wijaya Abadi.
+            Nikmati promo Honda Bandung, cicilan motor Honda Bandung, dan simulasi kredit fleksibel dari dealer Honda Bandung resmi di Gegerkalong. Dapatkan harga motor Honda terbaik, DP ringan, serta tenor sesuai kebutuhan keluarga Anda.
           </p>
         </div>
 
@@ -118,6 +118,10 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>{promo.terms || 'Syarat & Ketentuan Berlaku'}</span>
                   </div>
+                </div>
+
+                <div className="mt-4 text-[11px] uppercase tracking-[0.18em] text-red-300/80 font-semibold">
+                  Promo Honda Bandung • Kredit Motor Honda • DP Ringan
                 </div>
 
                 {/* WhatsApp Action */}

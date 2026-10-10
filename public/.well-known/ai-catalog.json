@@ -10,15 +10,18 @@
       "displayName": "Honda Wijaya Abadi Mulia Motor website",
       "type": "text/html",
       "url": "https://kreditmotorhonda.tech/",
-      "description": "Authorized Honda dealer website for browsing motorcycles, checking Bandung OTR prices, estimating credit payments, viewing promotions, and contacting the showroom.",
-      "tags": ["Honda", "motorcycle", "Bandung", "catalog", "credit simulation", "dealer"],
-      "capabilities": ["browse-motorcycle-catalog", "estimate-credit-installments", "view-promotions", "contact-dealer"],
+      "description": "Authorized Honda dealer website for browsing motorcycles, checking Bandung OTR prices, estimating credit payments, comparing Honda models, viewing promotions, and contacting the showroom.",
+      "tags": ["Honda", "motorcycle", "Bandung", "catalog", "credit simulation", "dealer", "promo honda bandung", "kreditmotorhondabandung", "Honda Wijaya Abadi Mulia", "kredit motor Honda", "harga motor Honda", "simulasi kredit", "cicilan motor", "DP motor", "Honda Beat", "Honda Scoopy", "Honda Vario", "Honda PCX", "Honda ADV", "dealer motor Honda", "Gegerkalong", "Wijaya Abadi Mulia", "Honda Bandung", "dealer honda bandung", "dealer resmi honda bandung", "honda beat bandung", "honda scoopy bandung", "honda vario bandung", "honda pcx bandung", "honda adv bandung", "promo motor honda bandung", "simulasi kredit honda bandung", "harga honda bandung"],
+      "capabilities": ["browse-motorcycle-catalog", "estimate-credit-installments", "view-promotions", "compare-models", "contact-dealer"],
       "representativeQueries": [
         "Show Honda motorcycles and their listed prices in Bandung.",
-        "Estimate the down payment and monthly installment for a Honda motorcycle."
+        "Estimate the down payment and monthly installment for a Honda motorcycle.",
+        "Find promo Honda Bandung and dealer Honda Bandung near Gegerkalong.",
+        "Compare Honda Beat, Scoopy, Vario, PCX, and ADV with credit options in Bandung.",
+        "Find dealership for Honda Bandung, kredit motor Honda, and simulasi kredit motor Honda."
       ],
       "version": "1.0.0",
-      "updatedAt": "2026-10-01T00:00:00Z"
+      "updatedAt": "2026-10-10T00:00:00Z"
     }
   ]
 }

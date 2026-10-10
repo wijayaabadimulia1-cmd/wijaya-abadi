@@ -10,17 +10,16 @@ import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './sr
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
-const DB_FILE = path.join(process.cwd(), 'data', 'db.json');
-const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
+const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
+const DB_FILE = path.join(DATA_DIR, 'db.json');
+const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
 const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
 const FIF_TENORS = [11, 17, 23, 29, 35];
 const FIF_DP_PERCENTAGES = [10, 15, 20, 30, 40];
 const sessions = new Map<string, { id: string; username: string; role: string; createdAt: string }>();
 
 // Ensure directories exist
-if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
-  fs.mkdirSync(path.join(process.cwd(), 'data'), { recursive: true });
-}
+fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
@@ -138,7 +137,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
   const title = String(page?.title || settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
   const description = String(page?.description || settings.seoDescription || 'Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.').trim();
-  const keywords = String(page?.keywords || settings.seoKeywords || 'kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda').trim();
+  const keywords = String(page?.keywords || settings.seoKeywords || 'promo honda bandung, kreditmotorhondabandung, Honda Wijaya Abadi Mulia, kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda, Honda Bandung, Gegerkalong, Wijaya Abadi Mulia, Honda Wijaya Abadi, promo motor honda bandung, cicilan honda bandung, kredit motor bandung, dealer motor Honda Bandung, kredit motor Honda Bandung, harga motor Honda Bandung, simulasi cicilan Honda, pembiayaan motor Honda Bandung, promo motor Honda Bandung, harga Honda Bandung, kredit Honda Bandung, motor honda bandung, harga OTR Honda Bandung, cicilan Honda Bandung, DP Honda Bandung, sales Honda Bandung, showroom Honda Bandung, dealer Honda Gegerkalong, dealer Honda Bandung resmi, dealer motor Bandung, honda wijaya abadi mulia motor, kredit motor honda bandung, honda bandung promo, bandung motor honda, honda gegerkalong, Honda Wijaya Abadi Mulia Motor, dealer honda bandung, dealer resmi honda bandung, honda bandung resmi, promo motor honda, harga honda beat bandung, honda beat bandung, harga honda scoopy bandung, honda scoopy bandung, harga honda vario bandung, honda vario bandung, harga honda pcx bandung, honda pcx bandung, harga honda adv bandung, honda adv bandung, kredit honda bandung, cicilan honda bandung, simulasi kredit honda bandung, harga sepeda motor honda bandung, dealer sepeda motor honda bandung, showroom honda bandung, agen motor honda bandung, promo cicilan motor honda bandung').trim();
   const canonical = page
     ? `https://kreditmotorhonda.tech${pathname.replace(/\/+$/, '') || '/'}`
     : String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();

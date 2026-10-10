@@ -8,6 +8,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
+        DATA_DIR: '/var/lib/honda-wijaya-abadi/data',
+        UPLOADS_DIR: '/var/lib/honda-wijaya-abadi/uploads',
       },
       instances: 1,
       autorestart: true,
