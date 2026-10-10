@@ -672,6 +672,34 @@ html[data-color-mode="dark"] body {
   background: #f4f4f5 !important;
 }
 
+.website-shell.site-mode-light #simulasi .text-center h2 {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light #simulasi .text-center > div {
+  color: #991b1b !important;
+  background-color: rgba(185, 28, 28, 0.08) !important;
+  border-color: rgba(185, 28, 28, 0.28) !important;
+}
+
+.website-shell.site-mode-light #simulasi .text-center > p {
+  color: #3f3f46 !important;
+}
+
+.website-shell.site-mode-dark #simulasi .text-center h2 {
+  color: #f8fafc !important;
+}
+
+.website-shell.site-mode-dark #simulasi .text-center > div {
+  color: #fca5a5 !important;
+  background-color: rgba(220, 38, 38, 0.14) !important;
+  border-color: rgba(248, 113, 113, 0.4) !important;
+}
+
+.website-shell.site-mode-dark #simulasi .text-center > p {
+  color: #cbd5e1 !important;
+}
+
 .website-shell.site-mode-light .simulator-container {
   background: #ffffff !important;
   border-color: #d4d4d8 !important;
@@ -2180,6 +2208,15 @@ html[data-color-mode="dark"] body {
   color: #35443d !important;
   font-size: 12px;
   font-weight: 500;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #simulasi .text-center h2 {
+  color: #20312b !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #simulasi .text-center > p {
+  color: #53675f !important;
 }
 
 .website-shell.website-template-wijaya-cool #home .hero-caption-text,
