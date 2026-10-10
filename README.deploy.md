@@ -34,7 +34,6 @@ cp .env.example .env
 Edit file `.env`:
 
 ```env
-NODE_ENV=production
 PORT=3000
 APP_URL=https://kreditmotorhonda.tech
 GEMINI_API_KEY=your_gemini_api_key_here

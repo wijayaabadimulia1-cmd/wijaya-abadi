@@ -47,7 +47,9 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
 
   const heroFont = settings.customization?.heroTextFont || settings.customization?.font;
   const fontFamily = getHeroFontStack(heroFont);
+  const isWijayaCool = settings.websiteTemplate === 'wijaya-cool';
   const naturalCoolLeaves = Array.from({ length: 9 }, (_, index) => index);
+  const naturalCoolParticles = Array.from({ length: 12 }, (_, index) => index);
 
   useEffect(() => {
     loadHeroFont(heroFont);
@@ -70,21 +72,24 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
       } as React.CSSProperties}
     >
       <div className="natural-cool-scene" aria-hidden="true">
-        <div className="natural-cool-haze natural-cool-haze-left" />
-        <div className="natural-cool-haze natural-cool-haze-right" />
-        <div className="natural-cool-glow" />
-        <div className="natural-cool-mountain natural-cool-mountain-back" />
-        <div className="natural-cool-mountain natural-cool-mountain-front" />
-        <div className="natural-cool-cloud natural-cool-cloud-one" />
-        <div className="natural-cool-cloud natural-cool-cloud-two" />
-        <div className="natural-cool-arc natural-cool-arc-one" />
-        <div className="natural-cool-arc natural-cool-arc-two" />
-        <div className="natural-cool-urban" />
-        <div className="natural-cool-ribbon natural-cool-ribbon-one" />
-        <div className="natural-cool-ribbon natural-cool-ribbon-two" />
-        {naturalCoolLeaves.map((leaf) => (
-          <span key={leaf} className={`natural-cool-leaf leaf-${leaf + 1}`} />
-        ))}
+          <div className="natural-cool-haze natural-cool-haze-left" />
+          <div className="natural-cool-haze natural-cool-haze-right" />
+          <div className="natural-cool-glow" />
+          <div className="natural-cool-mountain natural-cool-mountain-back" />
+          <div className="natural-cool-mountain natural-cool-mountain-front" />
+          <div className="natural-cool-cloud natural-cool-cloud-one" />
+          <div className="natural-cool-cloud natural-cool-cloud-two" />
+          <div className="natural-cool-arc natural-cool-arc-one" />
+          <div className="natural-cool-arc natural-cool-arc-two" />
+          <div className="natural-cool-urban" />
+          <div className="natural-cool-ribbon natural-cool-ribbon-one" />
+          <div className="natural-cool-ribbon natural-cool-ribbon-two" />
+          {naturalCoolLeaves.map((leaf) => (
+            <span key={`leaf-${leaf}`} className={`natural-cool-leaf leaf-${leaf + 1}`} />
+          ))}
+          {isWijayaCool && naturalCoolParticles.map((particle) => (
+            <span key={`particle-${particle}`} className={`natural-cool-particle particle-${particle + 1}`} />
+          ))}
       </div>
 
       {/* Background radial glow */}
