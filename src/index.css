@@ -2073,24 +2073,166 @@ html[data-color-mode="dark"] body {
   border-color: color-mix(in srgb, var(--site-text-effective) 14%, transparent) !important;
 }
 
-.website-shell.website-template-wijaya-cool #home .hero-editable-text,
-.website-shell.website-template-wijaya-cool #home .hero-subtitle,
-.website-shell.website-template-wijaya-cool #home .hero-caption-text {
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-editable-text,
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-subtitle,
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-caption-text {
   color: #20312b !important;
 }
 
-.website-shell.website-template-wijaya-cool #home .hero-highlight-text {
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-badge {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(200, 16, 46, 0.2);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-highlight-text {
   color: #c8102e !important;
 }
 
-.website-shell.website-template-wijaya-cool #home .bg-zinc-900\/60 {
+.website-shell.website-template-wijaya-cool.site-mode-light #home .bg-zinc-900\/60 {
   background: rgba(255, 255, 255, 0.58) !important;
   border-color: rgba(255, 255, 255, 0.74) !important;
   box-shadow: 0 28px 70px rgba(31, 62, 49, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
 }
 
-.website-shell.website-template-wijaya-cool #home .bg-zinc-900\/60 :is(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400) {
+.website-shell.website-template-wijaya-cool.site-mode-light #home .bg-zinc-900\/60 :is(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400) {
   color: #20312b !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home.natural-cool-hero {
+  background:
+    radial-gradient(circle at 74% 18%, rgba(123, 183, 176, 0.2), transparent 30%),
+    linear-gradient(118deg, #151c1a 0%, #1b2925 48%, #1b3037 100%);
+  box-shadow: inset 0 0 0 1px rgba(210, 234, 222, 0.08);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home.natural-cool-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(13, 19, 17, 0.42), rgba(13, 19, 17, 0.08) 52%, rgba(12, 27, 29, 0.08));
+  pointer-events: none;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .natural-cool-mountain-back {
+  background: linear-gradient(180deg, rgba(76, 112, 98, 0.3), rgba(39, 69, 61, 0.75));
+  opacity: 0.82;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .natural-cool-mountain-front {
+  background: linear-gradient(180deg, rgba(54, 91, 73, 0.38), rgba(21, 48, 39, 0.92));
+}
+
+.natural-cool-landscape {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 1;
+  width: 70%;
+  background-image:
+    linear-gradient(90deg, rgba(241, 246, 243, 0.96) 0%, rgba(241, 246, 243, 0.5) 23%, rgba(241, 246, 243, 0) 55%),
+    linear-gradient(0deg, rgba(18, 40, 31, 0.1), transparent 54%),
+    url('/images/wijaya-cool-bandung-landscape.jpg');
+  background-position: center, center, 52% 48%;
+  background-size: cover;
+  opacity: 0.9;
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.34) 12%, #000 34%);
+}
+
+.website-shell:not(.website-template-wijaya-cool) #home .natural-cool-landscape {
+  display: none;
+}
+
+.website-shell.website-template-wijaya-cool #home .natural-cool-mountain,
+.website-shell.website-template-wijaya-cool #home .natural-cool-urban {
+  display: none;
+}
+
+.website-shell.website-template-wijaya-cool #home .natural-cool-cloud,
+.website-shell.website-template-wijaya-cool #home .natural-cool-arc,
+.website-shell.website-template-wijaya-cool #home .natural-cool-ribbon {
+  z-index: 2;
+}
+
+.website-shell.website-template-wijaya-cool #home .natural-cool-leaf,
+.website-shell.website-template-wijaya-cool #home .natural-cool-particle {
+  z-index: 3;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .natural-cool-landscape {
+  filter: brightness(0.58) saturate(0.82) contrast(1.04);
+}
+
+.natural-cool-photo-credit {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.75rem;
+  z-index: 20;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 4px;
+  background: rgba(18, 32, 27, 0.54);
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1.4;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.natural-cool-photo-credit:hover {
+  background: rgba(18, 32, 27, 0.78);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-editable-text,
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-subtitle,
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-caption-text {
+  color: #f1f5f2 !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-highlight-text {
+  color: #ff6878 !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-badge {
+  background: rgba(23, 37, 32, 0.82);
+  border-color: rgba(199, 224, 209, 0.24);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .bg-zinc-900\/60 {
+  background: rgba(22, 34, 30, 0.62) !important;
+  border-color: rgba(224, 240, 230, 0.22) !important;
+  box-shadow: 0 30px 75px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .bg-zinc-900\/60 :is(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400) {
+  color: #f1f5f2 !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-trust-item {
+  background: rgba(21, 32, 28, 0.62);
+  border-color: rgba(225, 239, 229, 0.18);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-trust-item p {
+  color: #eef4ef !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-trust-item p:last-child {
+  color: #bfcec5 !important;
+}
+
+@media (max-width: 640px) {
+  .natural-cool-landscape {
+    width: 100%;
+    opacity: 0.42;
+    background-position: center, center, 56% center;
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.55) 20%, #000 48%);
+  }
+
+  .natural-cool-photo-credit {
+    right: 0.75rem;
+    bottom: 0.5rem;
+    font-size: 8px;
+  }
 }
 
 .website-shell.website-template-wijaya-cool #home .natural-cool-haze-left {

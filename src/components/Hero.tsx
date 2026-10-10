@@ -72,6 +72,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
       } as React.CSSProperties}
     >
       <div className="natural-cool-scene" aria-hidden="true">
+        <div className="natural-cool-landscape" />
           <div className="natural-cool-haze natural-cool-haze-left" />
           <div className="natural-cool-haze natural-cool-haze-right" />
           <div className="natural-cool-glow" />
@@ -91,6 +92,17 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             <span key={`particle-${particle}`} className={`natural-cool-particle particle-${particle + 1}`} />
           ))}
       </div>
+
+        {isWijayaCool && (
+          <a
+            className="natural-cool-photo-credit"
+            href="https://commons.wikimedia.org/wiki/File:Burangrang_Tangkuban_Parahu_Pacet_2022.jpg"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Foto: Afrogindahood / Wikimedia Commons
+          </a>
+        )}
 
       {/* Background radial glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/15 rounded-full blur-[140px] pointer-events-none" />
