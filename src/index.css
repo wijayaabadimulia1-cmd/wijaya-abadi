@@ -2189,7 +2189,7 @@ html[data-color-mode="dark"] body {
   background-image:
     linear-gradient(90deg, rgba(241, 246, 243, 0.96) 0%, rgba(241, 246, 243, 0.5) 23%, rgba(241, 246, 243, 0) 55%),
     linear-gradient(0deg, rgba(18, 40, 31, 0.1), transparent 54%),
-    url('/images/wijaya-cool-bandung-landscape.jpg');
+    var(--natural-cool-landscape-image, url('/images/wijaya-cool-bandung-landscape.webp'));
   background-position: center, center, 52% 48%;
   background-size: cover;
   opacity: 0.9;
@@ -2260,6 +2260,7 @@ html[data-color-mode="dark"] body {
 
 @media (max-width: 640px) {
   .natural-cool-landscape {
+    --natural-cool-landscape-image: url('/images/wijaya-cool-bandung-landscape-mobile.webp');
     width: 100%;
     opacity: 0.42;
     background-position: center, center, 56% center;

@@ -143,8 +143,12 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
     : String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
   const robots = String(settings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
+  const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
+    ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
+    : '';
 
   return html
+    .replace(/<\/head>/i, `${heroImagePreload}</head>`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
