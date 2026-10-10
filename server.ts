@@ -863,7 +863,7 @@ async function startServer() {
           motors[existingIndex] = { ...existingMotor, ...importedMotor, images, image: existingMotor.image || images[0] || '', updated_at: now };
           updated += 1;
         } else {
-          motors.unshift({ ...importedMotor, image: '', images: [], interest_count: 0, created_at: now, updated_at: now });
+          motors.push({ ...importedMotor, image: '', images: [], interest_count: 0, created_at: now, updated_at: now });
           created += 1;
         }
       }
