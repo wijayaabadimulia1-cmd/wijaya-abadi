@@ -154,6 +154,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const backupInputRef = useRef<HTMLInputElement>(null);
   const [fifPriceList, setFifPriceList] = useState<FIFPriceList>(DEFAULT_FIF_PRICE_LIST);
   const [isImportingFifPriceList, setIsImportingFifPriceList] = useState(false);
+  const [isMigratingExternalImages, setIsMigratingExternalImages] = useState(false);
   const fifPriceListInputRef = useRef<HTMLInputElement>(null);
 
   // Modals for CRUD
@@ -601,6 +602,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       alert('Gagal upload gambar: ' + err.message);
     } finally {
       input.value = '';
+    }
+  };
+
+  const handleMigrateExternalImages = async () => {
+    setIsMigratingExternalImages(true);
+    try {
+      const result = await api.migrateExternalImages();
+      await loadAllData();
+      onRefreshData();
+      const remaining = result.unsupportedCount + result.failedCount;
+      const message = result.updatedReferences
+        ? `${result.updatedReferences} gambar dipindahkan ke penyimpanan server.`
+        : 'Tidak ada gambar eksternal yang dapat dipindahkan.';
+      showToast(remaining ? `${message} ${remaining} gambar perlu diunggah manual.` : message);
+    } catch (error: any) {
+      alert(error.message || 'Gagal memindahkan gambar eksternal');
+    } finally {
+      setIsMigratingExternalImages(false);
     }
   };
 
@@ -1527,13 +1546,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     />
                   </div>
 
-                  <button
-                    onClick={handleOpenAddMotor}
-                    className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Tambah Motor Baru</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleMigrateExternalImages}
+                      disabled={isMigratingExternalImages}
+                      className="px-3 py-2.5 bg-emerald-700 hover:bg-emerald-600 disabled:cursor-wait disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shrink-0"
+                    >
+                      <HardDrive className="w-4 h-4" />
+                      <span>{isMigratingExternalImages ? 'Menyimpan gambar...' : 'Simpan gambar eksternal ke server'}</span>
+                    </button>
+                    <button
+                      onClick={handleOpenAddMotor}
+                      className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Tambah Motor Baru</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-zinc-900/50 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
@@ -2839,9 +2869,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">
-                  Gambar Motor (maksimal {MAX_MOTOR_IMAGES} foto, URL atau Upload File)
+                  Gambar Motor (maksimal {MAX_MOTOR_IMAGES} foto)
                 </label>
-                <p className="mb-2 text-[11px] text-zinc-500">Foto pertama menjadi cover kartu katalog. Foto kosong tidak ditampilkan di website.</p>
+                <p className="mb-2 text-[11px] text-zinc-400">Unggah foto agar tersimpan di server dealer. Foto pertama menjadi cover katalog.</p>
                 <p className="mb-2 text-[10px] text-zinc-500">5 slot foto terlihat sekaligus; scroll untuk mengisi hingga {MAX_MOTOR_IMAGES} foto.</p>
                 <div className="max-h-[220px] space-y-2 overflow-y-auto overscroll-contain pr-1">
                   {Array.from({ length: MAX_MOTOR_IMAGES }, (_, imageIndex) => {
@@ -2850,17 +2880,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     return (
                       <div key={imageIndex} className="flex items-center gap-2">
                         <span className="w-5 text-[10px] font-bold text-zinc-500">{imageIndex + 1}</span>
-                        <input
-                          type="text"
-                          value={imageValue}
-                          onChange={(e) => {
-                            const nextImages = [...(editingMotor.images || Array(MAX_MOTOR_IMAGES).fill(''))];
-                            nextImages[imageIndex] = e.target.value;
-                            setEditingMotor({ ...editingMotor, image: nextImages[0] || '', images: nextImages });
-                          }}
-                          placeholder="https://... atau /uploads/..."
-                          className="min-w-0 flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500 focus:outline-none"
-                        />
+                        <div className="min-w-0 flex-1">
+                          {imageValue ? (
+                            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-2 py-1.5">
+                              <img src={imageValue} alt={`Foto ${editingMotor.name || 'motor'} ${imageIndex + 1}`} className="h-9 w-12 shrink-0 rounded object-cover" />
+                              <span className="min-w-0 flex-1 truncate text-[10px] text-zinc-300">
+                                {imageValue.startsWith('/uploads/') ? 'Tersimpan di server' : 'Gambar eksternal, pindahkan ke server'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextImages = [...(editingMotor.images || Array(MAX_MOTOR_IMAGES).fill(''))];
+                                  nextImages[imageIndex] = '';
+                                  setEditingMotor({ ...editingMotor, image: nextImages[0] || '', images: nextImages });
+                                }}
+                                className="rounded p-1 text-zinc-400 hover:bg-red-950/50 hover:text-red-300"
+                                title={`Hapus foto ${imageIndex + 1}`}
+                                aria-label={`Hapus foto ${imageIndex + 1}`}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-500">Belum ada gambar</span>
+                          )}
+                        </div>
                         <label className="cursor-pointer rounded-lg border border-white/10 bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700" title={`Upload foto ${imageIndex + 1}`}>
                           <Upload className="h-3.5 w-3.5" />
                           <input type="file" accept="image/*" onChange={(e) => handleFileUploadMotor(e, imageIndex)} className="hidden" />

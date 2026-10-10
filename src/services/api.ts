@@ -320,6 +320,17 @@ export const api = {
   },
 
   // Upload image
+  async migrateExternalImages(): Promise<{ migratedCount: number; updatedReferences: number; unsupportedCount: number; failedCount: number }> {
+    const res = await fetch('/api/admin/images/migrate-external', {
+      method: 'POST',
+      headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || `Migrasi gambar gagal (HTTP ${res.status})`);
+    return result;
+  },
+
   async uploadImage(file: File): Promise<string> {
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
       throw new Error('Ukuran gambar melebihi batas 100 MB. Kompres gambar lalu coba lagi.');

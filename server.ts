@@ -411,6 +411,53 @@ function normalizeMotorImages(value: unknown, fallback: unknown = []): string[] 
   return source.map((image: unknown) => String(image || '').trim()).filter(Boolean);
 }
 
+const imageReferenceFields = new Set(['image', 'images', 'heroImage', 'heroImages', 'logo', 'avatar', 'photo', 'banner', 'thumbnail']);
+const importableImageHosts = new Set(['images.unsplash.com']);
+
+function mapImageReferences(value: unknown, mapImage: (url: string) => string, field = ''): unknown {
+  if (typeof value === 'string') return imageReferenceFields.has(field) ? mapImage(value) : value;
+  if (Array.isArray(value)) return value.map((item) => mapImageReferences(item, mapImage, field));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, mapImageReferences(item, mapImage, key)]));
+  }
+  return value;
+}
+
+async function saveExternalImage(url: string): Promise<string> {
+  const parsedUrl = new URL(url);
+  if (parsedUrl.protocol !== 'https:' || !importableImageHosts.has(parsedUrl.hostname)) {
+    throw new Error('Sumber gambar tidak didukung. Unggah file gambar dari perangkat Anda.');
+  }
+
+  const response = await fetch(parsedUrl, { signal: AbortSignal.timeout(20000), redirect: 'error' });
+  if (!response.ok) throw new Error(`Gambar eksternal gagal diunduh (HTTP ${response.status})`);
+  if (!response.headers.get('content-type')?.startsWith('image/')) throw new Error('Sumber tidak mengirim file gambar');
+  if (Number(response.headers.get('content-length') || 0) > MAX_IMAGE_UPLOAD_BYTES) throw new Error('Ukuran gambar melebihi batas 100 MB');
+  if (!response.body) throw new Error('File gambar eksternal kosong');
+
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_IMAGE_UPLOAD_BYTES) {
+      await reader.cancel();
+      throw new Error('Ukuran gambar melebihi batas 100 MB');
+    }
+    chunks.push(Buffer.from(value));
+  }
+
+  const image = await sharp(Buffer.concat(chunks, totalBytes), { limitInputPixels: 40000000 })
+    .rotate()
+    .webp({ quality: 82 })
+    .toBuffer();
+  const filename = `import-${Date.now()}-${crypto.randomBytes(5).toString('hex')}.webp`;
+  await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), image, { flag: 'wx' });
+  return `/uploads/${filename}`;
+}
+
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
@@ -545,6 +592,12 @@ async function startServer() {
 
   app.put('/api/settings', (req, res) => {
     const db = readDb();
+    let hasExternalImage = false;
+    mapImageReferences(req.body, (url) => {
+      if (/^https?:\/\//i.test(url)) hasExternalImage = true;
+      return url;
+    });
+    if (hasExternalImage) return res.status(400).json({ error: 'Unggah gambar melalui panel admin agar tersimpan di server.' });
     db.settings = { ...db.settings, ...req.body, updated_at: new Date().toISOString() };
     writeDb(db);
     res.json(db.settings);
@@ -559,6 +612,9 @@ async function startServer() {
   app.post('/api/motors', (req, res) => {
     const db = readDb();
     const images = normalizeMotorImages(req.body.images, [req.body.image]);
+    if (images.some((image) => /^https?:\/\//i.test(image))) {
+      return res.status(400).json({ error: 'Unggah gambar motor melalui panel admin agar tersimpan di server.' });
+    }
     if (images.length > MAX_MOTOR_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
     }
@@ -595,6 +651,9 @@ async function startServer() {
     }
     const existingImages = Array.isArray(db.motors[index].images) ? db.motors[index].images : [db.motors[index].image];
     const images = normalizeMotorImages(req.body.images, existingImages);
+    if (images.some((image) => /^https?:\/\//i.test(image))) {
+      return res.status(400).json({ error: 'Pindahkan gambar lama ke penyimpanan server atau unggah ulang sebelum menyimpan.' });
+    }
     if (images.length > MAX_MOTOR_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
     }
@@ -636,6 +695,9 @@ async function startServer() {
     const images = Array.isArray(req.body.images)
       ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
       : [];
+    if (images.some((image: string) => /^https?:\/\//i.test(image))) {
+      return res.status(400).json({ error: 'Unggah gambar promo melalui panel admin agar tersimpan di server.' });
+    }
     if (images.length > MAX_PROMO_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
     }
@@ -665,6 +727,9 @@ async function startServer() {
       : Array.isArray(req.body.images)
         ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
         : [];
+    if (images.some((image: string) => /^https?:\/\//i.test(image))) {
+      return res.status(400).json({ error: 'Pindahkan gambar promo lama ke penyimpanan server atau unggah ulang sebelum menyimpan.' });
+    }
     if (images.length > MAX_PROMO_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
     }
@@ -954,6 +1019,53 @@ async function startServer() {
     } catch (err: any) {
       console.error('Upload failed:', err);
       res.status(500).json({ error: 'Upload failed: ' + err.message });
+    }
+  });
+
+  app.post('/api/admin/images/migrate-external', requireAdmin, async (_req, res) => {
+    try {
+      const db = readDb();
+      const externalUrls = new Set<string>();
+      mapImageReferences(db, (url) => {
+        if (/^https?:\/\//i.test(url)) externalUrls.add(url);
+        return url;
+      });
+
+      const localUrls = new Map<string, string>();
+      let unsupportedCount = 0;
+      let failedCount = 0;
+      for (const url of externalUrls) {
+        let hostname = '';
+        try {
+          hostname = new URL(url).hostname;
+        } catch {
+          unsupportedCount += 1;
+          continue;
+        }
+        if (!importableImageHosts.has(hostname)) {
+          unsupportedCount += 1;
+          continue;
+        }
+        try {
+          localUrls.set(url, await saveExternalImage(url));
+        } catch (error) {
+          console.error('External image import failed:', error);
+          failedCount += 1;
+        }
+      }
+
+      let updatedReferences = 0;
+      const updatedDb = mapImageReferences(db, (url) => {
+        const localUrl = localUrls.get(url);
+        if (localUrl) updatedReferences += 1;
+        return localUrl || url;
+      });
+      if (localUrls.size && !writeDb(updatedDb)) return res.status(500).json({ error: 'Gambar tersimpan, tetapi database gagal diperbarui.' });
+
+      return res.json({ migratedCount: localUrls.size, updatedReferences, unsupportedCount, failedCount });
+    } catch (error: any) {
+      console.error('External image migration failed:', error);
+      return res.status(500).json({ error: error.message || 'Gagal memindahkan gambar eksternal.' });
     }
   });
 

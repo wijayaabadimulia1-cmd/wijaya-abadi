@@ -2080,8 +2080,10 @@ html[data-color-mode="dark"] body {
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-badge {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: rgba(200, 16, 46, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(200, 16, 46, 0.32);
+  color: #20312b !important;
+  box-shadow: 0 8px 22px rgba(24, 24, 27, 0.12);
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-highlight-text {
@@ -2096,6 +2098,47 @@ html[data-color-mode="dark"] body {
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .bg-zinc-900\/60 :is(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400) {
   color: #20312b !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-subtitle {
+  color: #35443d !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-secondary {
+  background: #ffffff !important;
+  border-color: #64736b !important;
+  color: #20312b !important;
+  box-shadow: 0 8px 20px rgba(24, 24, 27, 0.12);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-secondary svg {
+  color: #b91c1c !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-whatsapp {
+  background: #ecfdf5 !important;
+  border-color: #059669 !important;
+  color: #065f46 !important;
+  box-shadow: 0 8px 20px rgba(6, 95, 70, 0.12);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-whatsapp svg {
+  color: #047857 !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-trust-item {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(32, 49, 43, 0.2) !important;
+  box-shadow: 0 8px 22px rgba(24, 24, 27, 0.1);
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-trust-item p:first-child {
+  color: #20312b !important;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-light #home .hero-trust-item p:last-child {
+  color: #4b5b53 !important;
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-dark #home.natural-cool-hero {
