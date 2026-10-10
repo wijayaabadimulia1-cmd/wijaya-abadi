@@ -766,7 +766,8 @@ async function startServer() {
     if (includeGuide) {
       const guide = XLSX.utils.aoa_to_sheet([
         ['Petunjuk Upload Motor'],
-        ['Isi data pada sheet Motor. Jangan mengubah nama kolom.'],
+        ['Katalog motor saat ini sudah disertakan. Tambahkan motor baru setelah baris terakhir pada sheet Motor.'],
+        ['Jangan mengubah nama kolom.'],
         ['ID yang cocok dengan katalog akan memperbarui motor; ID kosong atau baru akan menambahkan motor.'],
         ['Nama Motor dan Harga OTR wajib diisi. Harga boleh berupa angka atau format rupiah.'],
         ['Spesifikasi dipisahkan dengan titik koma (;). Contoh: 125cc; PGM-FI.'],
@@ -790,8 +791,9 @@ async function startServer() {
   });
 
   app.get('/api/motors/template.xlsx', (req, res) => {
+    const db = readDb();
     const dateStr = new Date().toISOString().slice(0, 10);
-    const buffer = createMotorWorkbook([], true);
+    const buffer = createMotorWorkbook(Array.isArray(db.motors) ? db.motors : [], true);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="template-upload-motor-${dateStr}.xlsx"`);
     res.send(buffer);
