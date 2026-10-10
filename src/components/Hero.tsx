@@ -93,12 +93,6 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
           ))}
       </div>
 
-        {isWijayaCool && (
-          <span className="natural-cool-photo-credit">
-            Foto: Afrogindahood / Wikimedia Commons
-          </span>
-        )}
-
       {/* Background radial glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-red-900/10 rounded-full blur-[100px] pointer-events-none" />

@@ -155,7 +155,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
           <div>
             <h4 className="text-white font-bold uppercase tracking-wider mb-3">Administrasi</h4>
             <ul className="space-y-2">
-              <li><span className="text-zinc-500">Authorized Honda Dealer #HWA-BDO</span></li>
+              <li><span className="text-zinc-500">Authorized Honda Dealer</span></li>
               <li><span className="text-zinc-500">PT Astra Honda Motor Partner</span></li>
             </ul>
           </div>
