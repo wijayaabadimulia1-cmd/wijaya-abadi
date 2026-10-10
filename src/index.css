@@ -2073,6 +2073,44 @@ html[data-color-mode="dark"] body {
   border-color: color-mix(in srgb, var(--site-text-effective) 14%, transparent) !important;
 }
 
+.website-shell.website-template-wijaya-cool {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+}
+
+.website-shell.website-template-wijaya-cool::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0) 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 243, 246, 0.9) 32%, rgba(226, 233, 236, 0.85) 52%, rgba(245, 246, 248, 0.88) 68%, rgba(225, 234, 246, 0.74) 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.02), rgba(211, 216, 228, 0.35), rgba(250, 221, 215, 0.2)),
+    url('/images/wijaya-cool-bandung-landscape.webp');
+  background-position: center, center, center, center;
+  background-size: cover;
+}
+
+.website-shell.website-template-wijaya-cool.site-mode-dark::before {
+  background-image:
+    radial-gradient(circle at 74% 18%, rgba(123, 183, 176, 0.2), transparent 30%),
+    linear-gradient(118deg, #151c1a 0%, #1b2925 48%, #1b3037 100%),
+    linear-gradient(90deg, rgba(13, 19, 17, 0.42), rgba(13, 19, 17, 0.08) 52%, rgba(12, 27, 29, 0.08)),
+    url('/images/wijaya-cool-bandung-landscape.webp');
+}
+
+.website-shell.website-template-wijaya-cool #katalog,
+.website-shell.website-template-wijaya-cool #simulasi,
+.website-shell.website-template-wijaya-cool #promo,
+.website-shell.website-template-wijaya-cool #manifesto,
+.website-shell.website-template-wijaya-cool #testimoni,
+.website-shell.website-template-wijaya-cool #kontak {
+  background-color: transparent !important;
+}
+
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-editable-text,
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-subtitle,
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-caption-text {
@@ -2259,8 +2297,23 @@ html[data-color-mode="dark"] body {
 }
 
 @media (max-width: 640px) {
+  .website-shell.website-template-wijaya-cool::before {
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0) 28%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 243, 246, 0.9) 32%, rgba(226, 233, 236, 0.85) 52%, rgba(245, 246, 248, 0.88) 68%, rgba(225, 234, 246, 0.74) 100%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.02), rgba(211, 216, 228, 0.35), rgba(250, 221, 215, 0.2)),
+      url('/images/wijaya-cool-bandung-landscape-mobile.webp');
+  }
+
+  .website-shell.website-template-wijaya-cool.site-mode-dark::before {
+    background-image:
+      radial-gradient(circle at 74% 18%, rgba(123, 183, 176, 0.2), transparent 30%),
+      linear-gradient(118deg, #151c1a 0%, #1b2925 48%, #1b3037 100%),
+      linear-gradient(90deg, rgba(13, 19, 17, 0.42), rgba(13, 19, 17, 0.08) 52%, rgba(12, 27, 29, 0.08)),
+      url('/images/wijaya-cool-bandung-landscape-mobile.webp');
+  }
+
   .natural-cool-landscape {
-    --natural-cool-landscape-image: url('/images/wijaya-cool-bandung-landscape-mobile.webp');
     width: 100%;
     opacity: 0.42;
     background-position: center, center, 56% center;
