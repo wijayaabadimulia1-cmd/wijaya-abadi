@@ -87,23 +87,65 @@ function escapeHtmlAttribute(value: string) {
   })[character] || character);
 }
 
-function renderSeoMetadata(html: string, settings: any = {}) {
-  const title = String(settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
-  const description = String(settings.seoDescription || 'Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.').trim();
-  const keywords = String(settings.seoKeywords || 'kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda').trim();
-  const canonical = String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
+function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
+  const landingSeo: Record<string, { title: string; description: string; keywords: string }> = {
+    '/dealer-honda-bandung': {
+      title: 'Dealer Honda Bandung | Promo & Kredit Terbaik',
+      description: 'Temukan dealer Honda Bandung dengan katalog terbaru, simulasi kredit, dan promo untuk kebutuhan harian maupun keluarga.',
+      keywords: 'dealer Honda Bandung, dealer motor Honda Bandung, dealer Honda Bandung resmi',
+    },
+    '/kredit-motor-honda-bandung': {
+      title: 'Kredit Motor Honda Bandung | DP & Tenor Fleksibel',
+      description: 'Cek simulasi kredit motor Honda Bandung dengan pilihan tenor dan estimasi angsuran yang sesuai kebutuhan Anda.',
+      keywords: 'kredit motor Honda Bandung, cicilan motor Honda, DP motor Honda Bandung',
+    },
+    '/simulasi-kredit-honda': {
+      title: 'Simulasi Kredit Honda | Hitung DP & Cicilan',
+      description: 'Hitung estimasi DP dan cicilan motor Honda, lalu bandingkan tenor sebelum berkonsultasi dengan dealer.',
+      keywords: 'simulasi kredit Honda, hitung cicilan motor Honda, simulasi DP motor',
+    },
+    '/harga-motor-honda-bandung': {
+      title: 'Harga Motor Honda Bandung | Harga & Promo Terbaru',
+      description: 'Lihat pilihan motor Honda di Bandung dan tanyakan harga OTR, ketersediaan, serta promo terbaru.',
+      keywords: 'harga motor Honda Bandung, harga OTR Honda Bandung, promo motor Honda',
+    },
+    '/honda-beat-bandung': {
+      title: 'Honda Beat Bandung | Harga & Simulasi Kredit',
+      description: 'Cari Honda Beat di Bandung? Lihat pilihan unit, cek harga terbaru, dan konsultasikan simulasi kredit dengan sales Honda Wijaya Abadi.',
+      keywords: 'Honda Beat Bandung, harga Honda Beat, kredit Honda Beat Bandung',
+    },
+    '/honda-scoopy-bandung': {
+      title: 'Honda Scoopy Bandung | Harga & Simulasi Kredit',
+      description: 'Temukan Honda Scoopy di Bandung. Konsultasikan pilihan varian, harga terbaru, promo, dan simulasi kredit melalui WhatsApp.',
+      keywords: 'Honda Scoopy Bandung, harga Honda Scoopy, kredit Honda Scoopy Bandung',
+    },
+    '/honda-vario-bandung': {
+      title: 'Honda Vario Bandung | Spesifikasi & Promo Terbaru',
+      description: 'Cek Honda Vario Bandung dengan spesifikasi, harga, dan simulasi kredit terbaru untuk aktivitas harian.',
+      keywords: 'Honda Vario Bandung, harga Honda Vario, kredit Honda Vario Bandung',
+    },
+    '/honda-pcx-bandung': {
+      title: 'Honda PCX Bandung | Harga & Simulasi Kredit',
+      description: 'Lihat pilihan Honda PCX di Bandung dan konsultasikan harga, ketersediaan unit, promo, serta simulasi kredit terbaru.',
+      keywords: 'Honda PCX Bandung, harga Honda PCX, kredit Honda PCX Bandung',
+    },
+    '/honda-adv-bandung': {
+      title: 'Honda ADV Bandung | Harga & Simulasi Kredit',
+      description: 'Cari Honda ADV di Bandung? Tanyakan ketersediaan unit, harga terbaru, promo, dan pilihan simulasi kredit kepada sales kami.',
+      keywords: 'Honda ADV Bandung, harga Honda ADV, kredit Honda ADV Bandung',
+    },
+  };
+  const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
+  const title = String(page?.title || settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
+  const description = String(page?.description || settings.seoDescription || 'Temukan informasi kredit motor Honda, harga motor Honda, simulasi cicilan, DP dan tenor. Cek pilihan motor Honda terbaru dan simulasi kredit dengan mudah.').trim();
+  const keywords = String(page?.keywords || settings.seoKeywords || 'kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda').trim();
+  const canonical = page
+    ? `https://kreditmotorhonda.tech${pathname.replace(/\/+$/, '') || '/'}`
+    : String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
   const robots = String(settings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
-  const firstHeroImage = Array.isArray(settings.heroImages) ? settings.heroImages[0] : settings.heroImage;
-  const heroFileName = typeof firstHeroImage === 'string' && firstHeroImage.startsWith('/uploads/')
-    ? path.basename(firstHeroImage)
-    : '';
-  const heroPreload = heroFileName && fs.existsSync(path.join(UPLOADS_DIR, heroFileName))
-    ? `<link rel="preload" as="image" href="/uploads/${escape(heroFileName)}" fetchpriority="high" />`
-    : '';
 
   return html
-    .replace(/<\/head>/i, `${heroPreload}</head>`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
@@ -406,6 +448,7 @@ async function startServer() {
   // Serve uploaded files
   const imageCacheDirectory = path.join(process.cwd(), 'data', 'image-cache');
   const supportedImageWidths = new Set([96, 160, 320, 480, 640, 960, 1280]);
+  const webpQuality = 70;
   app.get('/media/:filename', async (req, res, next) => {
     const filename = req.params.filename;
     const width = Number(req.query.width);
@@ -425,7 +468,7 @@ async function startServer() {
 
       const cacheKey = crypto
         .createHash('sha256')
-        .update(`${filename}:${sourceStats.size}:${sourceStats.mtimeMs}:${width}:webp:78`)
+        .update(`${filename}:${sourceStats.size}:${sourceStats.mtimeMs}:${width}:webp:${webpQuality}`)
         .digest('hex');
       const cachePath = path.join(imageCacheDirectory, `${cacheKey}.webp`);
       let imageBuffer: Buffer;
@@ -436,7 +479,7 @@ async function startServer() {
         imageBuffer = await sharp(sourcePath)
           .rotate()
           .resize({ width, withoutEnlargement: true })
-          .webp({ quality: 78 })
+          .webp({ quality: webpQuality })
           .toBuffer();
         await fs.promises.mkdir(imageCacheDirectory, { recursive: true });
         await fs.promises.writeFile(cachePath, imageBuffer);
@@ -1164,11 +1207,22 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: 'spa',
     });
-    app.get('/', async (req, res, next) => {
+    app.get([
+      '/',
+      '/dealer-honda-bandung',
+      '/kredit-motor-honda-bandung',
+      '/simulasi-kredit-honda',
+      '/harga-motor-honda-bandung',
+      '/honda-beat-bandung',
+      '/honda-scoopy-bandung',
+      '/honda-vario-bandung',
+      '/honda-pcx-bandung',
+      '/honda-adv-bandung',
+    ], async (req, res, next) => {
       try {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
-        res.type('html').send(renderSeoMetadata(transformedHtml, readDb().settings || {}));
+        res.type('html').send(renderSeoMetadata(transformedHtml, readDb().settings || {}, req.path));
       } catch (error) {
         next(error);
       }
@@ -1176,10 +1230,21 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.get('/', (req, res, next) => {
+    app.get([
+      '/',
+      '/dealer-honda-bandung',
+      '/kredit-motor-honda-bandung',
+      '/simulasi-kredit-honda',
+      '/harga-motor-honda-bandung',
+      '/honda-beat-bandung',
+      '/honda-scoopy-bandung',
+      '/honda-vario-bandung',
+      '/honda-pcx-bandung',
+      '/honda-adv-bandung',
+    ], (req, res, next) => {
       try {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-        res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}));
+        res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}, req.path));
       } catch (error) {
         next(error);
       }
@@ -1190,7 +1255,8 @@ async function startServer() {
     }));
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+      res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}, req.path));
     });
   }
 

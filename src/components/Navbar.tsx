@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className={`${colorMode === 'light' ? 'text-zinc-900' : 'text-white'} font-extrabold text-base sm:text-lg tracking-wide flex items-center gap-1.5`}>
                 <span>{settings.name || 'Honda Wijaya Abadi'}</span>
-                <span className="bg-red-600/30 text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/40">
+                <span className="site-accent-label bg-red-600/30 text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/40">
                   RESMI
                 </span>
               </div>

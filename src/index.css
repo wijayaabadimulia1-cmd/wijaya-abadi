@@ -811,6 +811,10 @@ html[data-color-mode="dark"] body {
   color: var(--custom-primary, #b91c1c) !important;
 }
 
+.website-shell.site-mode-light .site-accent-label {
+  color: #991b1b !important;
+}
+
 .website-shell.site-mode-light [class*="text-emerald-300"],
 .website-shell.site-mode-light [class*="text-emerald-400"],
 .website-shell.site-mode-light [class*="text-emerald-500"] {

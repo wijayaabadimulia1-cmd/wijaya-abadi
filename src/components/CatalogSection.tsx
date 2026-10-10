@@ -91,14 +91,13 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
       <img
         key={currentImage}
         src={responsiveUploadImageUrl(currentImage, 640)}
-        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 640])}
+        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 480, 640])}
         sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1279px) 48vw, 32vw"
         alt={`${motor.name} foto ${imageIndex + 1}`}
         width={515}
         height={504}
         loading="lazy"
         decoding="async"
-        fetchPriority="low"
         className="catalog-photo-animation max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
         data-catalog-animation={selectedAnimation}
         style={animationStyle}
@@ -196,7 +195,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider">
+          <div className="site-accent-label inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider">
             <Tag className="w-3.5 h-3.5" />
             <span>Koleksi Terlengkap</span>
           </div>

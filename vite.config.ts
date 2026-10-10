@@ -1,8 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import {copyFileSync} from 'node:fs';
-import path from 'path';
-import {defineConfig} from 'vite';
+import { copyFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vite';
+
+const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ command }) => {
   const isBuild = command === 'build';
@@ -16,14 +19,14 @@ export default defineConfig(({ command }) => {
         name: 'github-pages-spa-fallback',
         closeBundle() {
           if (isBuild) {
-            copyFileSync(path.resolve(__dirname, 'dist/index.html'), path.resolve(__dirname, 'dist/404.html'));
+            copyFileSync(path.resolve(projectRoot, 'dist/index.html'), path.resolve(projectRoot, 'dist/404.html'));
           }
         },
       },
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(projectRoot, '.'),
       },
     },
     server: {

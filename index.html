@@ -69,75 +69,95 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "AutoDealer",
-      "@id": "https://kreditmotorhonda.tech/#dealer",
-      "name": "Honda Wijaya Abadi Mulia Motor",
-      "url": "https://kreditmotorhonda.tech/",
-      "description": "Dealer motor Honda di Gegerkalong, Kota Bandung. Tersedia informasi harga OTR, simulasi kredit, DP, tenor, dan konsultasi pembelian.",
-      "logo": "https://kreditmotorhonda.tech/uploads/logo.jpeg",
-      "image": "https://kreditmotorhonda.tech/uploads/logo.jpeg",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "Sales",
-        "telephone": "+62-821-2935-8899",
-        "email": "wijayaabadimulia1@gmail.com"
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Jl. Gegerkalong Hilir No.68, Gegerkalong, Kec. Sukasari",
-        "addressLocality": "Bandung",
-        "addressRegion": "Jawa Barat",
-        "postalCode": "40152",
-        "addressCountry": "ID"
-      },
-      "areaServed": {
-        "@type": "City",
-        "name": "Bandung"
-      },
-      "openingHoursSpecification": {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-        "opens": "08:00",
-        "closes": "17:00"
-      }
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": "https://kreditmotorhonda.tech/#website",
-      "name": "Honda Wijaya Abadi Mulia Motor",
-      "url": "https://kreditmotorhonda.tech/",
-      "publisher": { "@id": "https://kreditmotorhonda.tech/#dealer" },
-      "inLanguage": "id-ID"
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Dealer Motor Honda Bandung | Harga & Kredit",
-      "description": "Honda Bandung: dealer motor Honda di Gegerkalong. Cek harga OTR, simulasi kredit, pilihan DP dan tenor, lalu konsultasi melalui WhatsApp.",
-      "url": "https://kreditmotorhonda.tech/",
-      "isPartOf": { "@id": "https://kreditmotorhonda.tech/#website" },
-      "about": { "@id": "https://kreditmotorhonda.tech/#dealer" },
-      "inLanguage": "id-ID"
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
+      "@graph": [
         {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Beranda",
-          "item": "https://kreditmotorhonda.tech/"
+          "@type": "Organization",
+          "@id": "https://kreditmotorhonda.tech/#organization",
+          "name": "Honda Wijaya Abadi Mulia Motor",
+          "url": "https://kreditmotorhonda.tech/",
+          "logo": "https://kreditmotorhonda.tech/uploads/logo.jpeg",
+          "sameAs": [
+            "https://wa.me/6282129358899",
+            "https://kreditmotorhonda.tech/"
+          ],
+          "email": "wijayaabadimulia1@gmail.com",
+          "telephone": "+62-821-2935-8899"
+        },
+        {
+          "@type": "AutoDealer",
+          "@id": "https://kreditmotorhonda.tech/#dealer",
+          "name": "Honda Wijaya Abadi Mulia Motor",
+          "url": "https://kreditmotorhonda.tech/",
+          "description": "Dealer motor Honda resmi di Bandung dengan katalog lengkap, simulasi kredit, promo, dan layanan konsultasi melalui WhatsApp.",
+          "logo": "https://kreditmotorhonda.tech/uploads/logo.jpeg",
+          "image": "https://kreditmotorhonda.tech/uploads/logo.jpeg",
+          "telephone": "+62-821-2935-8899",
+          "email": "wijayaabadimulia1@gmail.com",
+          "priceRange": "Rp 19.000.000 - Rp 60.000.000",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Jl. Gegerkalong Hilir No.68, Gegerkalong, Kec. Sukasari",
+            "addressLocality": "Bandung",
+            "addressRegion": "Jawa Barat",
+            "postalCode": "40152",
+            "addressCountry": "ID"
+          },
+          "areaServed": {
+            "@type": "City",
+            "name": "Bandung"
+          },
+          "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "17:00"
+          },
+          "hasMap": "https://maps.google.com/?q=Jl.+Gegerkalong+Hilir+No.68+Bandung"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://kreditmotorhonda.tech/#website",
+          "name": "Honda Wijaya Abadi Mulia Motor",
+          "url": "https://kreditmotorhonda.tech/",
+          "publisher": { "@id": "https://kreditmotorhonda.tech/#organization" },
+          "inLanguage": "id-ID",
+          "potentialAction": [
+            {
+              "@type": "SearchAction",
+              "target": "https://kreditmotorhonda.tech/?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          ]
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://kreditmotorhonda.tech/#webpage",
+          "name": "Dealer Motor Honda Bandung | Harga & Kredit",
+          "description": "Honda Bandung: dealer motor Honda di Gegerkalong. Cek harga OTR, simulasi kredit, pilihan DP dan tenor, lalu konsultasi melalui WhatsApp.",
+          "url": "https://kreditmotorhonda.tech/",
+          "isPartOf": { "@id": "https://kreditmotorhonda.tech/#website" },
+          "about": { "@id": "https://kreditmotorhonda.tech/#dealer" },
+          "inLanguage": "id-ID",
+          "breadcrumb": { "@id": "https://kreditmotorhonda.tech/#breadcrumb" }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "@id": "https://kreditmotorhonda.tech/#breadcrumb",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Beranda",
+              "item": "https://kreditmotorhonda.tech/"
+            }
+          ]
         }
       ]
     }

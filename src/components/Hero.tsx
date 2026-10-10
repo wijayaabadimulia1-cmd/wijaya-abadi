@@ -10,9 +10,14 @@ interface HeroProps {
   settings: DealerSettings;
   onOpenSimulator: () => void;
   onOpenInterest: () => void;
+  contentOverride?: {
+    badge: string;
+    headline: React.ReactNode;
+    subtitle: string;
+  };
 }
 
-export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInterest }) => {
+export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInterest, contentOverride }) => {
   const uploadedImages = settings.heroImages ?? (settings.heroImage ? [settings.heroImage] : []);
   const heroImages = uploadedImages.filter((image): image is string => typeof image === 'string' && image.trim().length > 0).slice(0, MAX_HERO_IMAGES);
   const imageSignature = heroImages.join('|');
@@ -79,21 +84,25 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
             <div className="hero-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-red-500/30 text-xs font-semibold text-zinc-300 shadow-inner">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span className="w-2 h-2 rounded-full bg-red-500 -ml-3" />
-              <span className="hero-editable-text hero-badge-text">{settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
+              <span className="hero-editable-text hero-badge-text">{contentOverride?.badge || settings.heroTitle || 'Dealer resmi Sepeda Motor Honda Bandung'}</span>
             </div>
 
             {/* Main Headline */}
             <h1 className="hero-editable-text hero-main-title font-black tracking-tight leading-[1.15]">
-              {settings.heroMainTitle || 'Satu Klik dapat'}
-              <br />
-              <span className="hero-highlight-text block">
-                {settings.heroTitleHighlight || 'sepeda motor impian'}
-              </span>
+              {contentOverride?.headline ?? (
+                <>
+                  {settings.heroMainTitle || 'Satu Klik dapat'}
+                  <br />
+                  <span className="hero-highlight-text block">
+                    {settings.heroTitleHighlight || 'sepeda motor impian'}
+                  </span>
+                </>
+              )}
             </h1>
 
             {/* Subtitle */}
             <p className="hero-editable-text hero-subtitle text-zinc-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              {settings.heroSubtitle ||
+              {contentOverride?.subtitle || settings.heroSubtitle ||
                 'Dapatkan motor Honda impian Anda dengan harga terbaik dan proses yang mudah. Layanan penjualan unit baru, simulasi kredit terjangkau, dan servis resmi AHASS.'}
             </p>
 
@@ -183,13 +192,13 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                     <img
                       key={`${activeSlide}-${heroImages[activeSlide] || heroImages[0]}`}
                       src={responsiveUploadImageUrl(heroImages[activeSlide] || heroImages[0], 960)}
-                      srcSet={responsiveUploadImageSrcSet(heroImages[activeSlide] || heroImages[0], [480, 960, 1280])}
+                      srcSet={responsiveUploadImageSrcSet(heroImages[activeSlide] || heroImages[0], [480, 640, 960, 1280])}
                       sizes="(max-width: 1023px) calc(100vw - 32px), 42vw"
                       alt={settings.heroCaption || `Banner Honda Wijaya Abadi ${activeSlide + 1}`}
                       width={960}
                       height={720}
                       decoding="async"
-                      fetchPriority="high"
+                      loading="eager"
                       className="hero-slide-image absolute inset-0 h-full w-full object-cover"
                       data-hero-animation={animation}
                       style={{ animationDuration: `${Math.min(1500, animationSpeed * 100)}ms` }}
@@ -254,9 +263,9 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                     <span className="hero-editable-text hero-caption-text font-semibold tracking-wider uppercase">
                       {settings.heroCaption || 'One Heart. Satu Hati.'}
                     </span>
-                    <h3 className="text-white text-base font-bold">
+                    <p className="text-white text-base font-bold">
                       {settings.name || 'Honda Wijaya Abadi Mulia Motor'}
-                    </h3>
+                    </p>
                   </div>
                 </div>
 

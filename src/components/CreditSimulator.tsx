@@ -216,7 +216,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
               <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none" />
 
               <div>
-                <span className="text-xs font-bold text-red-400 uppercase tracking-wider">
+                <span className="site-accent-label text-xs font-bold text-red-400 uppercase tracking-wider">
                   Hasil Perhitungan Cicilan
                 </span>
                 
