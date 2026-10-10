@@ -3,6 +3,7 @@ import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent } fr
 import { Motor, DealerSettings, FIFPriceList } from '../types';
 import { formatRupiah } from '../services/api';
 import { getFIFPriceListModel, getMotorOtrPrice } from '../services/fifPriceList';
+import { responsiveUploadImageUrl } from '../utils/images';
 
 interface CreditSimulatorProps {
   motors: Motor[];
@@ -224,8 +225,12 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                   <div className="mt-4 flex items-center gap-3 pb-4 border-b border-white/10">
                     <div className="w-14 h-14 bg-zinc-900 rounded-xl p-1 flex items-center justify-center border border-white/10 shrink-0">
                       <img
-                        src={activeMotor.image}
+                        src={responsiveUploadImageUrl(activeMotor.image, 96)}
                         alt={activeMotor.name}
+                        width={96}
+                        height={96}
+                        loading="lazy"
+                        decoding="async"
                         className="max-h-full max-w-full object-contain"
                       />
                     </div>
