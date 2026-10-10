@@ -394,12 +394,20 @@ export const api = {
     await downloadAdminFile(`/api/export/csv/${type}`, `honda-wijaya-abadi-${type}-${new Date().toISOString().slice(0, 10)}.csv`);
   },
 
-  async importMotorsCsv(file: File): Promise<{ created: number; updated: number; total: number }> {
+  async downloadMotorWorkbook(template = false): Promise<void> {
+    const path = template ? '/api/motors/template.xlsx' : '/api/motors/export.xlsx';
+    const fileName = template ? 'template-upload-motor.xlsx' : 'katalog-motor-honda.xlsx';
+    await downloadAdminFile(path, fileName);
+  },
+
+  async importMotorsFile(file: File): Promise<{ created: number; updated: number; total: number }> {
     const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-    const res = await fetch('/api/motors/import-csv', {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const contentType = extension === 'csv' ? 'text/csv; charset=utf-8' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const res = await fetch('/api/motors/import', {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Type': contentType,
         ...(token ? { 'x-admin-token': token } : {}),
       },
       body: file,

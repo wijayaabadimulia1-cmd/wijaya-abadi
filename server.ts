@@ -747,20 +747,70 @@ async function startServer() {
     res.json(db.motors || []);
   });
 
-  app.post('/api/motors/import-csv', express.raw({ type: ['text/csv', 'application/csv', 'application/octet-stream'], limit: '5mb' }), (req, res) => {
+  const motorWorkbookHeaders = ['ID', 'Nama Motor', 'Kategori', 'Harga OTR', 'Spesifikasi', 'Bestseller', 'Deskripsi'];
+  const createMotorWorkbook = (motors: any[], includeGuide = false) => {
+    const rows = [motorWorkbookHeaders, ...motors.map((motor) => [
+      motor.id || '',
+      motor.name || '',
+      motor.category || '',
+      motor.price || '',
+      Array.isArray(motor.specs) ? motor.specs.join('; ') : motor.specs || '',
+      motor.is_bestseller ? 'Ya' : 'Tidak',
+      motor.description || '',
+    ])];
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    worksheet['!cols'] = [{ wch: 24 }, { wch: 34 }, { wch: 18 }, { wch: 18 }, { wch: 36 }, { wch: 14 }, { wch: 56 }];
+    worksheet['!autofilter'] = { ref: `A1:G${Math.max(rows.length, 1)}` };
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Motor');
+    if (includeGuide) {
+      const guide = XLSX.utils.aoa_to_sheet([
+        ['Petunjuk Upload Motor'],
+        ['Isi data pada sheet Motor. Jangan mengubah nama kolom.'],
+        ['ID yang cocok dengan katalog akan memperbarui motor; ID kosong atau baru akan menambahkan motor.'],
+        ['Nama Motor dan Harga OTR wajib diisi. Harga boleh berupa angka atau format rupiah.'],
+        ['Spesifikasi dipisahkan dengan titik koma (;). Contoh: 125cc; PGM-FI.'],
+        ['Bestseller menerima Ya/Tidak.'],
+        ['Foto dan paket cicilan yang sudah ada tidak diubah oleh upload massal.'],
+        ['Motor yang tidak ada di file tidak akan dihapus.'],
+      ]);
+      guide['!cols'] = [{ wch: 110 }];
+      XLSX.utils.book_append_sheet(workbook, guide, 'Petunjuk');
+    }
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  };
+
+  app.get('/api/motors/export.xlsx', (req, res) => {
+    const db = readDb();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const buffer = createMotorWorkbook(Array.isArray(db.motors) ? db.motors : []);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="katalog-motor-honda-${dateStr}.xlsx"`);
+    res.send(buffer);
+  });
+
+  app.get('/api/motors/template.xlsx', (req, res) => {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const buffer = createMotorWorkbook([], true);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="template-upload-motor-${dateStr}.xlsx"`);
+    res.send(buffer);
+  });
+
+  app.post('/api/motors/import', express.raw({ type: ['text/csv', 'application/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'], limit: '5mb' }), (req, res) => {
     try {
-      if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'File CSV kosong atau tidak terbaca.' });
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'File upload kosong atau tidak terbaca.' });
 
       const workbook = XLSX.read(req.body, { type: 'buffer', raw: false });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!worksheet) return res.status(400).json({ error: 'File CSV tidak memiliki data.' });
+      if (!worksheet) return res.status(400).json({ error: 'File tidak memiliki data motor.' });
 
       const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false, blankrows: false }) as unknown[][];
       const headers = (rows[0] || []).map((value) => String(value ?? '').replace(/^\uFEFF/, '').trim().toLocaleLowerCase('id-ID'));
       const requiredHeaders = ['id', 'nama motor', 'kategori', 'harga otr', 'spesifikasi', 'bestseller', 'deskripsi'];
       const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
-      if (missingHeaders.length > 0) return res.status(400).json({ error: `Kolom CSV tidak lengkap: ${missingHeaders.join(', ')}.` });
-      if (rows.length > 501) return res.status(400).json({ error: 'Maksimal 500 motor per file CSV.' });
+      if (missingHeaders.length > 0) return res.status(400).json({ error: `Kolom file tidak lengkap: ${missingHeaders.join(', ')}.` });
+      if (rows.length > 501) return res.status(400).json({ error: 'Maksimal 500 motor per file.' });
 
       const columnIndex = Object.fromEntries(requiredHeaders.map((header) => [header, headers.indexOf(header)]));
       const stagedMotors: Array<{ id: string; name: string; category: string; price: string; numericPrice: number; specs: string[]; is_bestseller: boolean; description: string }> = [];
@@ -820,7 +870,7 @@ async function startServer() {
       if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan katalog motor.' });
       return res.json({ created, updated, total: stagedMotors.length });
     } catch (error: any) {
-      return res.status(400).json({ error: error.message || 'File CSV motor tidak valid.' });
+      return res.status(400).json({ error: error.message || 'File motor tidak valid.' });
     }
   });
 

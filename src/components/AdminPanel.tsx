@@ -636,7 +636,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
     setIsImportingMotors(true);
     try {
-      const result = await api.importMotorsCsv(file);
+      const result = await api.importMotorsFile(file);
       await loadAllData();
       onRefreshData();
       showToast(`Impor selesai: ${result.created} motor ditambahkan, ${result.updated} diperbarui`);
@@ -1572,15 +1572,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <input ref={motorCsvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportMotorsCsv} />
+                    <input ref={motorCsvInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={handleImportMotorsCsv} />
                     <button
                       type="button"
-                      onClick={() => void handleAdminExport('motors-csv', () => api.downloadCsv('motors'), 'CSV katalog motor berhasil diunduh')}
-                      disabled={activeExport === 'motors-csv'}
+                      onClick={() => void handleAdminExport('motors-xlsx', () => api.downloadMotorWorkbook(), 'File Excel katalog motor berhasil diunduh')}
+                      disabled={activeExport === 'motors-xlsx'}
                       className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:cursor-wait disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shrink-0"
                     >
                       <Download className="w-4 h-4" />
-                      <span>{activeExport === 'motors-csv' ? 'Menyiapkan...' : 'Unduh Massal'}</span>
+                      <span>{activeExport === 'motors-xlsx' ? 'Menyiapkan...' : 'Unduh Data'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleAdminExport('motors-template', () => api.downloadMotorWorkbook(true), 'Template upload motor berhasil diunduh')}
+                      disabled={activeExport === 'motors-template'}
+                      className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:cursor-wait disabled:opacity-60 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shrink-0"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      <span>{activeExport === 'motors-template' ? 'Menyiapkan...' : 'Unduh Template'}</span>
                     </button>
                     <button
                       type="button"
