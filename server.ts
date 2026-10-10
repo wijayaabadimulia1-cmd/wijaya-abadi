@@ -157,6 +157,140 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
     .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`);
 }
 
+function getSiteOrigin(settings: any = {}) {
+  try {
+    return new URL(String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/')).origin;
+  } catch {
+    return 'https://kreditmotorhonda.tech';
+  }
+}
+
+function slugifySeoValue(value: unknown) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('id-ID')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getSeoMotorPages(db: any): Array<{ motor: any; slug: string; path: string }> {
+  const usedSlugs = new Set<string>();
+  return (Array.isArray(db.motors) ? db.motors : []).flatMap((motor: any, index: number) => {
+    const name = String(motor?.name || '').trim();
+    const modelSlug = slugifySeoValue(name.replace(/^Honda\s+/i, ''));
+    if (!name || !modelSlug) return [];
+
+    const baseSlug = `honda-${modelSlug}-bandung`;
+    let slug = baseSlug;
+    if (usedSlugs.has(slug)) slug = `${baseSlug}-${slugifySeoValue(motor.id) || index + 1}`;
+    usedSlugs.add(slug);
+    return [{ motor, slug, path: `/motor/${slug}/` }];
+  });
+}
+
+function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
+  const origin = getSiteOrigin(settings);
+  const canonical = `${origin}/motor/${slug}/`;
+  const name = String(motor.name || 'Motor Honda').trim();
+  const category = String(motor.category || 'Sepeda Motor Honda').trim();
+  const description = String(motor.description || `Lihat harga ${name} di Bandung, spesifikasi, dan pilihan kredit di ${settings.name || 'Honda Wijaya Abadi Mulia Motor'}. Tanyakan ketersediaan unit melalui WhatsApp.`).trim();
+  const safeName = escapeHtmlAttribute(name);
+  const safeCategory = escapeHtmlAttribute(category);
+  const safeDescription = escapeHtmlAttribute(description);
+  const dealerName = escapeHtmlAttribute(String(settings.name || 'Honda Wijaya Abadi Mulia Motor'));
+  const price = Number(motor.numericPrice) || Number(String(motor.price || '').replace(/[^0-9]/g, '')) || 0;
+  const priceLabel = String(motor.price || (price ? `Rp ${new Intl.NumberFormat('id-ID').format(price)}` : 'Hubungi dealer untuk harga')).trim();
+  const priceText = escapeHtmlAttribute(priceLabel);
+  const specs = Array.isArray(motor.specs) ? motor.specs.filter(Boolean).map((spec: unknown) => String(spec)) : [];
+  const imagePath = [motor.image, ...(Array.isArray(motor.images) ? motor.images : [])]
+    .find((image: unknown) => typeof image === 'string' && image.startsWith('/uploads/'));
+  const image = imagePath ? new URL(String(imagePath), origin).href : '';
+  const phone = String(settings.phone || '6282129358899').replace(/[^0-9]/g, '');
+  const whatsappText = encodeURIComponent(`Halo, saya ingin bertanya tentang ${name} di ${settings.name || 'Honda Wijaya Abadi Mulia Motor'}.`);
+  const whatsappUrl = `https://wa.me/${phone}?text=${whatsappText}`;
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name,
+    description,
+    brand: { '@type': 'Brand', name: 'Honda' },
+    category,
+    sku: String(motor.id || slug),
+    ...(image ? { image } : {}),
+    offers: {
+      '@type': 'Offer',
+      url: canonical,
+      priceCurrency: 'IDR',
+      ...(price ? { price: String(price) } : {}),
+      availability: 'https://schema.org/InStock',
+      itemCondition: 'https://schema.org/NewCondition',
+    },
+  };
+  const specificationList = specs.length
+    ? `<ul>${specs.map((spec: string) => `<li>${escapeHtmlAttribute(spec)}</li>`).join('')}</ul>`
+    : '<p>Hubungi dealer untuk informasi spesifikasi dan ketersediaan unit.</p>';
+
+  return `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${safeName} Bandung | Harga, Spesifikasi & Kredit Honda</title>
+  <meta name="description" content="${safeDescription}">
+  <meta name="keywords" content="harga ${safeName} Bandung, kredit ${safeName}, spesifikasi ${safeName}, motor Honda Bandung">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="${escapeHtmlAttribute(canonical)}">
+  <meta property="og:type" content="product"><meta property="og:title" content="${safeName} Bandung | Harga & Kredit Honda">
+  <meta property="og:description" content="${safeDescription}"><meta property="og:url" content="${escapeHtmlAttribute(canonical)}">
+  ${image ? `<meta property="og:image" content="${escapeHtmlAttribute(image)}">` : ''}
+  <script type="application/ld+json">${JSON.stringify(productSchema).replace(/</g, '\\u003c')}</script>
+  <style>
+    :root{font-family:Arial,Helvetica,sans-serif;color:#202b27;background:#f4f7f5}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #dce4df;padding:18px max(24px,calc((100% - 1080px)/2));display:flex;justify-content:space-between;align-items:center;gap:16px}header a{color:#b91c1c;font-weight:700;text-decoration:none}.wrap{max-width:1080px;margin:auto;padding:64px 24px 80px}.crumb{font-size:14px;color:#56645d}.crumb a{color:#48574f}.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.8fr);gap:48px;align-items:center}h1{font-size:clamp(34px,5vw,56px);line-height:1.08;margin:20px 0 16px;color:#17251f}.lead{font-size:18px;line-height:1.7;color:#46564d}.label{color:#b91c1c;text-transform:uppercase;font-size:13px;font-weight:700;letter-spacing:.08em}.price{font-size:28px;font-weight:800;color:#17251f;margin:28px 0 20px}.actions{display:flex;flex-wrap:wrap;gap:12px}.button{display:inline-flex;padding:14px 18px;border-radius:8px;font-weight:700;text-decoration:none}.primary{background:#c8102e;color:#fff}.secondary{border:1px solid #65736b;color:#26372e;background:#fff}.visual{border-radius:12px;background:#e3e9e5;overflow:hidden;min-height:280px;display:grid;place-items:center}.visual img{width:100%;height:100%;max-height:420px;object-fit:cover}.visual span{padding:36px;color:#526158}.details{margin-top:44px;border-top:1px solid #d5ded8;padding-top:28px}.details h2{font-size:24px}.details ul{padding-left:20px;line-height:1.9;color:#3f5047}.dealer{margin-top:32px;font-size:14px;color:#56645d}@media(max-width:720px){header{padding:16px 20px}.wrap{padding:36px 20px 56px}.layout{grid-template-columns:1fr;gap:28px}.visual{min-height:220px}.lead{font-size:16px}}
+  </style>
+</head>
+<body>
+  <header><a href="/">Honda Wijaya Abadi</a><a href="/#katalog">Katalog Motor</a></header>
+  <main class="wrap">
+    <div class="crumb"><a href="/">Beranda</a> / <a href="/#katalog">Motor Honda</a> / ${safeName}</div>
+    <section class="layout">
+      <div><div class="label">${safeCategory} · Dealer Honda Bandung</div><h1>${safeName} Bandung</h1><p class="lead">${safeDescription}</p><p class="price">${priceText}</p><div class="actions"><a class="button primary" href="${escapeHtmlAttribute(whatsappUrl)}">Tanyakan harga & stok</a><a class="button secondary" href="/#simulasi">Lihat katalog dan simulasi</a></div></div>
+      <div class="visual">${image ? `<img src="${escapeHtmlAttribute(image)}" alt="${safeName} di Honda Wijaya Abadi Bandung" loading="eager">` : '<span>Foto unit tersedia melalui katalog dealer.</span>'}</div>
+    </section>
+    <section class="details"><h2>Spesifikasi ${safeName}</h2>${specificationList}<p class="dealer">Harga dan ketersediaan dapat berubah. Konfirmasi unit, pilihan warna, serta simulasi kredit langsung dengan ${dealerName} di Bandung.</p></section>
+  </main>
+</body>
+</html>`;
+}
+
+function renderDynamicSitemap(db: any) {
+  const origin = getSiteOrigin(db.settings || {});
+  const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
+    { path: '/', changefreq: 'daily', priority: '1.0' },
+    { path: '/dealer-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
+    { path: '/kredit-motor-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
+    { path: '/simulasi-kredit-honda/', changefreq: 'weekly', priority: '0.9' },
+    { path: '/harga-motor-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
+    { path: '/honda-beat-bandung/', changefreq: 'weekly', priority: '0.8' },
+    { path: '/honda-scoopy-bandung/', changefreq: 'weekly', priority: '0.8' },
+    { path: '/honda-vario-bandung/', changefreq: 'weekly', priority: '0.9' },
+    { path: '/honda-pcx-bandung/', changefreq: 'weekly', priority: '0.9' },
+    { path: '/honda-adv-bandung/', changefreq: 'weekly', priority: '0.8' },
+  ];
+  const motorPages = getSeoMotorPages(db).map(({ motor, path: pagePath }) => ({
+    path: pagePath,
+    changefreq: 'weekly',
+    priority: '0.8',
+    lastmod: motor.updated_at || motor.created_at,
+  }));
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [...staticPages, ...motorPages].map((page) => {
+    const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
+    const lastmod = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : today;
+    return `  <url><loc>${escapeHtmlAttribute(`${origin}${page.path}`)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
+}
+
 function writeDb(data: any) {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
@@ -1310,6 +1444,22 @@ async function startServer() {
     } catch (err: any) {
       res.status(500).json({ error: 'Gagal memulihkan database: ' + err.message });
     }
+  });
+
+  app.get('/sitemap.xml', (_req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.type('application/xml').send(renderDynamicSitemap(readDb()));
+  });
+
+  app.get('/motor/:slug', (req, res) => {
+    const db = readDb();
+    const productPage = getSeoMotorPages(db).find((page) => page.slug === req.params.slug);
+    if (!productPage) {
+      return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Motor tidak tersedia</title><body><main><h1>Motor tidak tersedia</h1><p>Unit ini sudah tidak tercantum di katalog.</p><a href="/#katalog">Lihat katalog motor aktif</a></main></body></html>');
+    }
+
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, db.settings || {}));
   });
 
   // Vite middleware in dev or static files in production
