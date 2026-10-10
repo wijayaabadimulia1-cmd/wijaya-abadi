@@ -700,6 +700,22 @@ html[data-color-mode="dark"] body {
   color: #cbd5e1 !important;
 }
 
+.website-shell.site-mode-light :is(#katalog, #promo, #manifesto, #testimoni) .text-center h2 {
+  color: #18181b !important;
+}
+
+.website-shell.site-mode-light :is(#katalog, #promo, #manifesto, #testimoni) .text-center > p {
+  color: #3f3f46 !important;
+}
+
+.website-shell.site-mode-dark :is(#katalog, #promo, #manifesto, #testimoni) .text-center h2 {
+  color: #f8fafc !important;
+}
+
+.website-shell.site-mode-dark :is(#katalog, #promo, #manifesto, #testimoni) .text-center > p {
+  color: #cbd5e1 !important;
+}
+
 .website-shell.site-mode-light .simulator-container {
   background: #ffffff !important;
   border-color: #d4d4d8 !important;
