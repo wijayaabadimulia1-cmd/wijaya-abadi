@@ -4,6 +4,7 @@ import { MAX_HERO_IMAGES } from '../constants';
 import { DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED, normalizeCatalogAnimationSpeed } from '../catalogAnimation';
 import { getHeroFontStack, loadHeroFont } from '../heroFonts';
+import { responsiveUploadImageSrcSet, responsiveUploadImageUrl } from '../utils/images';
 
 interface HeroProps {
   settings: DealerSettings;
@@ -181,14 +182,26 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   {heroImages.length > 0 ? (
                     <img
                       key={`${activeSlide}-${heroImages[activeSlide] || heroImages[0]}`}
-                      src={heroImages[activeSlide] || heroImages[0]}
+                      src={responsiveUploadImageUrl(heroImages[activeSlide] || heroImages[0], 960)}
+                      srcSet={responsiveUploadImageSrcSet(heroImages[activeSlide] || heroImages[0], [480, 960, 1280])}
+                      sizes="(max-width: 1023px) calc(100vw - 32px), 42vw"
                       alt={settings.heroCaption || `Banner Honda Wijaya Abadi ${activeSlide + 1}`}
+                      width={960}
+                      height={720}
                       decoding="async"
                       fetchPriority="high"
                       className="hero-slide-image absolute inset-0 h-full w-full object-cover"
                       data-hero-animation={animation}
                       style={{ animationDuration: `${Math.min(1500, animationSpeed * 100)}ms` }}
-                      onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }}
+                      onError={(event) => {
+                        const image = event.currentTarget;
+                        if (image.src.includes('/media/')) {
+                          image.removeAttribute('srcset');
+                          image.src = heroImages[activeSlide] || heroImages[0];
+                          return;
+                        }
+                        image.style.visibility = 'hidden';
+                      }}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-zinc-900" aria-label="Belum ada foto banner" />

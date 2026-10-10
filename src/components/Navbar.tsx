@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Phone, MessageSquare, Scale, Menu, X, Bike, Sparkles, Sun, Moon } from 'lucide-react';
 import { DealerSettings, Motor } from '../types';
+import { responsiveUploadImageUrl } from '../utils/images';
 
 interface NavbarProps {
   settings: DealerSettings;
@@ -50,10 +51,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="w-11 h-11 bg-gradient-to-br from-red-600 to-red-800 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-red-900/30 group-hover:scale-105 transition-transform overflow-hidden border border-red-500/30">
               {settings.logo ? (
                 <img
-                  src={settings.logo}
+                  src={responsiveUploadImageUrl(settings.logo, 96)}
                   alt={settings.name}
+                  width={96}
+                  height={96}
                   className="w-full h-full object-cover"
                   onError={(e) => {
+                    if (e.currentTarget.src.includes('/media/')) {
+                      e.currentTarget.src = settings.logo;
+                      return;
+                    }
                     // Fallback to Honda Wing icon
                     e.currentTarget.style.display = 'none';
                   }}

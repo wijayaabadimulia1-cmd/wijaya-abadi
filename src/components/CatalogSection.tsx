@@ -9,6 +9,7 @@ import {
   isCatalogAnimation,
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
+import { responsiveUploadImageSrcSet, responsiveUploadImageUrl } from '../utils/images';
 
 interface CatalogSectionProps {
   motors: Motor[];
@@ -89,8 +90,12 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
     >
       <img
         key={currentImage}
-        src={currentImage}
+        src={responsiveUploadImageUrl(currentImage, 640)}
+        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 640])}
+        sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1279px) 48vw, 32vw"
         alt={`${motor.name} foto ${imageIndex + 1}`}
+        width={515}
+        height={504}
         loading="lazy"
         decoding="async"
         fetchPriority="low"
@@ -98,6 +103,11 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
         data-catalog-animation={selectedAnimation}
         style={animationStyle}
         onError={(event) => {
+          if (event.currentTarget.src.includes('/media/')) {
+            event.currentTarget.removeAttribute('srcset');
+            event.currentTarget.src = currentImage;
+            return;
+          }
           event.currentTarget.closest('.catalog-card')?.classList.add('catalog-card-hidden');
         }}
       />

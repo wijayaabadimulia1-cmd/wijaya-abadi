@@ -1,5 +1,6 @@
 import express from 'express';
 import compression from 'compression';
+import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -403,6 +404,51 @@ async function startServer() {
   });
 
   // Serve uploaded files
+  const imageCacheDirectory = path.join(process.cwd(), 'data', 'image-cache');
+  const supportedImageWidths = new Set([96, 160, 320, 480, 640, 960, 1280]);
+  app.get('/media/:filename', async (req, res, next) => {
+    const filename = req.params.filename;
+    const width = Number(req.query.width);
+    if (path.basename(filename) !== filename || !supportedImageWidths.has(width)) {
+      return res.sendStatus(400);
+    }
+
+    if (!['.jpg', '.jpeg', '.png', '.webp'].includes(path.extname(filename).toLowerCase())) return next();
+
+    const uploadsPath = path.resolve(UPLOADS_DIR);
+    const sourcePath = path.resolve(uploadsPath, filename);
+    if (!sourcePath.startsWith(`${uploadsPath}${path.sep}`)) return res.sendStatus(400);
+
+    try {
+      const sourceStats = await fs.promises.stat(sourcePath);
+      if (!sourceStats.isFile()) return res.sendStatus(404);
+
+      const cacheKey = crypto
+        .createHash('sha256')
+        .update(`${filename}:${sourceStats.size}:${sourceStats.mtimeMs}:${width}:webp:78`)
+        .digest('hex');
+      const cachePath = path.join(imageCacheDirectory, `${cacheKey}.webp`);
+      let imageBuffer: Buffer;
+
+      try {
+        imageBuffer = await fs.promises.readFile(cachePath);
+      } catch {
+        imageBuffer = await sharp(sourcePath)
+          .rotate()
+          .resize({ width, withoutEnlargement: true })
+          .webp({ quality: 78 })
+          .toBuffer();
+        await fs.promises.mkdir(imageCacheDirectory, { recursive: true });
+        await fs.promises.writeFile(cachePath, imageBuffer);
+      }
+
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.type('image/webp').send(imageBuffer);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return res.sendStatus(404);
+      next(error);
+    }
+  });
   app.use('/uploads', express.static(UPLOADS_DIR));
   app.use('/api/files', express.static(UPLOADS_DIR));
 
