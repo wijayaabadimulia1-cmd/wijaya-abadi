@@ -747,20 +747,38 @@ async function startServer() {
     res.json(db.motors || []);
   });
 
-  const motorWorkbookHeaders = ['ID', 'Nama Motor', 'Kategori', 'Harga OTR', 'Spesifikasi', 'Bestseller', 'Deskripsi'];
-  const createMotorWorkbook = (motors: any[], includeGuide = false) => {
-    const rows = [motorWorkbookHeaders, ...motors.map((motor) => [
-      motor.id || '',
-      motor.name || '',
-      motor.category || '',
-      motor.price || '',
-      Array.isArray(motor.specs) ? motor.specs.join('; ') : motor.specs || '',
-      motor.is_bestseller ? 'Ya' : 'Tidak',
-      motor.description || '',
-    ])];
+  const fifWorkbookHeaders = FIF_DP_PERCENTAGES.flatMap((percentage) => [
+    `DP ${percentage}%`,
+    ...FIF_TENORS.map((tenor) => `Cicilan DP ${percentage}% ${tenor} Bulan`),
+  ]);
+  const motorWorkbookHeaders = ['ID', 'Nama Motor', 'Kategori', 'Harga OTR', 'Spesifikasi', 'Bestseller', 'Deskripsi', ...fifWorkbookHeaders];
+  const createMotorWorkbook = (motors: any[], priceList: any, includeGuide = false) => {
+    const rows = [motorWorkbookHeaders, ...motors.map((motor) => {
+      const fifEntry = Object.entries(priceList.models || {}).find(([modelName]) => (
+        modelName === motor.name || normalizeFifModelName(modelName) === normalizeFifModelName(motor.name)
+      )) as [string, any] | undefined;
+      const fifOptions = fifEntry?.[1]?.options || {};
+      const fifValues = FIF_DP_PERCENTAGES.flatMap((percentage) => {
+        const values = fifOptions[String(percentage)] || [];
+        return [values[0] || '', ...FIF_TENORS.map((_, index) => values[index + 1] || '')];
+      });
+      return [
+        motor.id || '',
+        motor.name || '',
+        motor.category || '',
+        fifEntry?.[1]?.price || motor.numericPrice || motor.price || '',
+        Array.isArray(motor.specs) ? motor.specs.join('; ') : motor.specs || '',
+        motor.is_bestseller ? 'Ya' : 'Tidak',
+        motor.description || '',
+        ...fifValues,
+      ];
+    })];
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    worksheet['!cols'] = [{ wch: 24 }, { wch: 34 }, { wch: 18 }, { wch: 18 }, { wch: 36 }, { wch: 14 }, { wch: 56 }];
-    worksheet['!autofilter'] = { ref: `A1:G${Math.max(rows.length, 1)}` };
+    worksheet['!cols'] = [
+      { wch: 24 }, { wch: 34 }, { wch: 18 }, { wch: 18 }, { wch: 36 }, { wch: 14 }, { wch: 56 },
+      ...FIF_DP_PERCENTAGES.flatMap(() => [{ wch: 16 }, ...FIF_TENORS.map(() => ({ wch: 18 }))]),
+    ];
+    worksheet['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(motorWorkbookHeaders.length - 1)}${Math.max(rows.length, 1)}` };
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Motor');
     if (includeGuide) {
@@ -772,6 +790,7 @@ async function startServer() {
         ['Nama Motor dan Harga OTR wajib diisi. Harga boleh berupa angka atau format rupiah.'],
         ['Spesifikasi dipisahkan dengan titik koma (;). Contoh: 125cc; PGM-FI.'],
         ['Bestseller menerima Ya/Tidak.'],
+        ['Isi nominal DP dan semua tenor untuk tiap persentase, atau biarkan seluruh paket persentase tersebut kosong.'],
         ['Foto dan paket cicilan yang sudah ada tidak diubah oleh upload massal.'],
         ['Motor yang tidak ada di file tidak akan dihapus.'],
       ]);
@@ -784,7 +803,7 @@ async function startServer() {
   app.get('/api/motors/export.xlsx', (req, res) => {
     const db = readDb();
     const dateStr = new Date().toISOString().slice(0, 10);
-    const buffer = createMotorWorkbook(Array.isArray(db.motors) ? db.motors : []);
+    const buffer = createMotorWorkbook(Array.isArray(db.motors) ? db.motors : [], currentFifPriceList(db));
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="katalog-motor-honda-${dateStr}.xlsx"`);
     res.send(buffer);
@@ -793,7 +812,7 @@ async function startServer() {
   app.get('/api/motors/template.xlsx', (req, res) => {
     const db = readDb();
     const dateStr = new Date().toISOString().slice(0, 10);
-    const buffer = createMotorWorkbook(Array.isArray(db.motors) ? db.motors : [], true);
+    const buffer = createMotorWorkbook(Array.isArray(db.motors) ? db.motors : [], currentFifPriceList(db), true);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="template-upload-motor-${dateStr}.xlsx"`);
     res.send(buffer);
@@ -810,12 +829,16 @@ async function startServer() {
       const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false, blankrows: false }) as unknown[][];
       const headers = (rows[0] || []).map((value) => String(value ?? '').replace(/^\uFEFF/, '').trim().toLocaleLowerCase('id-ID'));
       const requiredHeaders = ['id', 'nama motor', 'kategori', 'harga otr', 'spesifikasi', 'bestseller', 'deskripsi'];
+      const hasAnyFifHeaders = fifWorkbookHeaders.some((header) => headers.includes(header.toLocaleLowerCase('id-ID')));
+      const hasAllFifHeaders = fifWorkbookHeaders.every((header) => headers.includes(header.toLocaleLowerCase('id-ID')));
+      if (hasAnyFifHeaders && !hasAllFifHeaders) return res.status(400).json({ error: 'Kolom DP dan cicilan tidak lengkap. Gunakan template Excel terbaru.' });
       const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
       if (missingHeaders.length > 0) return res.status(400).json({ error: `Kolom file tidak lengkap: ${missingHeaders.join(', ')}.` });
       if (rows.length > 501) return res.status(400).json({ error: 'Maksimal 500 motor per file.' });
 
-      const columnIndex = Object.fromEntries(requiredHeaders.map((header) => [header, headers.indexOf(header)]));
-      const stagedMotors: Array<{ id: string; name: string; category: string; price: string; numericPrice: number; specs: string[]; is_bestseller: boolean; description: string }> = [];
+      const allHeaders = hasAllFifHeaders ? [...requiredHeaders, ...fifWorkbookHeaders.map((header) => header.toLocaleLowerCase('id-ID'))] : requiredHeaders;
+      const columnIndex = Object.fromEntries(allHeaders.map((header) => [header, headers.indexOf(header)]));
+      const stagedMotors: Array<{ id: string; name: string; category: string; price: string; numericPrice: number; specs: string[]; is_bestseller: boolean; description: string; fifOptions: Record<string, number[]> }> = [];
       const seenIds = new Set<string>();
       const rowErrors: string[] = [];
 
@@ -828,11 +851,29 @@ async function startServer() {
         const category = cell('kategori') || 'Matic';
         const numericPrice = Number(cell('harga otr').replace(/[^0-9]/g, ''));
         const rowNumber = rowIndex + 1;
+        const fifOptions: Record<string, number[]> = {};
 
         if (!name) rowErrors.push(`Baris ${rowNumber}: nama motor wajib diisi.`);
         if (!Number.isSafeInteger(numericPrice) || numericPrice <= 0) rowErrors.push(`Baris ${rowNumber}: harga OTR tidak valid.`);
         if (id && seenIds.has(id)) rowErrors.push(`Baris ${rowNumber}: ID ${id} muncul lebih dari sekali.`);
         if (id) seenIds.add(id);
+
+        if (hasAllFifHeaders) {
+          for (const percentage of FIF_DP_PERCENTAGES) {
+            const values = [
+              cell(`dp ${percentage}%`),
+              ...FIF_TENORS.map((tenor) => cell(`cicilan dp ${percentage}% ${tenor} bulan`)),
+            ].map((value) => Number(value.replace(/[^0-9]/g, '')));
+            if (values.every((value) => value === 0)) continue;
+            if (values.some((value) => value <= 0)) {
+              rowErrors.push(`Baris ${rowNumber}: paket DP ${percentage}% harus diisi lengkap untuk tenor ${FIF_TENORS.join(', ')} bulan.`);
+            } else if (values[0] > numericPrice) {
+              rowErrors.push(`Baris ${rowNumber}: nominal DP ${percentage}% melebihi Harga OTR.`);
+            } else {
+              fifOptions[String(percentage)] = values;
+            }
+          }
+        }
 
         stagedMotors.push({
           id: id || `motor-${Date.now()}-${rowIndex}`,
@@ -843,6 +884,7 @@ async function startServer() {
           specs: cell('spesifikasi').split(/[;,]/).map((spec) => spec.trim()).filter(Boolean),
           is_bestseller: /^(ya|yes|true|1|iya)$/i.test(cell('bestseller')),
           description: cell('deskripsi'),
+          fifOptions,
         });
       }
 
@@ -850,7 +892,8 @@ async function startServer() {
       if (rowErrors.length > 0) return res.status(400).json({ error: rowErrors.slice(0, 10).join(' ') });
 
       const db = readDb();
-      const motors = [...(Array.isArray(db.motors) ? db.motors : [])];
+      const originalMotors = Array.isArray(db.motors) ? db.motors : [];
+      const motors = [...originalMotors];
       let created = 0;
       let updated = 0;
       const now = new Date().toISOString();
@@ -869,6 +912,21 @@ async function startServer() {
       }
 
       db.motors = motors;
+      if (hasAllFifHeaders) {
+        try {
+          for (const importedMotor of stagedMotors) {
+            const previousName = originalMotors.find((motor: any) => String(motor.id) === importedMotor.id)?.name;
+            saveMotorFifPriceListModel(db, {
+              name: importedMotor.name,
+              previousName,
+              price: importedMotor.numericPrice,
+              options: importedMotor.fifOptions,
+            });
+          }
+        } catch (error: any) {
+          return res.status(400).json({ error: error.message || 'Paket cicilan pada file tidak valid.' });
+        }
+      }
       if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan katalog motor.' });
       return res.json({ created, updated, total: stagedMotors.length });
     } catch (error: any) {
