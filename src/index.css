@@ -2218,11 +2218,6 @@ html[data-color-mode="dark"] body {
   font-size: 9px;
   line-height: 1.4;
   backdrop-filter: blur(8px);
-  pointer-events: auto;
-}
-
-.natural-cool-photo-credit:hover {
-  background: rgba(18, 32, 27, 0.78);
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-dark #home .hero-editable-text,

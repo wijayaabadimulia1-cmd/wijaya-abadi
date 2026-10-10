@@ -94,14 +94,9 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
       </div>
 
         {isWijayaCool && (
-          <a
-            className="natural-cool-photo-credit"
-            href="https://commons.wikimedia.org/wiki/File:Burangrang_Tangkuban_Parahu_Pacet_2022.jpg"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <span className="natural-cool-photo-credit">
             Foto: Afrogindahood / Wikimedia Commons
-          </a>
+          </span>
         )}
 
       {/* Background radial glow */}
