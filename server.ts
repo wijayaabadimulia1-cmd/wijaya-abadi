@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -377,6 +378,7 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 
 async function startServer() {
   const app = express();
+  app.use(compression());
   app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
