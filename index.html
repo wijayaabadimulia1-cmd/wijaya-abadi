@@ -76,10 +76,7 @@
           "name": "Honda Wijaya Abadi Mulia Motor",
           "url": "https://kreditmotorhonda.tech/",
           "logo": "https://kreditmotorhonda.tech/uploads/logo.jpeg",
-          "sameAs": [
-            "https://wa.me/6282129358899",
-            "https://kreditmotorhonda.tech/"
-          ],
+          "sameAs": ["https://wa.me/6282129358899", "https://kreditmotorhonda.tech/"],
           "email": "wijayaabadimulia1@gmail.com",
           "telephone": "+62-821-2935-8899"
         },
@@ -102,10 +99,7 @@
             "postalCode": "40152",
             "addressCountry": "ID"
           },
-          "areaServed": {
-            "@type": "City",
-            "name": "Bandung"
-          },
+          "areaServed": { "@type": "City", "name": "Bandung" },
           "openingHoursSpecification": {
             "@type": "OpeningHoursSpecification",
             "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
@@ -119,34 +113,21 @@
           "@id": "https://kreditmotorhonda.tech/#kredit-motor-honda",
           "name": "Kredit Motor Honda",
           "image": "https://kreditmotorhonda.tech/uploads/1790930080046-97bc0e24-1790930080616-j5lux2u-supra_x_125_cw-2-04032022-102025.jpg",
-          "brand": {
-            "@type": "Brand",
-            "name": "Honda"
-          },
+          "brand": { "@type": "Brand", "name": "Honda" },
           "category": "Motorcycle Financing",
           "description": "Layanan kredit motor Honda dengan simulasi DP, tenor, dan estimasi cicilan bulanan untuk pembelian motor Honda di Bandung.",
           "url": "https://kreditmotorhonda.tech/",
-          "seller": {
-            "@type": "AutoDealer",
-            "name": "Honda Wijaya Abadi Mulia Motor",
+          "seller": { "@type": "AutoDealer", "name": "Honda Wijaya Abadi Mulia Motor", "url": "https://kreditmotorhonda.tech/" },
+          "offers": [{
+            "@type": "Offer",
+            "name": "Simulasi Kredit Motor Honda",
+            "priceCurrency": "IDR",
+            "price": "0",
+            "availability": "https://schema.org/InStock",
+            "itemCondition": "https://schema.org/NewCondition",
             "url": "https://kreditmotorhonda.tech/"
-          },
-          "offers": [
-            {
-              "@type": "Offer",
-              "name": "Simulasi Kredit Motor Honda",
-              "priceCurrency": "IDR",
-              "price": "0",
-              "availability": "https://schema.org/InStock",
-              "itemCondition": "https://schema.org/NewCondition",
-              "url": "https://kreditmotorhonda.tech/"
-            }
-          ],
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "153"
-          }
+          }],
+          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "153" }
         },
         {
           "@type": "WebSite",
@@ -155,13 +136,11 @@
           "url": "https://kreditmotorhonda.tech/",
           "publisher": { "@id": "https://kreditmotorhonda.tech/#organization" },
           "inLanguage": "id-ID",
-          "potentialAction": [
-            {
-              "@type": "SearchAction",
-              "target": "https://kreditmotorhonda.tech/?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          ]
+          "potentialAction": [{
+            "@type": "SearchAction",
+            "target": "https://kreditmotorhonda.tech/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }]
         },
         {
           "@type": "WebPage",
@@ -177,14 +156,7 @@
         {
           "@type": "BreadcrumbList",
           "@id": "https://kreditmotorhonda.tech/#breadcrumb",
-          "itemListElement": [
-            {
-              "@type": "ListItem",
-              "position": 1,
-              "name": "Beranda",
-              "item": "https://kreditmotorhonda.tech/"
-            }
-          ]
+          "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Beranda", "item": "https://kreditmotorhonda.tech/" }]
         }
       ]
     }
@@ -220,6 +192,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" crossorigin src="/assets/index-CGWKOi96.js"></script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
