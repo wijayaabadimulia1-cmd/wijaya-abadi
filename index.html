@@ -18,7 +18,7 @@
     </script>
     
     <!-- Primary Meta Tags -->
-    <title>Dealer Motor Honda Bandung | Harga & Kredit</title>
+    <title>Dealer Motor Honda Bandung | Harga &amp; Kredit</title>
     <meta name="description" content="Honda Bandung: dealer motor Honda di Gegerkalong. Cek harga OTR, simulasi kredit, pilihan DP dan tenor, lalu konsultasi melalui WhatsApp." />
     <meta name="keywords" content="promo honda bandung, kreditmotorhondabandung, Honda Wijaya Abadi Mulia, kredit motor Honda, harga motor Honda, simulasi kredit, cicilan motor, DP motor, Honda Beat, Honda Scoopy, Honda Vario, Honda PCX, Honda ADV, dealer motor Honda, Honda Bandung, Gegerkalong, Wijaya Abadi Mulia, Honda Wijaya Abadi, promo motor honda bandung, cicilan honda bandung, kredit motor bandung, dealer motor Honda Bandung, kredit motor Honda Bandung, harga motor Honda Bandung, simulasi cicilan Honda, pembiayaan motor Honda Bandung, promo motor Honda Bandung, harga Honda Bandung, kredit Honda Bandung, motor honda bandung, harga OTR Honda Bandung, cicilan Honda Bandung, DP Honda Bandung, sales Honda Bandung, showroom Honda Bandung, dealer Honda Gegerkalong, dealer Honda Bandung resmi, dealer motor Bandung, honda wijaya abadi mulia motor, kredit motor honda bandung, honda bandung promo, bandung motor honda, honda gegerkalong, Honda Wijaya Abadi Mulia Motor, dealer honda bandung, dealer resmi honda bandung, honda bandung resmi, promo motor honda, harga honda beat bandung, honda beat bandung, harga honda scoopy bandung, honda scoopy bandung, harga honda vario bandung, honda vario bandung, harga honda pcx bandung, honda pcx bandung, harga honda adv bandung, honda adv bandung, kredit honda bandung, cicilan honda bandung, simulasi kredit honda bandung, harga sepeda motor honda bandung, dealer sepeda motor honda bandung, showroom honda bandung, agen motor honda bandung, promo cicilan motor honda bandung" />
     <meta name="robots" content="index, follow" />
@@ -30,7 +30,7 @@
     <link rel="canonical" href="https://kreditmotorhonda.tech/" />
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Dealer Motor Honda Bandung | Harga & Kredit" />
+    <meta property="og:title" content="Dealer Motor Honda Bandung | Harga &amp; Kredit" />
     <meta property="og:description" content="Honda Bandung: dealer motor Honda di Gegerkalong. Cek harga OTR, simulasi kredit, pilihan DP dan tenor, lalu konsultasi melalui WhatsApp." />
     <meta property="og:url" content="https://kreditmotorhonda.tech/" />
     <meta property="og:type" content="website" />
@@ -41,7 +41,7 @@
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Dealer Motor Honda Bandung | Harga & Kredit" />
+    <meta name="twitter:title" content="Dealer Motor Honda Bandung | Harga &amp; Kredit" />
     <meta name="twitter:description" content="Honda Bandung: dealer motor Honda di Gegerkalong. Cek harga OTR, simulasi kredit, pilihan DP dan tenor, lalu konsultasi melalui WhatsApp." />
     <meta name="twitter:image" content="https://kreditmotorhonda.tech/uploads/logo.jpeg" />
     
@@ -62,8 +62,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Google Fonts -->
-    <link id="google-font-plus-jakarta-sans" rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=optional" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=optional" rel="stylesheet"></noscript>
+    <link id="google-font-plus-jakarta-sans" rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=optional" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=optional" rel="stylesheet"></noscript>
     
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -108,14 +108,7 @@
           },
           "openingHoursSpecification": {
             "@type": "OpeningHoursSpecification",
-            "dayOfWeek": [
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday"
-            ],
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
             "opens": "08:00",
             "closes": "17:00"
           },
@@ -125,6 +118,7 @@
           "@type": "Product",
           "@id": "https://kreditmotorhonda.tech/#kredit-motor-honda",
           "name": "Kredit Motor Honda",
+          "image": "https://kreditmotorhonda.tech/uploads/1790930080046-97bc0e24-1790930080616-j5lux2u-supra_x_125_cw-2-04032022-102025.jpg",
           "brand": {
             "@type": "Brand",
             "name": "Honda"
@@ -195,10 +189,37 @@
       ]
     }
     </script>
-    
+    <script>
+      (() => {
+        const structuredDataScript = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
+          .find((script) => script.textContent?.includes('#kredit-motor-honda'));
+        if (!structuredDataScript) return;
+
+        Promise.all([fetch('/api/motors'), fetch('/api/settings')])
+          .then(async ([motorsResponse, settingsResponse]) => {
+            const motors = motorsResponse.ok ? await motorsResponse.json() : [];
+            const settings = settingsResponse.ok ? await settingsResponse.json() : {};
+            const imagePath = (Array.isArray(motors) ? motors : [])
+              .flatMap((motor) => [motor.image, ...(Array.isArray(motor.images) ? motor.images : [])])
+              .find((image) => typeof image === 'string' && image.trim())
+              || settings.heroImage
+              || settings.logo;
+            if (!imagePath) return;
+
+            const structuredData = JSON.parse(structuredDataScript.textContent || '{}');
+            const graph = Array.isArray(structuredData['@graph']) ? structuredData['@graph'] : [structuredData];
+            const product = graph.find((item) => item['@id'] === 'https://kreditmotorhonda.tech/#kredit-motor-honda');
+            if (!product) return;
+
+            product.image = new URL(imagePath, window.location.origin).href;
+            structuredDataScript.textContent = JSON.stringify(structuredData).replace(/</g, '\\u003c');
+          })
+          .catch(() => undefined);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./src/main.tsx"></script>
+    <script type="module" crossorigin src="/assets/index-CGWKOi96.js"></script>
   </body>
 </html>
