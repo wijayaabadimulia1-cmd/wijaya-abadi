@@ -2538,6 +2538,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="mt-3 block text-sky-300 hover:text-sky-200">Buka sitemap.xml</a>
                       <a href="/robots.txt" target="_blank" rel="noreferrer" className="mt-2 block text-sky-300 hover:text-sky-200">Buka robots.txt</a>
                     </section>
+                    <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4 text-xs">
+                      <h3 className="font-bold text-white">Inspeksi URL Google</h3>
+                      <p className="mt-2 leading-relaxed text-zinc-400">
+                        Setelah GitHub Actions Secret dikonfigurasi, workflow memeriksa status indeks URL dari sitemap setiap hari pukul 09.17 WIB dan dapat dijalankan manual.
+                      </p>
+                      <a
+                        href="https://github.com/wijayaabadimulia1-cmd/wijaya-abadi/actions/workflows/search-console-inspection.yml"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 font-semibold text-sky-300 hover:border-sky-400/40 hover:text-sky-200"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        Jalankan / lihat inspeksi
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
+                        Kredensial Search Console disimpan sebagai GitHub Actions Secret, bukan di panel admin. Hasil inspeksi menunjukkan status indeks, bukan permintaan pengindeksan.
+                      </p>
+                    </section>
                   </aside>
                 </div>
               </form>
