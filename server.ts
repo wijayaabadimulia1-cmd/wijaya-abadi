@@ -143,12 +143,13 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
     : String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
   const robots = String(settings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
+  const initialWebsiteTemplate = JSON.stringify(String(settings.websiteTemplate || 'honda-wijaya')).replace(/</g, '\\u003c');
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
     : '';
 
   return html
-    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}`)
+    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}<script>window.__HWA_INITIAL_WEBSITE_TEMPLATE__=${initialWebsiteTemplate};</script>`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
@@ -676,7 +677,7 @@ async function startServer() {
       next(error);
     }
   });
-  app.use('/uploads', express.static(UPLOADS_DIR));
+  app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '1h' }));
   app.use('/api/files', express.static(UPLOADS_DIR));
 
   // --- API Endpoints ---
@@ -1710,7 +1711,21 @@ async function startServer() {
       dotfiles: 'allow',
       index: false,
     }));
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders(res, filePath) {
+        const fileName = path.basename(filePath);
+        const relativePath = path.relative(distPath, filePath);
+        const isFingerprintAsset = path.dirname(filePath) === path.join(distPath, 'assets')
+          && /-[A-Za-z0-9_-]{8,}\.(?:css|js)$/.test(fileName);
+        const isStableImage = relativePath.startsWith(`images${path.sep}`);
+        const cacheControl = isFingerprintAsset
+          ? 'public, max-age=31536000, immutable'
+          : isStableImage
+            ? 'public, max-age=2592000'
+            : 'public, max-age=0, must-revalidate';
+        res.setHeader('Cache-Control', cacheControl);
+      },
+    }));
     app.get('*', (req, res) => {
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}, req.path));

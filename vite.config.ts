@@ -16,6 +16,24 @@ export default defineConfig(({ command }) => {
       react(),
       tailwindcss(),
       {
+        name: 'non-blocking-bundled-stylesheet',
+        apply: 'build',
+        transformIndexHtml: {
+          order: 'post',
+          handler(html) {
+            let bundledStylesheet = '';
+            const transformedHtml = html.replace(/<link\b[^>]*rel="stylesheet"[^>]*>/g, (link) => {
+              const href = link.match(/\bhref="([^"]+\.css)"/)?.[1];
+              if (!href) return link;
+
+              bundledStylesheet = `<link rel="preload" as="style" href="${href}" onload="this.onload=null;this.rel='stylesheet'"><noscript>${link}</noscript>`;
+              return '';
+            });
+            return transformedHtml.replace(/<head[^>]*>/i, (head) => `${head}${bundledStylesheet}`);
+          },
+        },
+      },
+      {
         name: 'github-pages-spa-fallback',
         closeBundle() {
           if (isBuild) {

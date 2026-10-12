@@ -21,6 +21,9 @@ const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPan
 export default function App() {
   const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
   const websitePath = isAdminRoute ? window.location.pathname.slice(0, -'/admin'.length) || '/' : '/';
+  const initialWebsiteTemplate = (window as Window & {
+    __HWA_INITIAL_WEBSITE_TEMPLATE__?: DealerSettings['websiteTemplate'];
+  }).__HWA_INITIAL_WEBSITE_TEMPLATE__;
   const [settings, setSettings] = useState<DealerSettings>({
     id: 'hwa-settings-01',
     name: 'Honda Wijaya Abadi Mulia Motor',
@@ -43,7 +46,7 @@ export default function App() {
     seoKeywords: DEFAULT_SEO_KEYWORDS,
     seoCanonicalUrl: DEFAULT_SEO_CANONICAL_URL,
     seoRobots: DEFAULT_SEO_ROBOTS,
-    websiteTemplate: 'honda-wijaya',
+    websiteTemplate: initialWebsiteTemplate || 'honda-wijaya',
     catalogAnimation: DEFAULT_CATALOG_ANIMATION,
     catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
     customization: {
