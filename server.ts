@@ -148,7 +148,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
     : '';
 
   return html
-    .replace(/<\/head>/i, `${heroImagePreload}</head>`)
+    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)

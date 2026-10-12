@@ -448,6 +448,24 @@ html[data-color-mode="dark"] body {
   border-color: #fecaca !important;
 }
 
+.website-shell.site-mode-light #root #katalog select.bg-zinc-900,
+.website-shell.site-mode-light #root #katalog button[class~="bg-zinc-900/80"],
+.website-shell.site-mode-light #root #katalog [class~="bg-zinc-900/90"] {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #64748b !important;
+}
+
+.website-shell.site-mode-light #root #katalog select.bg-zinc-900 option {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+}
+
+.website-shell.site-mode-light #root #katalog button[class~="bg-zinc-900/80"]:hover {
+  color: #111827 !important;
+  background-color: #e2e8f0 !important;
+}
+
 .website-shell.site-font-serif {
   font-family: Georgia, 'Times New Roman', serif;
   --ui-page-gradient: linear-gradient(145deg, #ffffff 0%, #f7faff 54%, #edf6ff 100%);
