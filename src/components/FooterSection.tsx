@@ -70,7 +70,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-2"
+                  className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-2"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span>Chat Sales via WhatsApp</span>
