@@ -24,6 +24,16 @@ export default function App() {
   const initialSettings = (window as Window & {
     __HWA_INITIAL_SETTINGS__?: Partial<DealerSettings>;
   }).__HWA_INITIAL_SETTINGS__;
+  const initialData = (window as Window & {
+    __HWA_INITIAL_DATA__?: {
+      motors: Motor[];
+      promos: Promo[];
+      testimonials: Testimonial[];
+      manifesto: ManifestoItem[];
+      fifPriceList: FIFPriceList;
+    };
+  }).__HWA_INITIAL_DATA__;
+  const initialPriceList = initialData?.fifPriceList || DEFAULT_FIF_PRICE_LIST;
   const [settings, setSettings] = useState<DealerSettings>({
     id: 'hwa-settings-01',
     name: 'Honda Wijaya Abadi Mulia Motor',
@@ -64,12 +74,12 @@ export default function App() {
     },
   });
 
-  const [motors, setMotors] = useState<Motor[]>([]);
-  const [fifPriceList, setFifPriceList] = useState<FIFPriceList>(DEFAULT_FIF_PRICE_LIST);
-  const [promos, setPromos] = useState<Promo[]>([]);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [manifesto, setManifesto] = useState<ManifestoItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [motors, setMotors] = useState<Motor[]>(() => (initialData?.motors || []).map((motor) => normalizeMotorOtrPrice(motor, initialPriceList)));
+  const [fifPriceList, setFifPriceList] = useState<FIFPriceList>(initialPriceList);
+  const [promos, setPromos] = useState<Promo[]>(initialData?.promos || []);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(initialData?.testimonials || []);
+  const [manifesto, setManifesto] = useState<ManifestoItem[]>(initialData?.manifesto || []);
+  const [loading, setLoading] = useState<boolean>(!initialData);
 
   // Compare list state
   const [compareList, setCompareList] = useState<Motor[]>([]);
@@ -133,6 +143,7 @@ export default function App() {
       void loadData();
       return;
     }
+    if (initialData) return;
 
     let isCurrent = true;
     let idleCallbackId: number | undefined;
@@ -229,10 +240,24 @@ export default function App() {
 
     const trackedKey = `hwa-visitor-tracked:${sessionId}`;
     if (sessionStorage.getItem(trackedKey)) return;
-    sessionStorage.setItem(trackedKey, 'pending');
-    void api.trackVisitor(sessionId, window.location.pathname)
-      .then(() => sessionStorage.setItem(trackedKey, 'done'))
-      .catch(() => sessionStorage.removeItem(trackedKey));
+
+    let timeoutId: number | undefined;
+    const track = () => {
+      sessionStorage.setItem(trackedKey, 'pending');
+      void api.trackVisitor(sessionId, window.location.pathname)
+        .then(() => sessionStorage.setItem(trackedKey, 'done'))
+        .catch(() => sessionStorage.removeItem(trackedKey));
+    };
+    const scheduleTracking = () => {
+      timeoutId = window.setTimeout(track, 5000);
+    };
+
+    if (document.readyState === 'complete') scheduleTracking();
+    else window.addEventListener('load', scheduleTracking, { once: true });
+    return () => {
+      window.removeEventListener('load', scheduleTracking);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, [isAdminRoute]);
 
   useEffect(() => {

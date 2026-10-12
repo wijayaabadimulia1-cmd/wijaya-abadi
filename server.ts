@@ -86,7 +86,30 @@ function escapeHtmlAttribute(value: string) {
   })[character] || character);
 }
 
-function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
+function createPublicInitialData(db: any) {
+  const testimonials = (Array.isArray(db.testimonials) ? db.testimonials : [])
+    .filter((item: any) => item.approved !== false)
+    .map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      motor: item.motor,
+      rating: item.rating,
+      comment: item.comment,
+      approved: true,
+      date: item.date,
+      created_at: item.created_at,
+    }));
+
+  return {
+    motors: Array.isArray(db.motors) ? db.motors : [],
+    promos: Array.isArray(db.promos) ? db.promos : [],
+    testimonials,
+    manifesto: Array.isArray(db.manifesto) ? db.manifesto : [],
+    fifPriceList: currentFifPriceList(db),
+  };
+}
+
+function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', initialData?: unknown) {
   const landingSeo: Record<string, { title: string; description: string; keywords: string }> = {
     '/dealer-honda-bandung': {
       title: 'Dealer Honda Bandung | Promo & Kredit Terbaik',
@@ -144,12 +167,13 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/') {
   const robots = String(settings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
   const initialSettings = JSON.stringify(settings).replace(/</g, '\\u003c');
+  const initialPublicData = JSON.stringify(initialData).replace(/</g, '\\u003c');
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
     : '';
 
   return html
-    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};</script>`)
+    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
@@ -1680,7 +1704,8 @@ async function startServer() {
       try {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
-        res.type('html').send(renderSeoMetadata(transformedHtml, readDb().settings || {}, req.path));
+        const db = readDb();
+        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(db)));
       } catch (error) {
         next(error);
       }
@@ -1702,7 +1727,8 @@ async function startServer() {
     ], (req, res, next) => {
       try {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-        res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}, req.path));
+        const db = readDb();
+        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
       } catch (error) {
         next(error);
       }
@@ -1728,7 +1754,8 @@ async function startServer() {
     }));
     app.get('*', (req, res) => {
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-      res.type('html').send(renderSeoMetadata(indexHtml, readDb().settings || {}, req.path));
+      const db = readDb();
+      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
     });
   }
 
