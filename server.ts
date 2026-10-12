@@ -1655,6 +1655,11 @@ async function startServer() {
 
   // Vite middleware in dev or static files in production
   if (process.env.NODE_ENV !== 'production') {
+    app.use('/.well-known', express.static(path.join(process.cwd(), 'public', '.well-known'), {
+      dotfiles: 'allow',
+      index: false,
+    }));
+
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
