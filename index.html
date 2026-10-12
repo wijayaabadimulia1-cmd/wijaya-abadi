@@ -109,27 +109,6 @@
           "hasMap": "https://maps.google.com/?q=Jl.+Gegerkalong+Hilir+No.68+Bandung"
         },
         {
-          "@type": "Product",
-          "@id": "https://kreditmotorhonda.tech/#kredit-motor-honda",
-          "name": "Kredit Motor Honda",
-          "image": "https://kreditmotorhonda.tech/uploads/1790930080046-97bc0e24-1790930080616-j5lux2u-supra_x_125_cw-2-04032022-102025.jpg",
-          "brand": { "@type": "Brand", "name": "Honda" },
-          "category": "Motorcycle Financing",
-          "description": "Layanan kredit motor Honda dengan simulasi DP, tenor, dan estimasi cicilan bulanan untuk pembelian motor Honda di Bandung.",
-          "url": "https://kreditmotorhonda.tech/",
-          "seller": { "@type": "AutoDealer", "name": "Honda Wijaya Abadi Mulia Motor", "url": "https://kreditmotorhonda.tech/" },
-          "offers": [{
-            "@type": "Offer",
-            "name": "Simulasi Kredit Motor Honda",
-            "priceCurrency": "IDR",
-            "price": "0",
-            "availability": "https://schema.org/InStock",
-            "itemCondition": "https://schema.org/NewCondition",
-            "url": "https://kreditmotorhonda.tech/"
-          }],
-          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "153" }
-        },
-        {
           "@type": "WebSite",
           "@id": "https://kreditmotorhonda.tech/#website",
           "name": "Honda Wijaya Abadi Mulia Motor",
@@ -160,34 +139,6 @@
         }
       ]
     }
-    </script>
-    <script>
-      (() => {
-        const structuredDataScript = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
-          .find((script) => script.textContent?.includes('#kredit-motor-honda'));
-        if (!structuredDataScript) return;
-
-        Promise.all([fetch('/api/motors'), fetch('/api/settings')])
-          .then(async ([motorsResponse, settingsResponse]) => {
-            const motors = motorsResponse.ok ? await motorsResponse.json() : [];
-            const settings = settingsResponse.ok ? await settingsResponse.json() : {};
-            const imagePath = (Array.isArray(motors) ? motors : [])
-              .flatMap((motor) => [motor.image, ...(Array.isArray(motor.images) ? motor.images : [])])
-              .find((image) => typeof image === 'string' && image.trim())
-              || settings.heroImage
-              || settings.logo;
-            if (!imagePath) return;
-
-            const structuredData = JSON.parse(structuredDataScript.textContent || '{}');
-            const graph = Array.isArray(structuredData['@graph']) ? structuredData['@graph'] : [structuredData];
-            const product = graph.find((item) => item['@id'] === 'https://kreditmotorhonda.tech/#kredit-motor-honda');
-            if (!product) return;
-
-            product.image = new URL(imagePath, window.location.origin).href;
-            structuredDataScript.textContent = JSON.stringify(structuredData).replace(/</g, '\\u003c');
-          })
-          .catch(() => undefined);
-      })();
     </script>
   </head>
   <body>
