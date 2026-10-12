@@ -633,6 +633,12 @@ async function startServer() {
   app.use(compression());
   app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+  app.use((req, res, next) => {
+    if (req.hostname.toLowerCase() === 'www.kreditmotorhonda.tech') {
+      return res.redirect(301, `https://kreditmotorhonda.tech${req.originalUrl}`);
+    }
+    next();
+  });
 
   // Public reads remain available; all writes require an authenticated admin.
   app.use('/api', (req, res, next) => {
@@ -1705,6 +1711,7 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
+        res.set('Cache-Control', 'no-cache');
         res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(db)));
       } catch (error) {
         next(error);
@@ -1728,6 +1735,7 @@ async function startServer() {
       try {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
         const db = readDb();
+        res.set('Cache-Control', 'no-cache');
         res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
       } catch (error) {
         next(error);
@@ -1753,8 +1761,10 @@ async function startServer() {
       },
     }));
     app.get('*', (req, res) => {
+      if (path.extname(req.path)) return res.sendStatus(404);
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       const db = readDb();
+      res.set('Cache-Control', 'no-cache');
       res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
     });
   }
