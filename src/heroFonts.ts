@@ -104,7 +104,7 @@ export const HERO_FONT_OPTIONS = [
 export type HeroFont = (typeof HERO_FONT_OPTIONS)[number];
 
 const LEGACY_HERO_FONT_FAMILIES: Record<string, string> = {
-  jakarta: 'Plus Jakarta Sans',
+  jakarta: 'system-ui',
   serif: 'Georgia',
   mono: 'monospace',
   system: 'system-ui',
