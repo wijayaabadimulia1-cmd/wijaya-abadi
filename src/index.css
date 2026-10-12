@@ -897,6 +897,12 @@ html[data-color-mode="dark"] body {
 
 .website-shell.site-mode-light [class*="text-emerald-300"],
 .website-shell.site-mode-light [class*="text-emerald-400"],
+
+.website-shell.site-mode-dark [class*="text-red-300"],
+.website-shell.site-mode-dark [class*="text-red-400"],
+.website-shell.site-mode-dark [class*="text-red-500"] {
+  color: #ff6878 !important;
+}
 .website-shell.site-mode-light [class*="text-emerald-500"] {
   color: #047857 !important;
 }
