@@ -2429,6 +2429,7 @@ html[data-color-mode="dark"] body {
   .natural-cool-landscape {
     width: 100%;
     opacity: 0.42;
+    --natural-cool-landscape-image: url('/images/wijaya-cool-bandung-landscape-mobile.webp');
     background-position: center, center, 56% center;
     mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.55) 20%, #000 48%);
   }

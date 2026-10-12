@@ -670,7 +670,7 @@ async function startServer() {
         await fs.promises.writeFile(cachePath, imageBuffer);
       }
 
-      res.set('Cache-Control', 'public, max-age=86400');
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
       res.type('image/webp').send(imageBuffer);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return res.sendStatus(404);
