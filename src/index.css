@@ -470,6 +470,13 @@ html[data-color-mode="dark"] body {
   background-color: #e2e8f0 !important;
 }
 
+@media (max-width: 767px) {
+  .website-shell .catalog-card,
+  .website-shell .catalog-photo-animation[data-catalog-animation="flip"] {
+    animation: none !important;
+  }
+}
+
 .website-shell.site-font-serif {
   font-family: Georgia, 'Times New Roman', serif;
   --ui-page-gradient: linear-gradient(145deg, #ffffff 0%, #f7faff 54%, #edf6ff 100%);

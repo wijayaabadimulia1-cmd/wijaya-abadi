@@ -90,8 +90,8 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
     >
       <img
         key={currentImage}
-        src={responsiveUploadImageUrl(currentImage, 640)}
-        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 480, 560, 640])}
+        src={responsiveUploadImageUrl(currentImage, 480)}
+        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 400, 480])}
         sizes="(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(50vw - 88px), (max-width: 1279px) calc(33.333vw - 91px), 336px"
         alt={`${motor.name} foto ${imageIndex + 1}`}
         width={515}

@@ -194,7 +194,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                       }`}
                     >
                       <div className="text-sm">{months} bln</div>
-                      <div className="text-[10px] opacity-75 font-normal">
+                      <div className="text-[10px] font-normal text-zinc-300">
                         {months === 11 ? '1 Tahun' : months === 17 ? '1,5 Tahun' : months === 23 ? '2 Tahun' : months === 29 ? '2,5 Tahun' : '3 Tahun'}
                       </div>
                     </button>
