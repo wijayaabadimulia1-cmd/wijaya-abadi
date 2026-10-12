@@ -227,7 +227,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isAdminRoute) return;
+    if (isAdminRoute || /bot|crawler|spider|slurp/i.test(navigator.userAgent)) return;
 
     const sessionKey = 'hwa-visitor-session';
     let sessionId = sessionStorage.getItem(sessionKey);
