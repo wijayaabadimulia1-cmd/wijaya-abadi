@@ -235,7 +235,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                       />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-white">{activeMotor.name}</h4>
+                      <h3 className="text-sm font-bold text-white">{activeMotor.name}</h3>
                       <p className="text-xs text-zinc-400">{activeMotor.category}</p>
                     </div>
                   </div>

@@ -243,10 +243,10 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
 
               <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
                     <span>{testi.name}</span>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  </h4>
+                  </h3>
                   <p className="text-xs text-red-400 font-medium">{testi.motor}</p>
                   {testi.email && <p className="mt-1 text-[10px] text-zinc-400">{testi.email}</p>}
                   {testi.phone && <p className="text-[10px] text-zinc-400">{testi.phone}</p>}

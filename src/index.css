@@ -430,6 +430,24 @@ html[data-color-mode="dark"] body {
   color: var(--custom-primary, var(--site-accent)) !important;
 }
 
+.website-shell.site-mode-light {
+  --custom-muted: #52525b !important;
+  --site-muted-effective: #52525b !important;
+}
+
+.website-shell.site-mode-light .text-zinc-300,
+.website-shell.site-mode-light .text-zinc-400,
+.website-shell.site-mode-light .text-zinc-500 {
+  color: #52525b !important;
+}
+
+.website-shell.site-mode-light .site-navbar .site-accent-label,
+#root .website-shell.site-mode-light #katalog .site-accent-label {
+  color: #7f1d1d !important;
+  background-color: #fff1f2 !important;
+  border-color: #fecaca !important;
+}
+
 .website-shell.site-font-serif {
   font-family: Georgia, 'Times New Roman', serif;
   --ui-page-gradient: linear-gradient(145deg, #ffffff 0%, #f7faff 54%, #edf6ff 100%);
