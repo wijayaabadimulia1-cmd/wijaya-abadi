@@ -723,7 +723,7 @@ html[data-color-mode="dark"] body {
   color: #18181b !important;
 }
 
-.website-shell.site-mode-light #simulasi .text-center > div {
+.website-shell.site-mode-light #simulasi .text-center > .inline-flex {
   color: #991b1b !important;
   background-color: rgba(185, 28, 28, 0.08) !important;
   border-color: rgba(185, 28, 28, 0.28) !important;
@@ -737,7 +737,7 @@ html[data-color-mode="dark"] body {
   color: #f8fafc !important;
 }
 
-.website-shell.site-mode-dark #simulasi .text-center > div {
+.website-shell.site-mode-dark #simulasi .text-center > .inline-flex {
   color: #fca5a5 !important;
   background-color: rgba(220, 38, 38, 0.14) !important;
   border-color: rgba(248, 113, 113, 0.4) !important;
@@ -829,6 +829,15 @@ html[data-color-mode="dark"] body {
   color: #18181b !important;
 }
 
+.website-shell.site-mode-light .simulator-container button.bg-red-600,
+.website-shell.site-mode-light .simulator-container button.bg-red-600 * {
+  color: #ffffff !important;
+}
+
+.website-shell.site-mode-light #simulasi .simulator-container button.bg-red-600 > div {
+  color: #ffffff !important;
+}
+
 .website-shell.site-mode-light [class*="border-white"] {
   border-color: rgba(24, 24, 27, 0.14) !important;
 }
@@ -838,9 +847,8 @@ html[data-color-mode="dark"] body {
   background-color: #e4e4e7 !important;
 }
 
-.website-shell.site-mode-light [class*="bg-red-600"],
-.website-shell.site-mode-light [class*="bg-red-700"],
-.website-shell.site-mode-light [class*="bg-gradient-to-r"] {
+.website-shell.site-mode-light [class~="bg-red-600"],
+.website-shell.site-mode-light [class~="bg-red-700"] {
   color: #ffffff !important;
 }
 
@@ -925,9 +933,8 @@ html[data-color-mode="dark"] body {
   color: #a16207 !important;
 }
 
-.website-shell.site-mode-light [class*="bg-emerald-600"],
-.website-shell.site-mode-light [class*="bg-red-600"],
-.website-shell.site-mode-light [class*="bg-gradient-to-r"] {
+.website-shell.site-mode-light [class~="bg-emerald-600"],
+.website-shell.site-mode-light [class~="bg-red-600"] {
   color: #ffffff !important;
 }
 
