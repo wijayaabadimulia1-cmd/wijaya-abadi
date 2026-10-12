@@ -755,7 +755,7 @@ export default function App() {
             href={floatingWaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex items-center gap-2.5 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-950/60 transition-all hover:scale-105 active:scale-95"
+            className="group flex items-center gap-2.5 px-4 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-full shadow-2xl shadow-emerald-950/60 transition-all hover:scale-105 active:scale-95"
             title="Chat WhatsApp Sales"
           >
             <MessageSquare className="w-5 h-5 fill-current" />
@@ -883,7 +883,7 @@ export default function App() {
           href={floatingWaUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-2.5 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-950/60 transition-all hover:scale-105 active:scale-95"
+          className="group flex items-center gap-2.5 px-4 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-full shadow-2xl shadow-emerald-950/60 transition-all hover:scale-105 active:scale-95"
           title="Chat WhatsApp Sales"
         >
           <MessageSquare className="w-5 h-5 fill-current" />
