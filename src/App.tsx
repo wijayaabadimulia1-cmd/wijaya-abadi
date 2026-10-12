@@ -21,9 +21,9 @@ const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPan
 export default function App() {
   const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
   const websitePath = isAdminRoute ? window.location.pathname.slice(0, -'/admin'.length) || '/' : '/';
-  const initialWebsiteTemplate = (window as Window & {
-    __HWA_INITIAL_WEBSITE_TEMPLATE__?: DealerSettings['websiteTemplate'];
-  }).__HWA_INITIAL_WEBSITE_TEMPLATE__;
+  const initialSettings = (window as Window & {
+    __HWA_INITIAL_SETTINGS__?: Partial<DealerSettings>;
+  }).__HWA_INITIAL_SETTINGS__;
   const [settings, setSettings] = useState<DealerSettings>({
     id: 'hwa-settings-01',
     name: 'Honda Wijaya Abadi Mulia Motor',
@@ -46,9 +46,10 @@ export default function App() {
     seoKeywords: DEFAULT_SEO_KEYWORDS,
     seoCanonicalUrl: DEFAULT_SEO_CANONICAL_URL,
     seoRobots: DEFAULT_SEO_ROBOTS,
-    websiteTemplate: initialWebsiteTemplate || 'honda-wijaya',
     catalogAnimation: DEFAULT_CATALOG_ANIMATION,
     catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
+    ...initialSettings,
+    websiteTemplate: initialSettings?.websiteTemplate || 'honda-wijaya',
     customization: {
       primaryColor: '#e60012',
       accentColor: '#ff2638',
@@ -59,6 +60,7 @@ export default function App() {
       font: 'jakarta',
       heroAlignment: 'left',
       cardRadius: 'round',
+      ...initialSettings?.customization,
     },
   });
 
@@ -165,8 +167,10 @@ export default function App() {
 
     const loadInitialSettings = async () => {
       try {
-        const settingsData = await api.getSettings().catch(() => null);
-        if (isCurrent && settingsData?.name) setSettings(settingsData);
+        if (!initialSettings?.name) {
+          const settingsData = await api.getSettings().catch(() => null);
+          if (isCurrent && settingsData?.name) setSettings(settingsData);
+        }
       } catch (err) {
         console.error('Error fetching initial settings from API:', err);
       } finally {

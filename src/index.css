@@ -431,6 +431,10 @@ html[data-color-mode="dark"] body {
 }
 
 .website-shell.site-mode-light {
+  --site-bg-effective: #f7f7f8 !important;
+  --site-panel-effective: #ffffff !important;
+  --site-card-effective: #ffffff !important;
+  --site-text-effective: #171717 !important;
   --custom-muted: #52525b !important;
   --site-muted-effective: #52525b !important;
 }
@@ -888,7 +892,7 @@ html[data-color-mode="dark"] body {
 .website-shell.site-mode-light [class*="text-red-300"],
 .website-shell.site-mode-light [class*="text-red-400"],
 .website-shell.site-mode-light [class*="text-red-500"] {
-  color: var(--custom-primary, #b91c1c) !important;
+  color: #991b1b !important;
 }
 
 .website-shell.site-mode-light .site-accent-label {

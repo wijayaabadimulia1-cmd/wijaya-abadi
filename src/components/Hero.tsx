@@ -208,7 +208,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
           <div className="lg:col-span-5 relative">
             <div className="relative group">
               {/* Outer Glow */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-red-600/30 to-orange-500/10 rounded-3xl blur-2xl group-hover:opacity-100 opacity-70 transition-all duration-700" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-red-600/30 to-orange-500/10 rounded-3xl blur-2xl group-hover:opacity-100 opacity-70 transition-opacity duration-700" />
 
               <div className="relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-[28px] p-4 sm:p-6 overflow-hidden shadow-[0_32px_60px_rgba(15,23,42,0.28)] ring-1 ring-white/5">
                 {/* Image showcase */}

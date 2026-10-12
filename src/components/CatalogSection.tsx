@@ -91,8 +91,8 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
       <img
         key={currentImage}
         src={responsiveUploadImageUrl(currentImage, 640)}
-        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 480, 640])}
-        sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1279px) 48vw, 32vw"
+        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 480, 560, 640])}
+        sizes="(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(50vw - 88px), (max-width: 1279px) calc(33.333vw - 91px), 336px"
         alt={`${motor.name} foto ${imageIndex + 1}`}
         width={515}
         height={504}
@@ -296,7 +296,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               return (
                 <div
                   key={motor.id}
-                  className="catalog-card group relative bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden hover:border-red-500/50 transition-all duration-500 flex flex-col justify-between"
+                  className="catalog-card group relative bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden hover:border-red-500/50 transition-transform duration-500 flex flex-col justify-between"
                   style={{ animationDelay: `${index * 70}ms` }}
                 >
                   {/* Glowing background on hover */}
