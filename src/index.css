@@ -448,20 +448,20 @@ html[data-color-mode="dark"] body {
   border-color: #fecaca !important;
 }
 
-.website-shell.site-mode-light #root #katalog select.bg-zinc-900,
-.website-shell.site-mode-light #root #katalog button[class~="bg-zinc-900/80"],
-.website-shell.site-mode-light #root #katalog [class~="bg-zinc-900/90"] {
+.website-shell.site-mode-light #katalog select.bg-zinc-900,
+.website-shell.site-mode-light #katalog button[class~="bg-zinc-900/80"],
+.website-shell.site-mode-light #katalog [class~="bg-zinc-900/90"] {
   color: #1f2937 !important;
   background-color: #ffffff !important;
   border-color: #64748b !important;
 }
 
-.website-shell.site-mode-light #root #katalog select.bg-zinc-900 option {
+.website-shell.site-mode-light #katalog select.bg-zinc-900 option {
   color: #1f2937 !important;
   background-color: #ffffff !important;
 }
 
-.website-shell.site-mode-light #root #katalog button[class~="bg-zinc-900/80"]:hover {
+.website-shell.site-mode-light #katalog button[class~="bg-zinc-900/80"]:hover {
   color: #111827 !important;
   background-color: #e2e8f0 !important;
 }
