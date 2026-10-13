@@ -662,7 +662,7 @@ async function startServer() {
 
   // Serve uploaded files
   const imageCacheDirectory = path.join(process.cwd(), 'data', 'image-cache');
-  const supportedImageWidths = new Set([96, 160, 320, 480, 640, 960, 1280]);
+  const supportedImageWidths = new Set([96, 160, 320, 400, 480, 640, 960, 1280]);
   const webpQuality = 70;
   app.get('/media/:filename', async (req, res, next) => {
     const filename = req.params.filename;
