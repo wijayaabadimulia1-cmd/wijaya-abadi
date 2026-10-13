@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Bike,
   Plus,
@@ -1064,6 +1065,126 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     } finally {
       setIsCheckingSeo(false);
     }
+  };
+
+  const handleRefreshSeoDashboard = async () => {
+    await Promise.all([handleCheckSeoFiles(), loadAllData(), onRefreshData()]);
+    showToast('Data SEO berhasil diperbarui');
+  };
+
+  const handleDownloadSeoUpdate = () => {
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      domain: seoDomain,
+      canonicalUrl: seoCanonicalUrl,
+      title: seoTitle,
+      description: seoDescription,
+      focusKeyword: seoFocusKeyword,
+      keywords: seoKeywords,
+      robots: seoRobots,
+      score: seoScore,
+      checks: seoChecks,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `seo-update-${seoDomain}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Update SEO berhasil diunduh');
+  };
+
+  const exportDatasets = [
+    { name: 'Motors', rows: motors as unknown as Record<string, unknown>[] },
+    { name: 'Promos', rows: promos as unknown as Record<string, unknown>[] },
+    { name: 'Testimonials', rows: testimonials as unknown as Record<string, unknown>[] },
+    { name: 'Interests', rows: leads as unknown as Record<string, unknown>[] },
+  ];
+  const exportValue = (value: unknown) => (
+    value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)
+  );
+
+  const handleExportAllCsv = () => {
+    const lines: string[] = [];
+    exportDatasets.forEach(({ name, rows }) => {
+      if (!rows.length) return;
+      const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+      lines.push(`# ${name}`, headers.map((value) => `"${value.replace(/"/g, '""')}"`).join(','));
+      rows.forEach((row) => {
+        lines.push(headers.map((header) => `"${exportValue(row[header]).replace(/\r?\n/g, ' ').replace(/"/g, '""')}"`).join(','));
+      });
+    });
+
+    if (!lines.length) {
+      showToast('Belum ada data yang bisa diekspor');
+      return;
+    }
+    const blob = new Blob([`\uFEFF${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `honda-wijaya-abadi-all-data-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Ekspor CSV semua data berhasil diunduh');
+  };
+
+  const handleExportAllXlsx = () => {
+    const workbook = XLSX.utils.book_new();
+    exportDatasets.forEach(({ name, rows }) => {
+      if (!rows.length) return;
+      const normalizedRows = rows.map((row) => Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [key, exportValue(value)])
+      ));
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(normalizedRows), name);
+    });
+    if (!workbook.SheetNames.length) {
+      showToast('Belum ada data yang bisa diekspor');
+      return;
+    }
+    XLSX.writeFile(workbook, `honda-wijaya-abadi-all-data-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    showToast('Ekspor XLSX semua data berhasil diunduh');
+  };
+
+  const handleExportClientPdf = () => {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      showToast('Izinkan pop-up untuk membuat laporan PDF');
+      return;
+    }
+
+    const htmlEntities: Record<string, string> = {
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    };
+    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => htmlEntities[character]);
+    const checkRows = seoChecks.map((check) => `
+      <tr><td>${escapeHtml(check.label)}</td><td class="${check.passed ? 'good' : 'attention'}">${check.passed ? 'Lolos' : 'Perlu perhatian'}</td><td>${escapeHtml(check.detail)}</td></tr>`).join('');
+    const passedChecks = seoChecks.filter((check) => check.passed).length;
+    const reportHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Laporan SEO - ${escapeHtml(seoDomain)}</title>
+      <style>
+        @page{size:A4 portrait;margin:16mm}*{box-sizing:border-box}body{margin:0;color:#202522;font:11px/1.55 Arial,sans-serif}
+        header{padding-bottom:16px;border-bottom:3px solid #b91c1c}.eyebrow{color:#b91c1c;font-size:9px;font-weight:700;text-transform:uppercase}
+        h1{margin:6px 0 2px;font-size:24px}.muted{color:#68716c}.score{display:flex;align-items:center;gap:15px;margin:18px 0;padding:14px;background:#f3f5f3;border-left:4px solid #b91c1c}
+        .score strong{font-size:28px}h2{margin:20px 0 8px;font-size:14px}dl{display:grid;grid-template-columns:125px 1fr;gap:6px 12px;margin:0}dt{color:#68716c}dd{margin:0;overflow-wrap:anywhere}
+        table{width:100%;border-collapse:collapse}th,td{padding:7px 6px;border-bottom:1px solid #e4e8e5;text-align:left;vertical-align:top}th{background:#f3f5f3}.good{color:#147343;font-weight:700}.attention{color:#a45a00;font-weight:700}
+        footer{margin-top:20px;padding-top:10px;border-top:1px solid #e4e8e5;color:#68716c;font-size:9px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+      </style></head><body>
+      <header><div class="eyebrow">Honda Wijaya Abadi · Ringkasan untuk klien</div><h1>Laporan SEO</h1><div class="muted">${escapeHtml(seoDomain)} · ${escapeHtml(new Date().toLocaleDateString('id-ID', { dateStyle: 'long' }))}</div></header>
+      <section class="score"><strong>${seoScore}/100</strong><div><b>${passedChecks} dari ${seoChecks.length} pemeriksaan lolos</b><br><span class="muted">Skor berdasarkan pemeriksaan SEO yang tersedia di dashboard.</span></div></section>
+      <h2>Ringkasan halaman utama</h2><dl><dt>Canonical</dt><dd>${escapeHtml(seoCanonicalUrl)}</dd><dt>Judul SEO</dt><dd>${escapeHtml(seoTitle)}</dd><dt>Deskripsi</dt><dd>${escapeHtml(seoDescription)}</dd><dt>Focus keyword</dt><dd>${escapeHtml(seoFocusKeyword || 'Belum diatur')}</dd><dt>Robots</dt><dd>${escapeHtml(seoRobots)}</dd></dl>
+      <h2>Hasil pemeriksaan</h2><table><thead><tr><th>Pemeriksaan</th><th>Status</th><th>Detail</th></tr></thead><tbody>${checkRows}</tbody></table>
+      <footer>Dokumen ini merangkum konfigurasi dan pemeriksaan teknis dari dashboard pada tanggal pembuatan. Hasil indeks dan performa Google perlu dikonfirmasi terpisah melalui Google Search Console.</footer>
+      </body></html>`;
+    printWindow.document.write(reportHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 300);
+    showToast('Laporan siap dicetak atau disimpan sebagai PDF');
   };
 
   return (
@@ -2403,6 +2524,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <p className="mt-1 text-xs text-zinc-400">Pantau kesiapan halaman utama dan kelola metadata pencarian.</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleRefreshSeoDashboard()}
+                      disabled={isCheckingSeo || isLoading}
+                      className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      <RotateCcw className={`h-3.5 w-3.5 ${isCheckingSeo || isLoading ? 'animate-spin' : ''}`} />
+                      {isCheckingSeo || isLoading ? 'Memperbarui...' : 'Refresh SEO'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadSeoUpdate}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download Update
+                    </button>
                     <a href={`https://www.google.com/search?q=${encodeURIComponent(`site:${seoDomain}`)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
                       <Search className="h-3.5 w-3.5" />
                       Cek hasil Google
@@ -2781,9 +2919,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <div className="flex items-start gap-3">
                       <FileDown className="mt-0.5 h-5 w-5 text-sky-400" />
                       <div>
-                        <h3 className="text-sm font-bold text-white">Ekspor CSV</h3>
-                        <p className="mt-1 text-xs text-zinc-400">Pilih satu kumpulan data untuk dibuka di spreadsheet.</p>
+                        <h3 className="text-sm font-bold text-white">Ekspor format file</h3>
+                        <p className="mt-1 text-xs text-zinc-400">Unduh semua data dalam format CSV atau XLSX, atau buat laporan SEO ringkas untuk klien dalam PDF.</p>
                       </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={activeExport !== null}
+                        onClick={() => void handleAdminExport('export-csv-all', async () => handleExportAllCsv(), 'Ekspor CSV semua data berhasil diunduh')}
+                        className="inline-flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-xs font-bold text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+                      >
+                        <FileDown className="h-4 w-4" /> CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={activeExport !== null}
+                        onClick={() => void handleAdminExport('export-pdf-client', async () => handleExportClientPdf(), 'Laporan SEO siap disimpan sebagai PDF')}
+                        className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                      >
+                        <FileText className="h-4 w-4" /> PDF ringkas klien
+                      </button>
+                      <button
+                        type="button"
+                        disabled={activeExport !== null}
+                        onClick={() => void handleAdminExport('export-xlsx-all', async () => handleExportAllXlsx(), 'Ekspor XLSX semua data berhasil diunduh')}
+                        className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+                      >
+                        <FileSpreadsheet className="h-4 w-4" /> XLSX
+                      </button>
                     </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                       {[
