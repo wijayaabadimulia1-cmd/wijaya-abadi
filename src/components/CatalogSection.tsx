@@ -43,6 +43,7 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
   );
   const [imageIndex, setImageIndex] = useState(0);
   const [isNearViewport, setIsNearViewport] = useState(false);
+  const [imageUnavailable, setImageUnavailable] = useState(false);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
   const currentImage = images[imageIndex] || images[0] || motor.image;
   const cycleSpeed = normalizeCatalogAnimationSpeed(animationSpeed);
@@ -54,6 +55,10 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
   useEffect(() => {
     setImageIndex(0);
   }, [motor.id, images.length]);
+
+  useEffect(() => {
+    setImageUnavailable(false);
+  }, [currentImage]);
 
   useEffect(() => {
     const element = imageButtonRef.current;
@@ -88,28 +93,32 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
       className="catalog-photo-frame relative h-64 w-full overflow-hidden flex items-center justify-center p-6 cursor-zoom-in"
       aria-label={`Lihat foto ${motor.name} ukuran penuh`}
     >
-      <img
-        key={currentImage}
-        src={responsiveUploadImageUrl(currentImage, 480)}
-        srcSet={responsiveUploadImageSrcSet(currentImage, [320, 400, 480])}
-        sizes="(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(50vw - 88px), (max-width: 1279px) calc(33.333vw - 91px), 336px"
-        alt={`${motor.name} foto ${imageIndex + 1}`}
-        width={515}
-        height={504}
-        loading="lazy"
-        decoding="async"
-        className="catalog-photo-animation max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
-        data-catalog-animation={selectedAnimation}
-        style={animationStyle}
-        onError={(event) => {
-          if (event.currentTarget.src.includes('/media/')) {
-            event.currentTarget.removeAttribute('srcset');
-            event.currentTarget.src = currentImage;
-            return;
-          }
-          event.currentTarget.closest('.catalog-card')?.classList.add('catalog-card-hidden');
-        }}
-      />
+      {imageUnavailable ? (
+        <span className="px-4 text-center text-sm font-semibold text-zinc-500">Foto belum tersedia</span>
+      ) : (
+        <img
+          key={currentImage}
+          src={responsiveUploadImageUrl(currentImage, 480)}
+          srcSet={responsiveUploadImageSrcSet(currentImage, [320, 400, 480])}
+          sizes="(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc(100vw - 96px), (max-width: 1023px) calc(50vw - 88px), (max-width: 1279px) calc(33.333vw - 91px), 336px"
+          alt={`${motor.name} foto ${imageIndex + 1}`}
+          width={515}
+          height={504}
+          loading="lazy"
+          decoding="async"
+          className="catalog-photo-animation max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
+          data-catalog-animation={selectedAnimation}
+          style={animationStyle}
+          onError={(event) => {
+            if (event.currentTarget.src.includes('/media/')) {
+              event.currentTarget.removeAttribute('srcset');
+              event.currentTarget.src = currentImage;
+              return;
+            }
+            setImageUnavailable(true);
+          }}
+        />
+      )}
       <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">
         Klik untuk lihat foto
       </span>
