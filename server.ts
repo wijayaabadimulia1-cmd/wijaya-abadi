@@ -631,7 +631,7 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 async function startServer() {
   const app = express();
   app.use(compression());
-  app.use(express.json({ limit: '20mb' }));
+  app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
   app.use((req, res, next) => {
     if (req.hostname.toLowerCase() === 'www.kreditmotorhonda.tech') {
