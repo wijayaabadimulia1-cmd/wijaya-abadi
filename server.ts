@@ -15,7 +15,7 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
 const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
 const FIF_TENORS = [11, 17, 23, 29, 35];
-const FIF_DP_PERCENTAGES = [10, 15, 20, 30, 40];
+const FIF_DP_PERCENTAGES = [10, 13, 15, 20, 25];
 const sessions = new Map<string, { id: string; username: string; role: string; createdAt: string }>();
 
 // Ensure directories exist

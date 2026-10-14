@@ -30,6 +30,38 @@ interface CatalogMotorImageProps {
   onPreview: (images: string[], index: number, alt: string) => void;
 }
 
+export function getCatalogMotorImages(motor: Pick<Motor, 'image' | 'images'>) {
+  return Array.from(
+    new Set([...(motor.images || []), motor.image].filter((image): image is string => Boolean(image?.trim())))
+  );
+}
+
+export function filterCatalogMotors(
+  motors: Motor[],
+  activeCategory: string,
+  searchQuery: string,
+  sortBy: 'default' | 'price-asc' | 'price-desc' | 'bestseller' = 'default',
+) {
+  return motors
+    .filter((motor) => {
+      const matchesCategory = activeCategory === 'Semua' || motor.category.toLowerCase().includes(activeCategory.toLowerCase());
+      const matchesSearch =
+        motor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        motor.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (motor.specs && motor.specs.some((spec) => spec.toLowerCase().includes(searchQuery.toLowerCase())));
+      return matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => {
+      const priceA = getMotorOtrPrice(a);
+      const priceB = getMotorOtrPrice(b);
+
+      if (sortBy === 'price-asc') return priceA - priceB;
+      if (sortBy === 'price-desc') return priceB - priceA;
+      if (sortBy === 'bestseller') return (b.is_bestseller ? 1 : 0) - (a.is_bestseller ? 1 : 0);
+      return 0;
+    });
+}
+
 const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
   motor,
   animation,
@@ -37,14 +69,12 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
   isPreviewOpen,
   onPreview,
 }) => {
-  const images = useMemo(
-    () => Array.from(new Set([...(motor.images || []), motor.image].filter((image) => Boolean(image?.trim())))),
-    [motor.images, motor.image],
-  );
+  const images = useMemo(() => getCatalogMotorImages(motor), [motor]);
   const [imageIndex, setImageIndex] = useState(0);
   const [isNearViewport, setIsNearViewport] = useState(false);
   const [imageUnavailable, setImageUnavailable] = useState(false);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const hasImages = images.length > 0;
   const currentImage = images[imageIndex] || images[0] || motor.image;
   const cycleSpeed = normalizeCatalogAnimationSpeed(animationSpeed);
   const selectedAnimation = isCatalogAnimation(animation) ? animation : DEFAULT_CATALOG_ANIMATION;
@@ -89,11 +119,15 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
     <button
       type="button"
       ref={imageButtonRef}
-      onClick={() => onPreview(images, imageIndex, motor.name)}
-      className="catalog-photo-frame relative h-64 w-full overflow-hidden flex items-center justify-center p-6 cursor-zoom-in"
-      aria-label={`Lihat foto ${motor.name} ukuran penuh`}
+      onClick={() => {
+        if (images.length > 0) {
+          onPreview(images, imageIndex, motor.name);
+        }
+      }}
+      className={`catalog-photo-frame relative h-64 w-full overflow-hidden flex items-center justify-center p-6 ${images.length > 0 ? 'cursor-zoom-in' : 'cursor-default'}`}
+      aria-label={images.length > 0 ? `Lihat foto ${motor.name} ukuran penuh` : `Foto ${motor.name} belum tersedia`}
     >
-      {imageUnavailable ? (
+      {!hasImages || imageUnavailable ? (
         <span className="px-4 text-center text-sm font-semibold text-zinc-500">Foto belum tersedia</span>
       ) : (
         <img
@@ -172,28 +206,10 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   const isCompared = (motorId: string) => compareList.some((m) => m.id === motorId);
 
   // Filter & sort
-  const filteredMotors = useMemo(() => {
-    return motors
-      .filter((m) => Boolean((m.images?.filter(Boolean)[0] || m.image || '').trim()))
-      .filter((m) => {
-        const matchesCategory =
-          activeCategory === 'Semua' || m.category.toLowerCase().includes(activeCategory.toLowerCase());
-        const matchesSearch =
-          m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (m.specs && m.specs.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase())));
-        return matchesCategory && matchesSearch;
-      })
-      .sort((a, b) => {
-        const priceA = getMotorOtrPrice(a);
-        const priceB = getMotorOtrPrice(b);
-
-        if (sortBy === 'price-asc') return priceA - priceB;
-        if (sortBy === 'price-desc') return priceB - priceA;
-        if (sortBy === 'bestseller') return (b.is_bestseller ? 1 : 0) - (a.is_bestseller ? 1 : 0);
-        return 0;
-      });
-  }, [motors, activeCategory, searchQuery, sortBy]);
+  const filteredMotors = useMemo(
+    () => filterCatalogMotors(motors, activeCategory, searchQuery, sortBy),
+    [motors, activeCategory, searchQuery, sortBy],
+  );
 
   return (
     <section id="katalog" className="py-24 bg-zinc-950 relative">

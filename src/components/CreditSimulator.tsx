@@ -45,6 +45,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
 
   // DP percentage (default 20%)
   const [dpPercent, setDpPercent] = useState<number>(20);
+  const dpPresetOptions = [10, 13, 15, 20, 25];
   // Tenor options follow the FIF price list.
   const [tenorMonths, setTenorMonths] = useState<number>(35);
   // Flat annual interest rate estimate (typical 8.5% - 11%)
@@ -146,8 +147,8 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                   id="simulator-dp-percent"
                   type="range"
                   min="10"
-                  max="60"
-                  step="5"
+                  max="25"
+                  step="1"
                   value={dpPercent}
                   onChange={(e) => setDpPercent(Number(e.target.value))}
                   className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-red-600"
@@ -155,7 +156,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
 
                 {/* Quick DP Preset Buttons */}
                 <div className="grid grid-cols-5 gap-2 mt-3">
-                  {[10, 15, 20, 30, 40].map((pct) => (
+                  {dpPresetOptions.map((pct) => (
                     <button
                       key={pct}
                       type="button"

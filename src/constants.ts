@@ -1,7 +1,7 @@
 import type { ThemeColorPalette, ThemeMode } from './types';
 
 export const MAX_MOTOR_IMAGES = 15;
-export const MAX_HERO_IMAGES = 10;
+export const MAX_HERO_IMAGES = 15;
 export const MAX_PROMO_IMAGES = 5;
 export const MAX_IMAGE_UPLOAD_BYTES = 100 * 1024 * 1024;
 export const DEFAULT_SEO_TITLE = 'Dealer Motor Honda Bandung | Harga & Kredit';

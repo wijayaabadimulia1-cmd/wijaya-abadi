@@ -3,7 +3,7 @@ import type { FIFPriceList, Motor } from '../types';
 
 export const DEFAULT_FIF_PRICE_LIST = fifPriceList as FIFPriceList;
 export const FIF_TENORS: number[] = DEFAULT_FIF_PRICE_LIST.tenors;
-export const FIF_DP_PERCENTAGES = [10, 15, 20, 30, 40];
+export const FIF_DP_PERCENTAGES = [10, 13, 15, 20, 25];
 
 function normalizeModelName(name: string): string {
   return name

@@ -2840,7 +2840,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       {activeExport === 'fif-template' ? 'Menyiapkan template...' : 'Download template Excel'}
                     </button>
                   </div>
-                  <p className="text-[11px] text-zinc-500">Template berisi kolom model, harga OTR, DP 10%, 15%, 20%, 30%, 40%, serta cicilan tenor 11, 17, 23, 29, dan 35 bulan.</p>
+                  <p className="text-[11px] text-zinc-500">Template berisi kolom model, harga OTR, DP 10%, 13%, 15%, 20%, 25%, serta cicilan tenor 11, 17, 23, 29, dan 35 bulan.</p>
                   <div className="overflow-hidden rounded-xl border border-white/10">
                     <div className="grid grid-cols-[minmax(0,1fr)_120px_110px] gap-3 border-b border-white/10 bg-zinc-950/80 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-zinc-400">
                       <span>Model motor</span>
