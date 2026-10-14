@@ -21,6 +21,7 @@ interface CustomizationPanelProps {
 export function CustomizationPanel({ settings, onSettingsChange }: CustomizationPanelProps) {
   const [previewMode, setPreviewMode] = useState<'logo' | 'banner' | 'fonts' | 'colors' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [editingThemeMode, setEditingThemeMode] = useState<ThemeMode>('dark');
   const selectedHeroFont = resolveHeroFont(settings.customization?.heroTextFont || settings.customization?.font);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -127,19 +128,26 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
     if (!filesToUpload.length) return;
 
     setIsUploading(true);
+    const uploadedImages: string[] = [];
     try {
-      const uploadedImages = await Promise.all(filesToUpload.map((file, index) => {
+      for (const [index, file] of filesToUpload.entries()) {
+        setUploadStatus(`Mengunggah foto ${index + 1}/${filesToUpload.length}...`);
         const extension = file.name.split('.').pop() || 'jpg';
         const uploadFile = new File([file], `hero-${Date.now()}-${index}.${extension}`, { type: file.type });
-        return api.uploadImage(uploadFile);
-      }));
+        uploadedImages.push(await api.uploadImage(uploadFile));
+      }
       const nextImages = [...heroImages, ...uploadedImages];
       onSettingsChange({ ...settings, heroImage: nextImages[0] || '', heroImages: nextImages });
     } catch (error) {
       console.error('Hero upload error:', error);
+      if (uploadedImages.length) {
+        const nextImages = [...heroImages, ...uploadedImages];
+        onSettingsChange({ ...settings, heroImage: nextImages[0] || '', heroImages: nextImages });
+      }
       alert(error instanceof Error ? `Gagal upload foto Banner Hero: ${error.message}` : 'Gagal upload foto Banner Hero');
     } finally {
       setIsUploading(false);
+      setUploadStatus('');
     }
   };
 
@@ -251,7 +259,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                 className="inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Upload className="h-4 w-4" />
-                {isUploading ? 'Mengunggah...' : 'Tambah foto'}
+                {isUploading ? uploadStatus || 'Mengunggah...' : 'Tambah foto'}
               </button>
               <input
                 ref={bannerInputRef}
