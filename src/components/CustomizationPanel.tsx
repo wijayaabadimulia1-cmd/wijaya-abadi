@@ -137,7 +137,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
       onSettingsChange({ ...settings, heroImage: nextImages[0] || '', heroImages: nextImages });
     } catch (error) {
       console.error('Hero upload error:', error);
-      alert('Gagal upload foto Banner Hero');
+      alert(error instanceof Error ? `Gagal upload foto Banner Hero: ${error.message}` : 'Gagal upload foto Banner Hero');
     } finally {
       setIsUploading(false);
     }

@@ -347,20 +347,32 @@ export const api = {
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     const contentType = file.type || contentTypeByExtension[extension] || 'application/octet-stream';
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${file.name}`;
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: {
-        ...adminHeaders(),
-        'Content-Type': contentType,
-        'X-File-Name': encodeURIComponent(uniqueName),
-      },
-      body: file,
-    });
-    const result = await res.json().catch(() => ({}));
-    if (!res.ok || !result.url) {
-      throw new Error(result.error || `Upload gagal (HTTP ${res.status})`);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 120_000);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          ...adminHeaders(),
+          'Content-Type': contentType,
+          'X-File-Name': encodeURIComponent(uniqueName),
+        },
+        body: file,
+        signal: controller.signal,
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.url) {
+        throw new Error(result.error || `Upload gagal (HTTP ${res.status})`);
+      }
+      return result.url;
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new Error('Upload melewati batas 120 detik. Periksa koneksi atau gunakan foto yang lebih kecil.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
     }
-    return result.url;
   },
 
   // Export / Download all data
