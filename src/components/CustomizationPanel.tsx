@@ -221,12 +221,14 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                   <img src={settings.logo} alt="Logo" className="h-20 w-auto rounded" />
                   <button
                     type="button"
-                    className="text-xs text-red-600 hover:text-red-700"
+                    aria-label="Hapus logo dealer"
+                    title="Hapus logo dealer"
+                    className="inline-flex items-center justify-center rounded-md p-1 text-red-600 hover:bg-red-50 hover:text-red-700"
                     onClick={(e) => {
                       e.stopPropagation();
                       onSettingsChange({ ...settings, logo: '' });
                     }}>
-                    Hapus
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
