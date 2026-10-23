@@ -795,6 +795,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'mulia-cerah', label: 'Mulia Cerah', accent: 'bg-gradient-to-r from-blue-600 to-cyan-400', description: 'Tema otomotif modern dengan palette biru-cyan yang konsisten di mode terang dan gelap.' },
     { value: 'honda-wijaya', label: 'Honda Wijaya', accent: 'bg-red-600', description: 'Showroom Honda dengan tampilan merah-putih yang tegas dan elegan.' },
     { value: 'wijaya-cool', label: 'Wijaya Cool', accent: 'bg-gradient-to-r from-emerald-600 to-sky-400', description: 'Nuansa sejuk pegunungan Bandung, kabut lembut, cahaya berkilau, dan daun jatuh.' },
+    { value: 'wijaya-meriah', label: 'Wijaya Meriah', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Tema Honda yang cerah dan dinamis dengan aksen merah, putih, charcoal, dan langit biru.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -861,8 +862,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
     const isMuliaCerah = template === 'mulia-cerah';
     const isHondaWijaya = template === 'honda-wijaya';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya;
+    const isWijayaMeriah = template === 'wijaya-meriah';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -904,6 +906,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             },
           },
         }
+      : isWijayaMeriah
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              light: {
+                primaryColor: '#d71920',
+                secondaryColor: '#78bce8',
+                accentColor: '#e2252e',
+                backgroundColor: '#f3f6f8',
+                panelColor: '#ffffff',
+                cardColor: '#ffffff',
+                elevatedColor: '#ffffff',
+                borderColor: '#dce4eb',
+                textColor: '#20252d',
+                mutedColor: '#5d6874',
+                heroTextColor: '#20252d',
+                heroTitleHighlightColor: '#d71920',
+              },
+              dark: {
+                primaryColor: '#ff3945',
+                secondaryColor: '#78bce8',
+                accentColor: '#ff3945',
+                backgroundColor: '#191d22',
+                panelColor: '#242a31',
+                cardColor: '#2d343c',
+                elevatedColor: '#37414b',
+                borderColor: '#49545f',
+                textColor: '#f5f7fa',
+                mutedColor: '#c1ccd5',
+                heroTextColor: '#f5f7fa',
+                heroTitleHighlightColor: '#ff3945',
+              },
+            },
+          }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -940,7 +978,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);

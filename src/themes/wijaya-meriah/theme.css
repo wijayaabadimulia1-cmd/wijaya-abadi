@@ -1,0 +1,95 @@
+.website-template-wijaya-meriah {
+  --site-bg: #f3f6f8;
+  --site-panel: #ffffff;
+  --site-card: #ffffff;
+  --site-text: #20252d;
+  --site-muted: #5d6874;
+  --site-accent: #d71920;
+  --site-accent-soft: rgba(215, 25, 32, 0.1);
+  --site-border: rgba(32, 37, 45, 0.12);
+}
+
+.website-shell.website-template-wijaya-meriah,
+.website-shell.website-template-wijaya-meriah.site-mode-light {
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark {
+  --site-bg: #191d22;
+  --site-panel: #242a31;
+  --site-card: #2d343c;
+  --site-text: #f5f7fa;
+  --site-muted: #c1ccd5;
+  --site-accent: #ff3945;
+  --site-accent-soft: rgba(255, 57, 69, 0.18);
+  --site-border: #49545f;
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-meriah .site-navbar {
+  border-bottom: 1px solid var(--site-border);
+  box-shadow: 0 8px 24px rgba(32, 37, 45, 0.08);
+}
+
+.website-shell.website-template-wijaya-meriah .site-navbar-light {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .site-navbar-dark {
+  background: rgba(25, 29, 34, 0.92);
+}
+
+.website-shell.website-template-wijaya-meriah #home {
+  background: linear-gradient(118deg, rgba(218, 238, 250, 0.9), #ffffff 52%, #f1f4f6);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home {
+  background: linear-gradient(118deg, #202830, #191d22 52%, #15191e);
+}
+
+.website-shell.website-template-wijaya-meriah #home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 78% 12%, rgba(120, 188, 232, 0.2), transparent 38%);
+  pointer-events: none;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-editable-text,
+.website-shell.website-template-wijaya-meriah #home .hero-subtitle,
+.website-shell.website-template-wijaya-meriah #home .hero-caption-text,
+.website-shell.website-template-wijaya-meriah #home .hero-main-title {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-highlight-text {
+  color: var(--site-accent-effective) !important;
+}
+
+.website-shell.website-template-wijaya-meriah #home .bg-zinc-900\/80,
+.website-shell.website-template-wijaya-meriah #home .bg-zinc-900\/90,
+.website-shell.website-template-wijaya-meriah #home .bg-zinc-900\/60,
+.website-shell.website-template-wijaya-meriah #home .bg-zinc-900,
+.website-shell.website-template-wijaya-meriah #home .bg-zinc-950 {
+  background-color: var(--site-panel-effective) !important;
+  border-color: var(--site-border) !important;
+}
+
+.website-shell.website-template-wijaya-meriah .bg-gradient-to-r {
+  background-image: linear-gradient(105deg, #b5121b, #e2252e) !important;
+}
