@@ -52,5 +52,5 @@ jobs:
           git fetch origin "$APP_BRANCH"
           git checkout "$APP_BRANCH"
           git pull --ff-only origin "$APP_BRANCH"
-          ./deploy-vps-safe.sh
+          bash ./deploy-vps-safe.sh
           SSH
