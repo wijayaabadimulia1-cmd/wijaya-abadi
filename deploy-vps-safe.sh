@@ -122,7 +122,7 @@ BACKUP_FILE="${BACKUP_DIR}/catalog-uploads-${STAMP}.tar.gz"
 sudo install -d -m 700 "$BACKUP_DIR"
 sudo tar -czf "$BACKUP_FILE" -C "$DATA_DIR" db.json -C "$UPLOADS_DIR" .
 sudo chmod 600 "$BACKUP_FILE"
-if ! sudo tar -tzf "$BACKUP_FILE" | grep -Fxq 'db.json'; then
+if ! sudo tar -tzf "$BACKUP_FILE" | grep -Fx 'db.json' > /dev/null; then
   fail "Catalog backup verification failed: $BACKUP_FILE"
 fi
 
