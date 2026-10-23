@@ -13,6 +13,9 @@ interface PromoSectionProps {
 export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, showMore = false }) => {
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
+  const isShowcaseHome = settings.websiteTemplate === 'showcase-wijaya-2' && window.location.pathname !== '/promo';
+  const visiblePromos = isShowcaseHome ? promos.slice(0, 3) : promos;
+  const shouldShowMore = showMore || (isShowcaseHome && promos.length > 3);
 
   useEffect(() => {
     if (!activeImage) return;
@@ -42,7 +45,7 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, sh
 
         {/* Promo Grid */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-          {promos.map((promo, idx) => {
+          {visiblePromos.map((promo, idx) => {
             const promoImages = (promo.images || []).slice(0, MAX_PROMO_IMAGES);
             const promoTemplate = promo.promoTemplate || 'classic';
             const gridColumns = promoTemplate === 'compact' ? 'grid-cols-3' : 'grid-cols-2';
@@ -142,13 +145,13 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, sh
             );
           })}
         </div>
-        {showMore && (
+        {shouldShowMore && (
           <div className="mt-8 flex justify-center">
             <a
               href="/promo"
               className="inline-flex items-center gap-2 rounded-full border border-red-600 px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-600 hover:text-white"
             >
-              Promo lainnya <ArrowRight className="h-4 w-4" />
+              Lihat promo lainnya <ArrowRight className="h-4 w-4" />
             </a>
           </div>
         )}
