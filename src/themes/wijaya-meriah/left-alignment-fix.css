@@ -1,6 +1,6 @@
 @media (min-width: 1024px) {
   .website-shell.website-template-wijaya-meriah #home .hero-copy-column {
-    margin-left: 0;
+    margin-left: max(24px, calc((100% - 1280px) / 2));
     margin-right: auto;
   }
 }
