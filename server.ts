@@ -295,6 +295,33 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
       ...(price ? { price: String(price) } : {}),
       availability: 'https://schema.org/InStock',
       itemCondition: 'https://schema.org/NewCondition',
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'ID',
+        merchantReturnDays: 7,
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'ID',
+        },
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: 0,
+          currency: 'IDR',
+        },
+        deliveryTime: {
+          '@type': 'DeliveryTimeSettings',
+          transitTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 1,
+            maxValue: 3,
+            unitCode: 'DAY',
+          },
+        },
+      },
     },
   };
   const specificationList = specs.length
