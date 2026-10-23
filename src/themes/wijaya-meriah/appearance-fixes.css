@@ -1,0 +1,162 @@
+.website-shell.website-template-wijaya-meriah.site-mode-dark {
+  --site-bg: #252e38;
+  --site-panel: #333e4a;
+  --site-card: #3d4a58;
+  --site-text: #f7f9fc;
+  --site-muted: #d0d9e3;
+  --site-accent: #ff4353;
+  --site-border: #596775;
+  --custom-bg: #252e38 !important;
+  --custom-panel: #333e4a !important;
+  --custom-card: #3d4a58 !important;
+  --custom-text: #f7f9fc !important;
+  --custom-muted: #d0d9e3 !important;
+  --custom-primary: #ff4353 !important;
+  --site-bg-effective: #252e38 !important;
+  --site-panel-effective: #333e4a !important;
+  --site-card-effective: #3d4a58 !important;
+  --site-text-effective: #f7f9fc !important;
+  --site-muted-effective: #d0d9e3 !important;
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .site-navbar-dark {
+  background: rgba(37, 46, 56, 0.96) !important;
+  border-color: #596775;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home {
+  background-color: #252e38;
+  background-image:
+    linear-gradient(90deg, rgba(13, 21, 30, 0.82) 0%, rgba(13, 21, 30, 0.62) 42%, rgba(13, 21, 30, 0.14) 78%),
+    linear-gradient(0deg, rgba(13, 21, 30, 0.3), transparent 42%),
+    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
+  background-position: center, center, center 58%;
+  background-size: cover;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home .hero-editable-text,
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home .hero-subtitle,
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home .hero-caption-text,
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home .hero-main-title {
+  color: #f7f9fc !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.22);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark #home .hero-highlight-text {
+  color: #ff5967 !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-discovery {
+  background: #252e38 !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-quick-link:not(.wijaya-meriah-quick-link-primary) {
+  border-color: #596775 !important;
+  background: #333e4a !important;
+  color: #f7f9fc !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-quick-link small {
+  color: #d0d9e3 !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-discovery-heading {
+  color: #f7f9fc;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-category {
+  border-color: #596775;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links > .wijaya-meriah-quick-link-primary {
+  display: none;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links > .wijaya-meriah-quick-link:nth-child(2) { order: 4; }
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links > .wijaya-meriah-quick-link:nth-child(3) { order: 1; }
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links > .wijaya-meriah-quick-link:nth-child(4) { order: 3; }
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links > .wijaya-meriah-quick-link:nth-child(5) { order: 2; }
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link {
+  min-width: 0;
+  min-height: 66px;
+  gap: 8px;
+  padding: 9px 11px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content.has-featured-promo {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 250px);
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category {
+  min-width: 0;
+  min-height: 104px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo {
+  min-height: 100%;
+}
+
+@media (max-width: 900px) {
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link-primary {
+    grid-column: auto;
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content.has-featured-promo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-wijaya-meriah.site-mode-dark #home {
+    height: 560px;
+    min-height: 560px;
+    background-image:
+      linear-gradient(180deg, rgba(13, 21, 30, 0.72), rgba(13, 21, 30, 0.64)),
+      var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
+    background-position: center, center;
+    background-size: cover;
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content.has-featured-promo {
+    gap: 12px;
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-category {
+    min-height: 100px;
+  }
+}
