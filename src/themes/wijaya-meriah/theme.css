@@ -123,7 +123,7 @@
   background-image:
     linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.88) 36%, rgba(255, 255, 255, 0.08) 72%),
     linear-gradient(0deg, rgba(17, 27, 35, 0.18), transparent 38%),
-    url('/images/wijaya-cool-bandung-landscape.webp');
+    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
   background-position: center, center, center 58%;
   background-size: cover;
 }
@@ -483,4 +483,66 @@
   .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery {
     padding: 14px 16px 28px;
   }
+}
+
+.website-shell.website-template-wijaya-meriah #katalog,
+.website-shell.website-template-wijaya-meriah #promo,
+.website-shell.website-template-wijaya-meriah #simulasi,
+.website-shell.website-template-wijaya-meriah #manifesto,
+.website-shell.website-template-wijaya-meriah #testimoni,
+.website-shell.website-template-wijaya-meriah #kontak {
+  background: var(--site-bg-effective) !important;
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-meriah #promo,
+.website-shell.website-template-wijaya-meriah #testimoni,
+.website-shell.website-template-wijaya-meriah #kontak {
+  border-color: var(--site-border);
+}
+
+.website-shell.website-template-wijaya-meriah #katalog h2,
+.website-shell.website-template-wijaya-meriah #promo h2,
+.website-shell.website-template-wijaya-meriah #simulasi h2,
+.website-shell.website-template-wijaya-meriah #manifesto h2,
+.website-shell.website-template-wijaya-meriah #testimoni h2,
+.website-shell.website-template-wijaya-meriah #kontak h2,
+.website-shell.website-template-wijaya-meriah #kontak h3 {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-wijaya-meriah #katalog .catalog-card,
+.website-shell.website-template-wijaya-meriah #simulasi .simulator-container,
+.website-shell.website-template-wijaya-meriah #manifesto .bg-zinc-900\/40,
+.website-shell.website-template-wijaya-meriah #testimoni .bg-zinc-900\/50,
+.website-shell.website-template-wijaya-meriah #testimoni .bg-zinc-900\/60,
+.website-shell.website-template-wijaya-meriah #kontak .bg-zinc-900\/60 {
+  border-color: var(--site-border) !important;
+  background: var(--site-panel-effective) !important;
+  box-shadow: 0 12px 30px rgba(20, 32, 42, 0.07);
+}
+
+.website-shell.website-template-wijaya-meriah #katalog input,
+.website-shell.website-template-wijaya-meriah #katalog select,
+.website-shell.website-template-wijaya-meriah #simulasi input,
+.website-shell.website-template-wijaya-meriah #simulasi select,
+.website-shell.website-template-wijaya-meriah #testimoni input,
+.website-shell.website-template-wijaya-meriah #testimoni textarea {
+  border-color: var(--site-border);
+  background-color: var(--site-panel-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-meriah #katalog p,
+.website-shell.website-template-wijaya-meriah #promo p,
+.website-shell.website-template-wijaya-meriah #simulasi p,
+.website-shell.website-template-wijaya-meriah #manifesto p,
+.website-shell.website-template-wijaya-meriah #testimoni p,
+.website-shell.website-template-wijaya-meriah #kontak p {
+  color: var(--site-muted-effective);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-quick-link,
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-category {
+  border-color: var(--site-border);
 }

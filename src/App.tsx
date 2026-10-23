@@ -618,6 +618,9 @@ export default function App() {
     '--custom-border': activePalette.borderColor || undefined,
     '--custom-text': activePalette.textColor || undefined,
     '--custom-muted': activePalette.mutedColor || undefined,
+    '--theme-background-image': customization.themeBackgroundImage
+      ? `url("${customization.themeBackgroundImage.replace(/"/g, '\\"')}")`
+      : undefined,
   } as React.CSSProperties;
   const customizationClass = `site-font-${activePalette.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
   const gradientMotionClass = settings.websiteTemplate === 'mulia-cerah' && customization.themeBackgroundAnimation !== false
@@ -703,7 +706,9 @@ export default function App() {
             onApplyCredit={handleApplyFromSimulator}
           />
 
-          {promos.length > 0 && <PromoSection promos={promos} settings={settings} />}
+          {promos.length > 0 && (
+            <PromoSection promos={promos.slice(0, 4)} settings={settings} showMore={promos.length > 4} />
+          )}
           <ManifestoSection items={manifesto} />
           <TestimonialsSection
             testimonials={testimonials}
@@ -767,6 +772,52 @@ export default function App() {
             <span className="text-xs font-bold hidden sm:inline">Hubungi Sales</span>
           </a>
         </aside>
+      </div>
+    );
+  }
+
+  if (currentPath === '/promo') {
+    return (
+      <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+        <Navbar
+          settings={settings}
+          compareList={compareList}
+          onOpenCompare={() => setIsCompareOpen(true)}
+          onOpenInterest={handleOpenInterest}
+          colorMode={colorMode}
+          onToggleColorMode={() => setColorMode((current) => current === 'dark' ? 'light' : 'dark')}
+        />
+        <main className="flex-1 pt-4">
+          {promos.length > 0 ? (
+            <PromoSection promos={promos} settings={settings} />
+          ) : (
+            <section className="mx-auto max-w-7xl px-4 py-24 text-center sm:px-6 lg:px-8">
+              <h1 className="text-2xl font-black text-white">Belum ada promo aktif</h1>
+              <p className="mt-2 text-sm text-zinc-400">Silakan kembali lagi untuk melihat penawaran terbaru.</p>
+              <a href="/#home" className="mt-6 inline-flex rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-500">
+                Kembali ke Beranda
+              </a>
+            </section>
+          )}
+        </main>
+        <FooterSection settings={settings} />
+        <CompareModal
+          isOpen={isCompareOpen}
+          onClose={() => setIsCompareOpen(false)}
+          compareList={compareList}
+          onRemoveMotor={(id) => setCompareList((previous) => previous.filter((motor) => motor.id !== id))}
+          onClearAll={() => setCompareList([])}
+          onSelectMotor={(motor) => handleOpenInterest(motor)}
+        />
+        <InterestModal
+          isOpen={isInterestOpen}
+          onClose={() => setIsInterestOpen(false)}
+          selectedMotor={selectedMotorForInterest}
+          motors={motors}
+          settings={settings}
+          initialDpSummary={dpSummary}
+          initialInstallmentSummary={installmentSummary}
+        />
       </div>
     );
   }
@@ -909,7 +960,9 @@ export default function App() {
         />
 
         {/* Promo Campaigns */}
-        {promos.length > 0 && <PromoSection promos={promos} settings={settings} />}
+        {promos.length > 0 && (
+          <PromoSection promos={promos.slice(0, 4)} settings={settings} showMore={promos.length > 4} />
+        )}
 
         {/* 4 Pillars Manifesto / Nilai Kami */}
         <ManifestoSection items={manifesto} />

@@ -7,9 +7,10 @@ import { MAX_PROMO_IMAGES } from '../constants';
 interface PromoSectionProps {
   promos: Promo[];
   settings: DealerSettings;
+  showMore?: boolean;
 }
 
-export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) => {
+export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, showMore = false }) => {
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
 
@@ -141,6 +142,16 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
             );
           })}
         </div>
+        {showMore && (
+          <div className="mt-8 flex justify-center">
+            <a
+              href="/promo"
+              className="inline-flex items-center gap-2 rounded-full border border-red-600 px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-600 hover:text-white"
+            >
+              Promo lainnya <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        )}
       </div>
       {activeImage && (
         <div

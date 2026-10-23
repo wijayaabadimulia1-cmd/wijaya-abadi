@@ -26,15 +26,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.'
   )}`;
+  const anchorPrefix = window.location.pathname.replace(/\/+$/, '') === '/promo' ? '/' : '';
 
   const navLinks = [
-    { label: 'Beranda', href: '#home' },
-    { label: 'Katalog Motor', href: '#katalog' },
-    { label: 'Promo', href: '#promo' },
-    { label: 'Simulasi Kredit', href: '#simulasi' },
-    { label: 'Nilai Kami', href: '#manifesto' },
-    { label: 'Testimoni', href: '#testimoni' },
-    { label: 'Kontak', href: '#kontak' },
+    { label: 'Beranda', href: `${anchorPrefix}#home` },
+    { label: 'Katalog Motor', href: `${anchorPrefix}#katalog` },
+    { label: 'Promo', href: `${anchorPrefix}#promo` },
+    { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
+    { label: 'Nilai Kami', href: `${anchorPrefix}#manifesto` },
+    { label: 'Testimoni', href: `${anchorPrefix}#testimoni` },
+    { label: 'Kontak', href: `${anchorPrefix}#kontak` },
   ];
 
   return (

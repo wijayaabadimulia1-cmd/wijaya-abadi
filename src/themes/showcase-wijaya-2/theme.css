@@ -183,7 +183,7 @@
   background-image:
     linear-gradient(90deg, rgba(245, 249, 252, 0.82), rgba(245, 249, 252, 0.25) 48%, rgba(245, 249, 252, 0.08)),
     linear-gradient(0deg, rgba(18, 34, 45, 0.28), transparent 28%),
-    url('/images/wijaya-cool-bandung-landscape.webp');
+    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
   background-position: center, center, center 53%;
   background-size: cover;
 }
@@ -496,4 +496,67 @@
   .website-shell.website-template-showcase-wijaya-2 #katalog .text-center.max-w-3xl h2 {
     font-size: 24px;
   }
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog,
+.website-shell.website-template-showcase-wijaya-2 #promo,
+.website-shell.website-template-showcase-wijaya-2 #simulasi,
+.website-shell.website-template-showcase-wijaya-2 #manifesto,
+.website-shell.website-template-showcase-wijaya-2 #testimoni,
+.website-shell.website-template-showcase-wijaya-2 #kontak {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #simulasi,
+.website-shell.website-template-showcase-wijaya-2 #manifesto,
+.website-shell.website-template-showcase-wijaya-2 #testimoni,
+.website-shell.website-template-showcase-wijaya-2 #kontak {
+  background: var(--site-bg-effective) !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo,
+.website-shell.website-template-showcase-wijaya-2 #testimoni,
+.website-shell.website-template-showcase-wijaya-2 #kontak {
+  border-color: var(--site-border);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog h2,
+.website-shell.website-template-showcase-wijaya-2 #promo h2,
+.website-shell.website-template-showcase-wijaya-2 #simulasi h2,
+.website-shell.website-template-showcase-wijaya-2 #manifesto h2,
+.website-shell.website-template-showcase-wijaya-2 #testimoni h2,
+.website-shell.website-template-showcase-wijaya-2 #kontak h2,
+.website-shell.website-template-showcase-wijaya-2 #kontak h3 {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card,
+.website-shell.website-template-showcase-wijaya-2 #simulasi .simulator-container,
+.website-shell.website-template-showcase-wijaya-2 #manifesto .bg-zinc-900\/40,
+.website-shell.website-template-showcase-wijaya-2 #testimoni .bg-zinc-900\/50,
+.website-shell.website-template-showcase-wijaya-2 #testimoni .bg-zinc-900\/60,
+.website-shell.website-template-showcase-wijaya-2 #kontak .bg-zinc-900\/60 {
+  border-color: var(--site-border) !important;
+  background: var(--site-panel-effective) !important;
+  box-shadow: 0 12px 30px rgba(16, 20, 25, 0.07);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog input,
+.website-shell.website-template-showcase-wijaya-2 #katalog select,
+.website-shell.website-template-showcase-wijaya-2 #simulasi input,
+.website-shell.website-template-showcase-wijaya-2 #simulasi select,
+.website-shell.website-template-showcase-wijaya-2 #testimoni input,
+.website-shell.website-template-showcase-wijaya-2 #testimoni textarea {
+  border-color: var(--site-border);
+  background-color: var(--site-panel-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog p,
+.website-shell.website-template-showcase-wijaya-2 #promo p,
+.website-shell.website-template-showcase-wijaya-2 #simulasi p,
+.website-shell.website-template-showcase-wijaya-2 #manifesto p,
+.website-shell.website-template-showcase-wijaya-2 #testimoni p,
+.website-shell.website-template-showcase-wijaya-2 #kontak p {
+  color: var(--site-muted-effective);
 }

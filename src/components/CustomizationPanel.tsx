@@ -26,6 +26,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   const selectedHeroFont = resolveHeroFont(settings.customization?.heroTextFont || settings.customization?.font);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
 
   const customization = settings.customization || {};
   const basePalette: ThemeColorPalette = {
@@ -145,6 +146,27 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
         onSettingsChange({ ...settings, heroImage: nextImages[0] || '', heroImages: nextImages });
       }
       alert(error instanceof Error ? `Gagal upload foto Banner Hero: ${error.message}` : 'Gagal upload foto Banner Hero');
+    } finally {
+      setIsUploading(false);
+      setUploadStatus('');
+    }
+  };
+
+  const handleThemeBackgroundUpload = async (file?: File) => {
+    if (!file) return;
+    setIsUploading(true);
+    setUploadStatus('Mengunggah background...');
+    try {
+      const extension = file.name.split('.').pop() || 'jpg';
+      const uploadFile = new File([file], `theme-background-${Date.now()}.${extension}`, { type: file.type });
+      const imageUrl = await api.uploadImage(uploadFile);
+      onSettingsChange({
+        ...settings,
+        customization: { ...customization, themeBackgroundImage: imageUrl },
+      });
+    } catch (error) {
+      console.error('Theme background upload error:', error);
+      alert(error instanceof Error ? `Gagal upload background: ${error.message}` : 'Gagal upload background');
     } finally {
       setIsUploading(false);
       setUploadStatus('');
@@ -300,6 +322,60 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
             )}
           </div>
         </div>
+      </div>
+
+      <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-zinc-100">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">Background Tema</h3>
+            <p className="mt-1 text-xs text-zinc-400">Ganti gambar latar untuk Wijaya Meriah dan Showcase Wijaya 2.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {customization.themeBackgroundImage && (
+              <button
+                type="button"
+                onClick={() => onSettingsChange({
+                  ...settings,
+                  customization: { ...customization, themeBackgroundImage: '' },
+                })}
+                className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Hapus
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={isUploading}
+              onClick={() => backgroundInputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+            >
+              <Upload className="h-4 w-4" />
+              {isUploading ? uploadStatus || 'Mengunggah...' : 'Pilih background'}
+            </button>
+            <input
+              ref={backgroundInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                void handleThemeBackgroundUpload(event.currentTarget.files?.[0]);
+                event.currentTarget.value = '';
+              }}
+            />
+          </div>
+        </div>
+        {customization.themeBackgroundImage ? (
+          <img
+            src={customization.themeBackgroundImage}
+            alt="Pratinjau background tema"
+            className="h-36 w-full rounded-md border border-white/10 object-cover"
+          />
+        ) : (
+          <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-zinc-700 text-xs text-zinc-400">
+            Background bawaan tema sedang digunakan.
+          </div>
+        )}
       </div>
 
       <div className="space-y-5 rounded-lg border border-zinc-700 bg-zinc-950 p-5 text-zinc-100">

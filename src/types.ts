@@ -118,6 +118,7 @@ export interface WebsiteCustomization {
   heroTitleHighlightColor?: string;
   heroOverlayColor?: string;
   heroOverlayOpacity?: number;
+  themeBackgroundImage?: string;
   themeBackgroundAnimation?: boolean;
   colorPalettes?: Partial<Record<ThemeMode, ThemeColorPalette>>;
   templatePaletteBackup?: Partial<Record<ThemeMode, ThemeColorPalette>>;
