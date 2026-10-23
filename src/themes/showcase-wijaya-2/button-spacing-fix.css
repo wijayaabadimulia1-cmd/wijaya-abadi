@@ -1,0 +1,30 @@
+@media (max-width: 640px) {
+  .website-shell.website-template-showcase-wijaya-2 #home .hero-copy-column > div.flex.flex-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+    gap: 10px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #home .hero-copy-column > div.flex.flex-wrap > :is(a, button) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #home .hero-cta-whatsapp {
+    border-color: #08b65b !important;
+    background: #08b65b !important;
+    color: #ffffff !important;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #home .hero-cta-whatsapp svg {
+    color: #ffffff !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div.p-6.pt-0 > div.grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+}
