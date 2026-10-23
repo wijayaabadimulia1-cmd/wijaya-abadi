@@ -93,3 +93,394 @@
 .website-shell.website-template-wijaya-meriah .bg-gradient-to-r {
   background-image: linear-gradient(105deg, #b5121b, #e2252e) !important;
 }
+
+.website-shell.website-template-wijaya-meriah .site-navbar {
+  box-shadow: 0 4px 18px rgba(20, 32, 42, 0.06);
+}
+
+.website-shell.website-template-wijaya-meriah .site-navbar .h-20 {
+  height: 64px;
+}
+
+.website-shell.website-template-wijaya-meriah .site-navbar nav {
+  gap: 1rem;
+  font-size: 12px;
+}
+
+.website-shell.website-template-wijaya-meriah .site-navbar nav a:first-child {
+  border-radius: 999px;
+  background: #ed1025;
+  color: #fff;
+  padding: 8px 18px;
+}
+
+.website-shell.website-template-wijaya-meriah #home {
+  display: block;
+  height: 430px;
+  min-height: 430px;
+  padding: 0;
+  isolation: isolate;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.88) 36%, rgba(255, 255, 255, 0.08) 72%),
+    linear-gradient(0deg, rgba(17, 27, 35, 0.18), transparent 38%),
+    url('/images/wijaya-cool-bandung-landscape.webp');
+  background-position: center, center, center 58%;
+  background-size: cover;
+}
+
+.website-shell.website-template-wijaya-meriah #home::before,
+.website-shell.website-template-wijaya-meriah #home .natural-cool-scene,
+.website-shell.website-template-wijaya-meriah #home .hero-background-glow,
+.website-shell.website-template-wijaya-meriah #home .hero-grid-overlay,
+.website-shell.website-template-wijaya-meriah #home .hero-visual-glow {
+  display: none;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-content-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-content-grid {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-copy-column {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  max-width: 1280px;
+  height: 100%;
+  margin: 0 auto;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 24px;
+  text-align: left;
+  gap: 14px;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-copy-column > * {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-main-title {
+  max-width: 570px;
+  font-size: 38px;
+  line-height: 1.08;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-subtitle {
+  max-width: 520px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-badge {
+  width: fit-content;
+  border-radius: 999px;
+  background: #fff;
+  padding: 7px 12px;
+  box-shadow: 0 8px 24px rgba(32, 37, 45, 0.1);
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-trust-grid {
+  max-width: 580px;
+  padding-top: 14px;
+  gap: 8px;
+  border-color: rgba(32, 37, 45, 0.14);
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-trust-item {
+  min-width: 0;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-visual-column {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-visual-group,
+.website-shell.website-template-wijaya-meriah #home .hero-visual-card,
+.website-shell.website-template-wijaya-meriah #home .hero-visual-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-visual-frame img {
+  object-fit: contain;
+  object-position: right center;
+  opacity: 0.88;
+  -webkit-mask-image: linear-gradient(90deg, transparent 34%, #000 59%);
+  mask-image: linear-gradient(90deg, transparent 34%, #000 59%);
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-visual-overlay,
+.website-shell.website-template-wijaya-meriah #home .hero-visual-frame > .absolute.bottom-4 {
+  display: none;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-visual-frame > .absolute.top-4 {
+  top: 14px;
+  right: 24px;
+  left: auto;
+  pointer-events: auto;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery {
+  position: relative;
+  z-index: 2;
+  padding: 18px 24px 36px;
+  background: #fff;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(4, 1fr);
+  gap: 12px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e8edf1;
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px 14px;
+  color: #242a31;
+  box-shadow: 0 5px 18px rgba(21, 36, 48, 0.05);
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link:hover,
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(21, 36, 48, 0.1);
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link svg {
+  flex: 0 0 auto;
+  color: #ed1025;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link > span {
+  display: grid;
+  gap: 3px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link small {
+  color: #64717c;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link-primary {
+  border-color: #ed1025;
+  background: linear-gradient(110deg, #d71920, #ed1025);
+  color: #fff;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link-primary svg {
+  color: #fff;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content.has-featured-promo {
+  grid-template-columns: minmax(0, 1fr) 250px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-heading {
+  margin: 0 0 10px;
+  color: #20252d;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-all-motors {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  color: #d71920;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category {
+  position: relative;
+  display: flex;
+  min-height: 112px;
+  align-items: flex-end;
+  overflow: hidden;
+  border: 1px solid #e2e8ed;
+  border-radius: 12px;
+  background: #e7eef2;
+  padding: 10px;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(21, 36, 48, 0.08);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category::after {
+  position: absolute;
+  inset: 28% 0 0;
+  background: linear-gradient(transparent, rgba(16, 20, 25, 0.82));
+  content: '';
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category span {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo {
+  position: relative;
+  display: flex;
+  min-height: 144px;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #a7192b, #611722);
+  padding: 16px;
+  color: #fff;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(53, 12, 16, 0.9), rgba(53, 12, 16, 0.08));
+  content: '';
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo > span {
+  position: relative;
+  z-index: 1;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-dark .wijaya-meriah-discovery {
+  background: var(--site-bg-effective);
+}
+
+@media (max-width: 900px) {
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-quick-link-primary {
+    grid-column: 1 / -1;
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content {
+    grid-template-columns: 1fr;
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-wijaya-meriah #home {
+    height: 590px;
+    min-height: 590px;
+    background-position: center, center, 62% center;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column {
+    justify-content: flex-start;
+    padding: 88px 20px 20px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-main-title {
+    max-width: 430px;
+    font-size: 32px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-subtitle {
+    max-width: 420px;
+    font-size: 13px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-frame img {
+    object-position: 68% bottom;
+    opacity: 0.34;
+    -webkit-mask-image: linear-gradient(0deg, #000, transparent 70%);
+    mask-image: linear-gradient(0deg, #000, transparent 70%);
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery {
+    padding: 14px 16px 28px;
+  }
+}

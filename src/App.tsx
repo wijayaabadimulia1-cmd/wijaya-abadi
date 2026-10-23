@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { MessageSquare, Phone, Scale, Shield, Sparkles } from 'lucide-react';
+import { ArrowRight, Bike, Calculator, MapPin, MessageSquare, Phone, Scale, Search, Shield, Sparkles } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList } from './types';
 import { api } from './services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from './services/fifPriceList';
@@ -626,6 +626,11 @@ export default function App() {
   const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
   )}`;
+  const meriahCategoryPreviews = Array.from(new Map(
+    motors
+      .filter((motor) => motor.category && motor.image)
+      .map((motor) => [motor.category, motor]),
+  ).values()).slice(0, 5);
 
   // If Admin panel is open, show full CMS interface
   if (isAdminOpen) {
@@ -698,7 +703,7 @@ export default function App() {
             onApplyCredit={handleApplyFromSimulator}
           />
 
-          <PromoSection promos={promos} settings={settings} />
+          {promos.length > 0 && <PromoSection promos={promos} settings={settings} />}
           <ManifestoSection items={manifesto} />
           <TestimonialsSection
             testimonials={testimonials}
@@ -787,6 +792,83 @@ export default function App() {
           onOpenInterest={() => handleOpenInterest()}
         />
 
+        {settings.websiteTemplate === 'wijaya-meriah' && (
+          <section className="wijaya-meriah-discovery" aria-label="Jelajahi motor dan layanan Honda">
+            <div className="wijaya-meriah-discovery-inner">
+              <nav className="wijaya-meriah-quick-links" aria-label="Akses cepat">
+                <a href="#katalog" className="wijaya-meriah-quick-link wijaya-meriah-quick-link-primary">
+                  <Bike className="h-6 w-6" />
+                  <span><strong>Cari Motor Impian Anda</strong><small>Temukan pilihan sesuai kebutuhan</small></span>
+                </a>
+                <a href="#katalog" className="wijaya-meriah-quick-link">
+                  <Search className="h-5 w-5" />
+                  <span><strong>Lihat Katalog Motor</strong><small>Semua tipe Honda</small></span>
+                </a>
+                <a href="#simulasi" className="wijaya-meriah-quick-link">
+                  <Calculator className="h-5 w-5" />
+                  <span><strong>Simulasi Kredit</strong><small>Hitung cicilan motor</small></span>
+                </a>
+                <a href={floatingWaUrl} target="_blank" rel="noopener noreferrer" className="wijaya-meriah-quick-link">
+                  <MessageSquare className="h-5 w-5" />
+                  <span><strong>Chat WhatsApp</strong><small>Konsultasi langsung</small></span>
+                </a>
+                <a href="#kontak" className="wijaya-meriah-quick-link">
+                  <MapPin className="h-5 w-5" />
+                  <span><strong>Lokasi Dealer</strong><small>Temukan dealer terdekat</small></span>
+                </a>
+              </nav>
+
+              <div className={`wijaya-meriah-discovery-content ${promos[0] ? 'has-featured-promo' : ''}`}>
+                <div>
+                  <div className="wijaya-meriah-discovery-title-row">
+                    <h2 className="wijaya-meriah-discovery-heading">Kategori Motor Honda</h2>
+                    <a href="#katalog" className="wijaya-meriah-all-motors">Lihat semua motor <ArrowRight className="h-4 w-4" /></a>
+                  </div>
+                  <div className="wijaya-meriah-category-grid">
+                    {meriahCategoryPreviews.map((motor) => (
+                      <a key={motor.category} href="#katalog" className="wijaya-meriah-category">
+                        <img src={motor.image} alt="" loading="lazy" />
+                        <span>{motor.category}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+                {promos[0] && (
+                  <a href="#promo" className="wijaya-meriah-featured-promo">
+                    {promos[0].images?.[0] && <img src={promos[0].images[0]} alt="" loading="lazy" />}
+                    <span>{promos[0].title}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {settings.websiteTemplate === 'showcase-wijaya-2' && (
+          <nav className="showcase-quick-links" aria-label="Akses cepat">
+            <a href="#katalog" className="showcase-quick-link showcase-quick-link-primary">
+              <Bike className="h-6 w-6" />
+              <span><strong>Cari Motor Impian Anda</strong><small>Temukan pilihan sesuai kebutuhan</small></span>
+            </a>
+            <a href="#katalog" className="showcase-quick-link">
+              <Search className="h-5 w-5" />
+              <span><strong>Lihat Katalog Motor</strong><small>Semua tipe Honda</small></span>
+            </a>
+            <a href="#simulasi" className="showcase-quick-link">
+              <Calculator className="h-5 w-5" />
+              <span><strong>Simulasi Kredit</strong><small>Hitung cicilan motor</small></span>
+            </a>
+            <a href={floatingWaUrl} target="_blank" rel="noopener noreferrer" className="showcase-quick-link">
+              <MessageSquare className="h-5 w-5" />
+              <span><strong>Chat WhatsApp</strong><small>Konsultasi langsung</small></span>
+            </a>
+            <a href="#kontak" className="showcase-quick-link">
+              <MapPin className="h-5 w-5" />
+              <span><strong>Lokasi Dealer</strong><small>Temukan dealer terdekat</small></span>
+            </a>
+          </nav>
+        )}
+
         {settings.websiteTemplate === 'showroom' && (
           <section className="showroom-stats px-4 py-6 sm:py-8" aria-label="Keunggulan dealer">
             <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-5 sm:grid-cols-4">
@@ -827,7 +909,7 @@ export default function App() {
         />
 
         {/* Promo Campaigns */}
-        <PromoSection promos={promos} settings={settings} />
+        {promos.length > 0 && <PromoSection promos={promos} settings={settings} />}
 
         {/* 4 Pillars Manifesto / Nilai Kami */}
         <ManifestoSection items={manifesto} />

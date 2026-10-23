@@ -48,6 +48,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   const heroFont = settings.customization?.heroTextFont || settings.customization?.font;
   const fontFamily = getHeroFontStack(heroFont);
   const isWijayaCool = settings.websiteTemplate === 'wijaya-cool';
+  const isWijayaMeriah = settings.websiteTemplate === 'wijaya-meriah';
   const naturalCoolLeaves = Array.from({ length: 9 }, (_, index) => index);
   const naturalCoolParticles = Array.from({ length: 12 }, (_, index) => index);
 
@@ -58,7 +59,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   return (
     <section
       id="home"
-      className="natural-cool-hero relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-black py-16 sm:py-24"
+      className={`natural-cool-hero relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-black py-16 sm:py-24 ${isWijayaMeriah ? 'wijaya-meriah-hero' : ''}`}
       style={{
         fontFamily,
         '--hero-text-color': settings.customization?.heroTextColor || '#f4f4f5',
@@ -94,17 +95,17 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
       </div>
 
       {/* Background radial glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-red-900/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="hero-background-glow absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="hero-background-glow absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-red-900/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Grid Pattern Overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)] pointer-events-none" />
+      <div className="hero-grid-overlay absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)] pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      <div className="hero-content-shell relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-10">
+        <div className="hero-content-grid grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* Left Column: Headlines & Call-to-actions */}
-          <div className="lg:col-span-7 text-center lg:text-left space-y-6">
+          <div className="hero-copy-column lg:col-span-7 text-center lg:text-left space-y-6">
             {/* Dealer Badge */}
             <div className="hero-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 border border-red-500/25 text-xs font-semibold text-zinc-700 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
@@ -205,14 +206,14 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
           </div>
 
           {/* Right Column: Hero Visual Card */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative group">
+          <div className="hero-visual-column lg:col-span-5 relative">
+            <div className="hero-visual-group relative group">
               {/* Outer Glow */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-red-600/30 to-orange-500/10 rounded-3xl blur-2xl group-hover:opacity-100 opacity-70 transition-opacity duration-700" />
+              <div className="hero-visual-glow absolute inset-0 bg-gradient-to-tr from-red-600/30 to-orange-500/10 rounded-3xl blur-2xl group-hover:opacity-100 opacity-70 transition-opacity duration-700" />
 
-              <div className="relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-[28px] p-4 sm:p-6 overflow-hidden shadow-[0_32px_60px_rgba(15,23,42,0.28)] ring-1 ring-white/5">
+              <div className="hero-visual-card relative bg-zinc-900/60 backdrop-blur-md border border-white/10 rounded-[28px] p-4 sm:p-6 overflow-hidden shadow-[0_32px_60px_rgba(15,23,42,0.28)] ring-1 ring-white/5">
                 {/* Image showcase */}
-                <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-zinc-950 flex items-center justify-center border border-white/5">
+                <div className="hero-visual-frame relative rounded-2xl overflow-hidden aspect-[4/3] bg-zinc-950 flex items-center justify-center border border-white/5">
                   {heroImages.length > 0 ? (
                     <img
                       key={`${activeSlide}-${heroImages[activeSlide] || heroImages[0]}`}
@@ -240,7 +241,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                   ) : (
                     <div className="absolute inset-0 bg-zinc-900" aria-label="Belum ada foto banner" />
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="hero-visual-overlay absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
                   {heroImages.length > 1 && (
                     <>
