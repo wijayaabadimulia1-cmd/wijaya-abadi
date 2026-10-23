@@ -1,0 +1,173 @@
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-card {
+  display: grid;
+  min-width: 0;
+  min-height: 190px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  padding: 11px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-card > .promo-copy {
+  display: flex !important;
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 7px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-badge,
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-discount {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-title {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(14px, 1.15vw, 18px);
+  line-height: 1.1;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-description {
+  display: -webkit-box;
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-terms,
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-meta {
+  display: none;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-action {
+  width: fit-content;
+  min-height: 30px;
+  margin: 0;
+  padding: 5px 11px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-image-carousel {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 2;
+  grid-row: 1;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-image-carousel__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  padding: 4px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-image-carousel__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-image-carousel__dots {
+  position: absolute;
+  right: 0;
+  bottom: 5px;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-image-carousel__dots button {
+  width: 6px;
+  height: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .promo-image-carousel__dots button[aria-current="true"] {
+  background: #ed1025;
+}
+
+@media (min-width: 1200px) {
+  .website-shell.website-template-showcase-wijaya-2 main {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.85fr);
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > .showcase-quick-links {
+    width: 100%;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .promo-card {
+    min-height: 180px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .mt-12.grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .promo-card {
+    min-height: 178px;
+    grid-template-columns: minmax(0, 1fr) minmax(76px, 0.8fr);
+    gap: 7px;
+    padding: 9px;
+  }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .mt-12.grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .promo-card {
+    min-height: 150px;
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 0.8fr);
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .promo-title {
+    font-size: 16px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo .promo-description {
+    font-size: 11px;
+  }
+}
