@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { request as httpRequest } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
@@ -13,6 +14,9 @@ const HOST = '0.0.0.0';
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
+const CATALOG_API_URL = String(process.env.CATALOG_API_URL || '').trim().replace(/\/+$/, '');
+const CATALOG_SERVICE_TOKEN = String(process.env.CATALOG_SERVICE_TOKEN || '');
+const CATALOG_OWNER_DATA_FILE = path.resolve(process.env.CATALOG_OWNER_DATA_FILE || DB_FILE);
 const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
 const FIF_TENORS = [11, 17, 23, 29, 35];
 const FIF_DP_PERCENTAGES = [10, 13, 15, 20, 25];
@@ -42,6 +46,43 @@ function readDb() {
     interests: [],
     analytics: { totalViews: 0, simulatorUsed: 0, compareUsed: 0 }
   };
+}
+
+function readCatalogDb() {
+  try {
+    const catalogDb = JSON.parse(fs.readFileSync(CATALOG_OWNER_DATA_FILE, 'utf-8'));
+    const localDb = readDb();
+    return {
+      ...localDb,
+      motors: Array.isArray(catalogDb.motors) ? catalogDb.motors : [],
+      fifPriceList: catalogDb.fifPriceList,
+    };
+  } catch {
+    return readDb();
+  }
+}
+
+function isSharedCatalogPath(pathname: string) {
+  return /^\/api\/(?:motors(?:\/|$)|fif-price-list(?:\/|$))/.test(pathname.split('?')[0]);
+}
+
+function isSharedCatalogRequest(req: express.Request) {
+  const pathname = req.originalUrl.split('?')[0];
+  return isSharedCatalogPath(pathname)
+    || (pathname === '/api/upload' && req.header('x-catalog-upload') === 'true');
+}
+
+function isLoopbackRequest(req: express.Request) {
+  const address = req.socket.remoteAddress;
+  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+}
+
+function hasValidCatalogServiceToken(req: express.Request) {
+  const providedToken = req.header('x-catalog-service-token') || '';
+  if (!CATALOG_SERVICE_TOKEN || !providedToken || !isLoopbackRequest(req)) return false;
+  const expected = Buffer.from(CATALOG_SERVICE_TOKEN);
+  const provided = Buffer.from(providedToken);
+  return expected.length === provided.length && crypto.timingSafeEqual(expected, provided);
 }
 
 function getJakartaDateParts(timestamp: string) {
@@ -640,8 +681,91 @@ async function startServer() {
     next();
   });
 
+  app.use((req, res, next) => {
+    if (!CATALOG_API_URL || !isSharedCatalogRequest(req)) return next();
+    if (!CATALOG_SERVICE_TOKEN) {
+      return res.status(503).json({ error: 'Shared catalog proxy belum dikonfigurasi.' });
+    }
+
+    const requestPath = req.originalUrl.split('?')[0];
+    const needsAdmin = !['GET', 'HEAD'].includes(req.method)
+      || requestPath === '/api/motors/export.xlsx'
+      || requestPath === '/api/motors/template.xlsx'
+      || requestPath === '/api/fif-price-list/template';
+    const session = needsAdmin ? getSession(req) : null;
+    if (needsAdmin && !session) {
+      return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+    }
+    if (needsAdmin) {
+      return res.status(403).json({
+        error: 'Katalog dan price list dikelola dari satu panel pusat.',
+        adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
+      });
+    }
+
+    let target: URL;
+    try {
+      target = new URL(req.originalUrl, CATALOG_API_URL);
+    } catch {
+      return res.status(503).json({ error: 'URL layanan katalog bersama tidak valid.' });
+    }
+
+    const headers = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
+    delete headers['x-admin-token'];
+    delete headers.connection;
+    delete headers['proxy-connection'];
+    delete headers['transfer-encoding'];
+
+    const upstream = httpRequest(target, { method: req.method, headers }, (upstreamResponse) => {
+      res.statusCode = upstreamResponse.statusCode || 502;
+      for (const [name, value] of Object.entries(upstreamResponse.headers)) {
+        if (value && !['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) {
+          res.setHeader(name, value);
+        }
+      }
+
+      if (session && res.statusCode >= 200 && res.statusCode < 300) {
+        const db = readDb();
+        appendAudit(db, {
+          actor: session.username,
+          action: `SHARED ${req.method} ${requestPath}`,
+          resource: requestPath,
+          details: 'Perubahan katalog bersama melalui panel admin situs ini',
+        });
+        writeDb(db);
+      }
+      upstreamResponse.pipe(res);
+    });
+
+    upstream.on('error', (error) => {
+      console.error('Shared catalog proxy error:', error.message);
+      if (!res.headersSent) res.status(502).json({ error: 'Layanan katalog bersama tidak dapat dijangkau.' });
+      else res.destroy(error);
+    });
+    req.on('aborted', () => upstream.destroy());
+    req.pipe(upstream);
+  });
+
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
   // Public reads remain available; all writes require an authenticated admin.
   app.use('/api', (req, res, next) => {
+    const fullPath = `/api${req.path}`;
+    const isSharedCatalogUpload = fullPath === '/api/upload' && req.header('x-catalog-upload') === 'true';
+    if (hasValidCatalogServiceToken(req) && (isSharedCatalogPath(fullPath) || isSharedCatalogUpload)) {
+      if (req.method === 'GET' || req.method === 'HEAD') return next();
+      const db = readDb();
+      appendAudit(db, {
+        actor: 'shared-catalog-proxy',
+        action: `${req.method} ${fullPath}`,
+        resource: fullPath,
+        details: `Perubahan katalog dari ${req.header('x-forwarded-host') || 'situs lain'}`,
+      });
+      writeDb(db);
+      return next();
+    }
+
     const isPublicWrite =
       req.method === 'POST' &&
       (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit');
@@ -715,9 +839,16 @@ async function startServer() {
     res.json({ status: 'ok', service: 'Honda Wijaya Abadi API' });
   });
 
+  app.get('/api/catalog/status', (_req, res) => {
+    res.json({
+      owner: !CATALOG_API_URL,
+      adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
+    });
+  });
+
   // Settings
   app.get('/api/settings', (req, res) => {
-    const db = readDb();
+    const db = readCatalogDb();
     res.json(db.settings || {});
   });
 

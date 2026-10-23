@@ -1,5 +1,7 @@
 # VPS Deployment Commands (Ubuntu 22.04)
 
+> Panduan ini dipakai bersama [README.deploy.md](README.deploy.md), yang merupakan runbook kanonis untuk tiga domain dan katalog bersama. Jangan jalankan langkah deploy satu-domain dari salinan lama.
+
 ## 1. Buat SSH key di komputer lokal
 
 ```bash
@@ -80,7 +82,10 @@ Isi:
 PORT=3000
 APP_URL=https://kreditmotorhonda.tech
 GEMINI_API_KEY=your_gemini_api_key_here
+CATALOG_SERVICE_TOKEN=output-openssl-rand-hex-32
 ```
+
+Generate token dengan `openssl rand -hex 32`; gunakan satu nilai yang sama pada ketiga proses.
 
 ## 9. Install dependency dan build
 
@@ -92,45 +97,40 @@ npm run build
 ## 10. Jalankan aplikasi dengan PM2
 
 ```bash
-sudo mkdir -p /var/lib/honda-wijaya-abadi/data /var/lib/honda-wijaya-abadi/uploads
+sudo mkdir -p /var/lib/honda-wijaya-abadi/data \
+    /var/lib/honda-wijaya-abadi/uploads \
+    /var/lib/honda-wijaya-abadi/sites/wijaya/data \
+    /var/lib/honda-wijaya-abadi/sites/solusi/data
 sudo chown -R "$USER:$USER" /var/lib/honda-wijaya-abadi
-cp -n data/db.json /var/lib/honda-wijaya-abadi/data/db.json
-cp -an public/uploads/. /var/lib/honda-wijaya-abadi/uploads/
-pm2 start ecosystem.config.cjs
+test -s /var/lib/honda-wijaya-abadi/data/db.json
+test -s /var/lib/honda-wijaya-abadi/sites/wijaya/data/db.json
+test -s /var/lib/honda-wijaya-abadi/sites/solusi/data/db.json
+pm2 startOrReload ecosystem.config.cjs --update-env
 pm2 save
 pm2 status
 ```
 
+Salin `db.json` masing-masing situs lama ke lokasi yang sesuai sebelum menjalankan perintah ini. Backup dan migrasi katalog dijelaskan di `README.deploy.md`.
+
 ## 11. Konfigurasi Nginx
 
 ```bash
-sudo tee /etc/nginx/sites-available/kreditmotorhonda.tech > /dev/null <<'EOF'
-server {
-    listen 80;
-    server_name kreditmotorhonda.tech;
-    client_max_body_size 100m;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-sudo ln -sf /etc/nginx/sites-available/kreditmotorhonda.tech /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
+sudo cp nginx.conf.example /etc/nginx/sites-available/wijaya-sites
+sudo ln -sf /etc/nginx/sites-available/wijaya-sites /etc/nginx/sites-enabled/wijaya-sites
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+Konfigurasi tersebut meneruskan tiga domain ke PM2 port 3000, 3001, dan 3002. Nonaktifkan hanya virtual host lama yang memiliki domain yang sama.
+
 ## 12. HTTPS dengan Let’s Encrypt
 
 ```bash
-sudo certbot --nginx -d kreditmotorhonda.tech --non-interactive --agree-tos -m admin@kreditmotorhonda.tech
+sudo certbot --nginx --expand \
+    -d kreditmotorhonda.tech -d www.kreditmotorhonda.tech \
+    -d wijaya.kreditmotorhonda.tech \
+    -d solusikreditmotor.cloud -d www.solusikreditmotor.cloud \
+    --non-interactive --agree-tos -m admin@kreditmotorhonda.tech
 ```
 
 ## 13. Cek aplikasi
@@ -144,6 +144,10 @@ for url in "$SITE_URL/" "$SITE_URL/sitemap.xml"; do
         exit 1
     fi
     echo "HTTP $status: $url"
+done
+for url in https://wijaya.kreditmotorhonda.tech/ https://www.solusikreditmotor.cloud/; do
+    curl --fail --silent --show-error --location "$url" -o /dev/null || exit 1
+    echo "OK: $url"
 done
 pm2 logs honda-wijaya-abadi --lines 100
 ```

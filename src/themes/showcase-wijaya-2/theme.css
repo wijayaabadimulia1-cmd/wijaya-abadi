@@ -1,0 +1,146 @@
+.website-template-showcase-wijaya-2 {
+  --site-bg: #ffffff;
+  --site-panel: #ffffff;
+  --site-card: #ffffff;
+  --site-text: #101419;
+  --site-muted: #626a73;
+  --site-accent: #ed1025;
+  --site-accent-soft: rgba(237, 16, 37, 0.1);
+  --site-border: #e5e9ef;
+}
+
+.website-shell.website-template-showcase-wijaya-2,
+.website-shell.website-template-showcase-wijaya-2.site-mode-light {
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark {
+  --site-bg: #171b20;
+  --site-panel: #222830;
+  --site-card: #2b333d;
+  --site-text: #f7f9fc;
+  --site-muted: #c4cdd6;
+  --site-accent: #ff4454;
+  --site-accent-soft: rgba(255, 68, 84, 0.18);
+  --site-border: #414b57;
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2 .site-navbar {
+  border-bottom: 1px solid var(--site-border);
+  box-shadow: 0 6px 22px rgba(16, 20, 25, 0.07);
+}
+
+.website-shell.website-template-showcase-wijaya-2 .site-navbar-light {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .site-navbar-dark {
+  background: rgba(23, 27, 32, 0.94);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 80% 8%, rgba(120, 188, 232, 0.24), transparent 34%),
+    linear-gradient(180deg, #eaf5fc 0%, #ffffff 58%, #f5f7fa 100%);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 44% 28% at 80% 100%, rgba(82, 132, 158, 0.17) 0 98%, transparent 100%),
+    radial-gradient(ellipse 34% 22% at 14% 100%, rgba(111, 155, 137, 0.13) 0 98%, transparent 100%);
+  pointer-events: none;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #home {
+  background:
+    radial-gradient(ellipse at 80% 8%, rgba(120, 188, 232, 0.14), transparent 34%),
+    linear-gradient(180deg, #222a32 0%, #171b20 64%, #14181d 100%);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-badge {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(237, 16, 37, 0.2);
+  color: #101419;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-main-title,
+.website-shell.website-template-showcase-wijaya-2 #home .hero-editable-text,
+.website-shell.website-template-showcase-wijaya-2 #home .hero-subtitle,
+.website-shell.website-template-showcase-wijaya-2 #home .hero-caption-text {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-highlight-text {
+  color: var(--site-accent-effective) !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-cta-primary {
+  border-radius: 999px;
+  background: linear-gradient(110deg, #b80f20, #ed1025) !important;
+  box-shadow: 0 14px 28px rgba(237, 16, 37, 0.22);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-cta-secondary {
+  background: #ffffff;
+  border-color: #e5e9ef;
+  color: #101419;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-cta-whatsapp {
+  color: #087d45;
+  background: rgba(10, 159, 87, 0.08);
+  border-color: rgba(10, 159, 87, 0.32);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-trust-item {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(16, 20, 25, 0.08);
+  color: #101419;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .group > .relative {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(16, 20, 25, 0.08);
+  box-shadow: 0 24px 54px rgba(27, 49, 63, 0.14);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #home .hero-badge,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #home .hero-cta-secondary,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #home .hero-trust-item,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #home .group > .relative {
+  background: rgba(34, 40, 48, 0.92);
+  border-color: var(--site-border);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card {
+  background: var(--site-card-effective);
+  border-color: var(--site-border);
+  box-shadow: 0 14px 32px rgba(16, 20, 25, 0.07);
+}
+
+.website-shell.website-template-showcase-wijaya-2 .catalog-cta-primary,
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-price-label {
+  color: var(--site-accent-effective);
+}

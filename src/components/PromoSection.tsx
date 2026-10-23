@@ -65,8 +65,9 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                       {promoImages.map((image, imageIndex) => {
                         const featuredImage = promoTemplate === 'showcase' && imageIndex === 0;
                         const singleImage = promoImages.length === 1;
-                        const imageLayout = featuredImage || singleImage
-                          ? 'col-span-full aspect-[16/8]'
+                        const showFullImage = featuredImage || singleImage;
+                        const imageLayout = showFullImage
+                          ? 'col-span-full aspect-[4/5] sm:aspect-[3/4]'
                           : promoTemplate === 'compact'
                             ? 'aspect-square'
                             : 'aspect-[4/3]';
@@ -76,14 +77,14 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings }) 
                             type="button"
                             onClick={() => setActiveImage({ src: image, alt: `${promo.title} - foto ${imageIndex + 1}` })}
                             aria-label={`Perbesar foto ${imageIndex + 1} untuk ${promo.title}`}
-                            className={`${imageLayout} group/image overflow-hidden rounded-xl border border-white/10 bg-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500`}
+                            className={`${imageLayout} group/image overflow-hidden rounded-xl border border-white/10 ${showFullImage ? 'bg-white/5' : 'bg-zinc-950'} focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500`}
                           >
                             <img
                               src={image}
                               alt={`${promo.title} - foto ${imageIndex + 1}`}
                               loading="lazy"
                               data-catalog-animation={promo.promoAnimation || DEFAULT_CATALOG_ANIMATION}
-                              className="catalog-photo-animation h-full w-full object-cover transition-transform duration-300 group-hover/image:scale-105"
+                              className={`catalog-photo-animation h-full w-full object-contain p-1 transition-opacity duration-300 group-hover/image:opacity-95 ${showFullImage ? 'sm:p-2' : ''}`}
                             />
                           </button>
                         );

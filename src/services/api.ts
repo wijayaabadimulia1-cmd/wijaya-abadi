@@ -35,6 +35,12 @@ async function downloadAdminFile(url: string, fallbackName: string): Promise<voi
 }
 
 export const api = {
+  async getCatalogStatus(): Promise<{ owner: boolean; adminUrl: string }> {
+    const res = await fetch('/api/catalog/status', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal memeriksa panel katalog pusat');
+    return res.json();
+  },
+
   // Admin authentication
   async loginAdmin(username: string, password: string): Promise<{ token: string; user: AdminSession }> {
     const res = await fetch('/api/admin/login', {
@@ -331,7 +337,7 @@ export const api = {
     return result;
   },
 
-  async uploadImage(file: File): Promise<string> {
+  async uploadImage(file: File, options: { sharedCatalog?: boolean } = {}): Promise<string> {
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
       throw new Error('Ukuran gambar melebihi batas 100 MB. Kompres gambar lalu coba lagi.');
     }
@@ -356,6 +362,7 @@ export const api = {
           ...adminHeaders(),
           'Content-Type': contentType,
           'X-File-Name': encodeURIComponent(uniqueName),
+          ...(options.sharedCatalog ? { 'X-Catalog-Upload': 'true' } : {}),
         },
         body: file,
         signal: controller.signal,

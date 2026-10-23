@@ -4,7 +4,11 @@ Dokumen ini berisi setup paling siap pakai untuk aplikasi full-stack ini di VPS 
 
 ## 1. Siapkan domain dan server
 
-Pastikan A record `kreditmotorhonda.tech` mengarah ke IP VPS dan port TCP 80/443 dapat diakses dari internet sebelum meminta sertifikat HTTPS. Workflow otomatis menggunakan domain ini sebagai domain produksi.
+Pastikan semua domain mengarah ke IP VPS yang sama dan port TCP 80/443 dapat diakses sebelum meminta sertifikat HTTPS:
+
+- `kreditmotorhonda.tech` dan `www.kreditmotorhonda.tech`
+- `wijaya.kreditmotorhonda.tech`
+- `solusikreditmotor.cloud` dan `www.solusikreditmotor.cloud`
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -37,9 +41,10 @@ Edit file `.env`:
 PORT=3000
 APP_URL=https://kreditmotorhonda.tech
 GEMINI_API_KEY=your_gemini_api_key_here
+CATALOG_SERVICE_TOKEN=output-dari-openssl-rand-hex-32
 ```
 
-Set real production values in `.env` before starting or deploying. Do not commit `.env` or paste private keys/API keys into GitHub logs.
+Generate `CATALOG_SERVICE_TOKEN` with `openssl rand -hex 32` and use the same value for all three processes. Do not commit `.env` or paste secrets into GitHub logs.
 
 ## 5. Install dependency dan build
 
@@ -48,59 +53,99 @@ npm install
 npm run build
 ```
 
-## 6. Jalankan dengan PM2
+## 6. Persiapkan migrasi katalog bersama
+
+Sebelum mengubah route Nginx atau me-reload PM2:
+
+1. Buat backup `db.json` dan folder uploads dari ketiga situs lama.
+2. Salin database situs utama ke `/var/lib/honda-wijaya-abadi/data/db.json`.
+3. Salin database situs `wijaya` ke `/var/lib/honda-wijaya-abadi/sites/wijaya/data/db.json`.
+4. Salin database `solusikreditmotor.cloud` ke `/var/lib/honda-wijaya-abadi/sites/solusi/data/db.json`.
+5. Salin semua folder uploads lama ke `/var/lib/honda-wijaya-abadi/uploads/` tanpa menimpa nama file yang sudah ada.
+
+Jangan gunakan satu `db.json` untuk ketiga situs: file per situs tetap menyimpan tema, promo, identitas, prospek, dan analitik masing-masing.
+
+Setelah checkout terbaru tersedia di VPS, tetapi sebelum mengganti proses PM2 lama, tinjau hasil dry-run:
 
 ```bash
-sudo mkdir -p /var/lib/honda-wijaya-abadi/data /var/lib/honda-wijaya-abadi/uploads
+cd /var/www/wijaya.kreditmotorhonda.id
+DATA_DIR=/var/lib/honda-wijaya-abadi/data \
+UPLOADS_DIR=/var/lib/honda-wijaya-abadi/uploads \
+node scripts/migrate-shared-catalog.mjs
+```
+
+Dry-run membaca API publik ketiga domain dan tidak menulis file. Pastikan jumlah motor unik dan model FIF sudah benar. Setelah backup terverifikasi, jalankan migrasi satu kali dengan `--apply`:
+
+```bash
+DATA_DIR=/var/lib/honda-wijaya-abadi/data \
+UPLOADS_DIR=/var/lib/honda-wijaya-abadi/uploads \
+node scripts/migrate-shared-catalog.mjs --apply
+```
+
+Migrasi membuat backup database owner, menggabungkan motor berdasarkan nama yang dinormalisasi, menggabungkan model FIF, dan menyalin foto katalog ke folder uploads bersama. Jangan hapus backup DB atau uploads lama sampai foto dan katalog di semua domain terverifikasi.
+
+## 7. Jalankan tiga situs dengan PM2
+
+Pastikan `.env` memiliki satu secret internal yang sama untuk semua proses:
+
+```bash
+openssl rand -hex 32
+```
+
+Salin hasilnya ke `CATALOG_SERVICE_TOKEN` di `.env` (jangan masukkan ke Git). Setelah database per situs tersedia:
+
+```bash
+sudo mkdir -p /var/lib/honda-wijaya-abadi/data \
+    /var/lib/honda-wijaya-abadi/uploads \
+    /var/lib/honda-wijaya-abadi/sites/wijaya/data \
+    /var/lib/honda-wijaya-abadi/sites/solusi/data
 sudo chown -R "$USER:$USER" /var/lib/honda-wijaya-abadi
-cp -n data/db.json /var/lib/honda-wijaya-abadi/data/db.json
-cp -an public/uploads/. /var/lib/honda-wijaya-abadi/uploads/
-pm2 start ecosystem.config.cjs
+test -s /var/lib/honda-wijaya-abadi/data/db.json
+test -s /var/lib/honda-wijaya-abadi/sites/wijaya/data/db.json
+test -s /var/lib/honda-wijaya-abadi/sites/solusi/data/db.json
+pm2 startOrReload ecosystem.config.cjs --update-env
 pm2 save
 pm2 status
 ```
 
-## 7. Konfigurasi Nginx
+Proses `honda-wijaya-abadi` (3000) memiliki katalog; `wijaya-kreditmotor` (3001) dan `solusi-kreditmotor` (3002) mem-proxy operasi katalog ke port 3000. Ketiganya memakai satu `UPLOADS_DIR`.
+
+## 8. Konfigurasi Nginx
+
+File [nginx.conf.example](nginx.conf.example) berisi ketiga virtual host. Pasang tanpa menghapus konfigurasi situs lain:
 
 ```bash
-sudo tee /etc/nginx/sites-available/kreditmotorhonda.tech > /dev/null <<'EOF'
-server {
-    listen 80;
-    server_name kreditmotorhonda.tech;
-    client_max_body_size 100m;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-sudo ln -sf /etc/nginx/sites-available/kreditmotorhonda.tech /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
+sudo cp nginx.conf.example /etc/nginx/sites-available/wijaya-sites
+sudo ln -sf /etc/nginx/sites-available/wijaya-sites /etc/nginx/sites-enabled/wijaya-sites
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-## 8. Aktifkan HTTPS dengan Let’s Encrypt
+Nonaktifkan hanya konfigurasi lama yang memiliki `server_name` sama setelah memastikan file tersebut memang untuk domain ini.
+
+## 9. Aktifkan HTTPS dengan Let’s Encrypt
 
 ```bash
-sudo certbot --nginx -d kreditmotorhonda.tech --non-interactive --agree-tos -m admin@kreditmotorhonda.tech
+sudo certbot --nginx --expand \
+    -d kreditmotorhonda.tech -d www.kreditmotorhonda.tech \
+    -d wijaya.kreditmotorhonda.tech \
+    -d solusikreditmotor.cloud -d www.solusikreditmotor.cloud \
+    --non-interactive --agree-tos -m admin@kreditmotorhonda.tech
 ```
 
-## 9. DNS
+## 10. DNS
 
-Atur A record:
+Arahkan semua nama host berikut ke IP VPS yang sama:
 
 ```text
-kreditmotorhonda.tech -> IP VPS Anda
+kreditmotorhonda.tech
+www.kreditmotorhonda.tech
+wijaya.kreditmotorhonda.tech
+solusikreditmotor.cloud
+www.solusikreditmotor.cloud
 ```
 
-## 10. Auto deploy via GitHub Actions
+## 11. Auto deploy via GitHub Actions
 
 Tambahkan secrets berikut di GitHub repo:
 
@@ -128,7 +173,7 @@ Ganti nilai contoh dengan konfigurasi production. Repo harus dapat di-clone dan 
 
 Setelah itu, setiap push ke branch `main` akan otomatis deploy ke VPS.
 
-## 11. Cek status aplikasi
+## 12. Cek status aplikasi
 
 ```bash
 pm2 logs honda-wijaya-abadi --lines 100
@@ -140,6 +185,16 @@ for url in "$SITE_URL/" "$SITE_URL/sitemap.xml"; do
         exit 1
     fi
     echo "HTTP $status: $url"
+done
+for url in \
+    https://wijaya.kreditmotorhonda.tech/ \
+    https://www.solusikreditmotor.cloud/; do
+        status=$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "$url") || exit 1
+        if [ "$status" != "200" ]; then
+                echo "Expected HTTP 200, received HTTP $status: $url" >&2
+                exit 1
+        fi
+        echo "HTTP $status: $url"
 done
 ```
 

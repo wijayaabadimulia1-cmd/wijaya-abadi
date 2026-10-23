@@ -138,6 +138,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [promos, setPromos] = useState<Promo[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
+  const [isCatalogOwner, setIsCatalogOwner] = useState(true);
+  const [catalogAdminUrl, setCatalogAdminUrl] = useState('https://kreditmotorhonda.tech/admin');
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [visitorFilter, setVisitorFilter] = useState<'all' | '7d' | '30d' | 'today' | 'custom'>('7d');
@@ -184,6 +186,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   useEffect(() => {
     localStorage.setItem('hwa-admin-theme', adminTheme);
   }, [adminTheme]);
+
+  useEffect(() => {
+    api.getCatalogStatus()
+      .then((status) => {
+        setIsCatalogOwner(status.owner);
+        setCatalogAdminUrl(status.adminUrl);
+        if (!status.owner) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
+      })
+      .catch(() => setIsCatalogOwner(true));
+  }, []);
 
   useEffect(() => {
     if (!settings) return;
@@ -593,7 +605,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     if (!file) return;
     try {
       showToast('Mengunggah gambar...');
-      const url = await api.uploadImage(file);
+      const url = await api.uploadImage(file, { sharedCatalog: true });
       setEditingMotor((prev) => {
         if (!prev) return null;
         const images = [...(prev.images || Array(MAX_MOTOR_IMAGES).fill(''))];
@@ -796,6 +808,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'honda-wijaya', label: 'Honda Wijaya', accent: 'bg-red-600', description: 'Showroom Honda dengan tampilan merah-putih yang tegas dan elegan.' },
     { value: 'wijaya-cool', label: 'Wijaya Cool', accent: 'bg-gradient-to-r from-emerald-600 to-sky-400', description: 'Nuansa sejuk pegunungan Bandung, kabut lembut, cahaya berkilau, dan daun jatuh.' },
     { value: 'wijaya-meriah', label: 'Wijaya Meriah', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Tema Honda yang cerah dan dinamis dengan aksen merah, putih, charcoal, dan langit biru.' },
+    { value: 'showcase-wijaya-2', label: 'Showcase Wijaya 2', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Showcase Honda merah-putih dengan hero langit pegunungan, CTA tegas, dan katalog bersih.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -863,8 +876,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const isMuliaCerah = template === 'mulia-cerah';
     const isHondaWijaya = template === 'honda-wijaya';
     const isWijayaMeriah = template === 'wijaya-meriah';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah;
+    const isShowcaseWijaya2 = template === 'showcase-wijaya-2';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -942,6 +956,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               },
             },
           }
+      : isShowcaseWijaya2
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              light: {
+                primaryColor: '#ED1025',
+                secondaryColor: '#78BCE8',
+                accentColor: '#FF2638',
+                backgroundColor: '#FFFFFF',
+                panelColor: '#FFFFFF',
+                cardColor: '#FFFFFF',
+                elevatedColor: '#FFFFFF',
+                borderColor: '#E5E9EF',
+                textColor: '#101419',
+                mutedColor: '#626A73',
+                heroTextColor: '#101419',
+                heroTitleHighlightColor: '#ED1025',
+              },
+              dark: {
+                primaryColor: '#FF2638',
+                secondaryColor: '#78BCE8',
+                accentColor: '#FF4454',
+                backgroundColor: '#171B20',
+                panelColor: '#222830',
+                cardColor: '#2B333D',
+                elevatedColor: '#343E49',
+                borderColor: '#414B57',
+                textColor: '#F7F9FC',
+                mutedColor: '#C4CDD6',
+                heroTextColor: '#F7F9FC',
+                heroTitleHighlightColor: '#FF4454',
+              },
+            },
+          }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -970,6 +1020,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             heroTitleHighlight: 'Motor Honda Impian Anda',
             heroSubtitle: 'Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.',
           }
+      : isShowcaseWijaya2
+        ? {
+            heroMainTitle: 'Saatnya Punya',
+            heroTitleHighlight: 'Motor Honda Impian Anda',
+            heroSubtitle: 'Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.',
+          }
       : {};
     const nextSettings = { ...settings, ...headlineSettings, websiteTemplate: template, customization };
     setSettings(nextSettings);
@@ -978,7 +1034,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);
@@ -1324,7 +1380,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
-            ].map((tab) => {
+            ].filter((tab) => isCatalogOwner || !['motors', 'credit'].includes(tab.id)).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -1358,6 +1414,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             {/* TAB 1: DASHBOARD */}
             {activeTab === 'dashboard' && (
               <div className="space-y-8 animate-in fade-in duration-300">
+                {!isCatalogOwner && (
+                  <section className="flex flex-col gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-sm font-bold text-white">Katalog motor dikelola bersama</h2>
+                      <p className="mt-1 text-xs text-zinc-400">Perubahan katalog dan price list dilakukan dari satu panel pusat, lalu tampil di ketiga website.</p>
+                    </div>
+                    <a href={catalogAdminUrl} className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
+                      Buka Admin Katalog Pusat
+                    </a>
+                  </section>
+                )}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5">
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
