@@ -1,0 +1,15 @@
+.website-shell.website-template-wijaya-meriah.site-mode-light .wijaya-meriah-category::after {
+  inset: 18% 0 0;
+  background: linear-gradient(transparent 4%, rgba(16, 25, 35, 0.68) 100%);
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light .wijaya-meriah-category span {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(16, 25, 35, 0.9);
+  color: #ffffff;
+  line-height: 1.2;
+  padding: 6px 9px;
+  text-shadow: none;
+  box-shadow: 0 3px 10px rgba(16, 25, 35, 0.22);
+}
