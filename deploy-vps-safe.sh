@@ -12,6 +12,8 @@ DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/deploy.conf"
 STAGING_DIR=""
 STAGING_PID=""
+PREVIOUS_DROPIN_EXISTS=0
+PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
 
@@ -24,7 +26,11 @@ cleanup() {
   local result=$?
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Deployment health check failed; restoring the previous systemd service." >&2
-    sudo rm -f "$DROPIN_FILE"
+    if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
+      sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
+    else
+      sudo rm -f "$DROPIN_FILE"
+    fi
     sudo systemctl daemon-reload || true
     sudo systemctl restart "$SERVICE" || true
   fi
@@ -50,7 +56,11 @@ if ! systemctl is-active --quiet "$SERVICE"; then
   fail "$SERVICE is not active; refusing to replace an unknown production state."
 fi
 if [ -e "$DROPIN_FILE" ]; then
-  fail "$DROPIN_FILE already exists; review the current override before deploying."
+  if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$DROPIN_FILE" \
+    || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
+    fail "$DROPIN_FILE is not a recognized managed deployment; review it before deploying."
+  fi
+  PREVIOUS_DROPIN_EXISTS=1
 fi
 
 SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value)"
@@ -79,6 +89,10 @@ npm ci
 npm run build
 
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
+if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ]; then
+  PREVIOUS_DROPIN_BACKUP="$STAGING_DIR/deploy.conf.previous"
+  cp "$DROPIN_FILE" "$PREVIOUS_DROPIN_BACKUP"
+fi
 mkdir -p "$STAGING_DIR/data" "$STAGING_DIR/uploads"
 cp "$DATA_DIR/db.json" "$STAGING_DIR/data/db.json"
 
