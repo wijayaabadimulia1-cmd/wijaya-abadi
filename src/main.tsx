@@ -9,6 +9,8 @@ import './themes/showcase-wijaya-2/visual-balance-fixes.css';
 import './themes/showcase-wijaya-2/catalog-grid-fix.css';
 import './themes/showcase-wijaya-2/button-spacing-fix.css';
 import './themes/showcase-wijaya-2/discovery-promo-fix.css';
+import './themes/showcase-wijaya-2/promo-horizontal.css';
+import './themes/showcase-wijaya-2/hero-fold-fix.css';
 import './themes/wijaya-meriah/appearance-fixes.css';
 import './themes/wijaya-meriah/light-layout-fixes.css';
 import './themes/wijaya-meriah/left-alignment-fix.css';

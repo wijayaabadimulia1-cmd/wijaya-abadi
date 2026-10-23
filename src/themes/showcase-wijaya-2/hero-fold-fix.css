@@ -1,0 +1,10 @@
+@media (min-width: 1024px) {
+  .website-shell.website-template-showcase-wijaya-2 main > #home {
+    height: 550px;
+    min-height: 550px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #home .hero-visual-frame {
+    aspect-ratio: 16 / 10;
+  }
+}
