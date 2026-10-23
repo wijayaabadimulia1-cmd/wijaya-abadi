@@ -29,12 +29,6 @@ async function fetchJson(url) {
   return response.json();
 }
 
-function isNewer(candidate, current) {
-  const candidateTime = Date.parse(candidate.updated_at || candidate.created_at || '');
-  const currentTime = Date.parse(current.updated_at || current.created_at || '');
-  return Number.isFinite(candidateTime) && (!Number.isFinite(currentTime) || candidateTime > currentTime);
-}
-
 function getLocalUploadName(source, sourceOrigin) {
   let parsed;
   try {
@@ -106,21 +100,33 @@ async function copyCatalogImage(source, sourceOrigin, copiedImages) {
 
 async function main() {
   const catalogByName = new Map();
+  const catalogEntries = [];
+  const sourceMotorCounts = {};
   const mergedPriceList = { source: 'Shared catalog migration', updatedAt: new Date().toISOString(), tenors: [11, 17, 23, 29, 35], models: {} };
   let sourceMotorCount = 0;
 
-  for (const origin of sourceSites) {
+  for (const [siteIndex, origin] of sourceSites.entries()) {
     const [motors, priceList] = await Promise.all([
       fetchJson(new URL('/api/motors', origin)),
       fetchJson(new URL('/api/fif-price-list', origin)),
     ]);
     if (!Array.isArray(motors)) throw new Error(`${origin}/api/motors tidak mengembalikan array.`);
     sourceMotorCount += motors.length;
+    sourceMotorCounts[origin] = motors.length;
 
     for (const motor of motors) {
       const key = normalizeName(motor.name) || `id:${motor.id}`;
-      const current = catalogByName.get(key);
-      if (!current || isNewer(motor, current.motor)) catalogByName.set(key, { motor: { ...motor }, origin });
+      if (siteIndex === 0) {
+        const ownerEntry = { motor: { ...motor }, origin };
+        catalogEntries.push(ownerEntry);
+        if (!catalogByName.has(key)) catalogByName.set(key, ownerEntry);
+        continue;
+      }
+      if (!catalogByName.has(key)) {
+        const replicaEntry = { motor: { ...motor }, origin };
+        catalogByName.set(key, replicaEntry);
+        catalogEntries.push(replicaEntry);
+      }
     }
 
     for (const [name, model] of Object.entries(priceList.models || {})) {
@@ -129,10 +135,10 @@ async function main() {
     if (Array.isArray(priceList.tenors) && priceList.tenors.length) mergedPriceList.tenors = priceList.tenors;
   }
 
-  const mergedMotors = [...catalogByName.values()].map(({ motor }) => motor);
+  const mergedMotors = catalogEntries.map(({ motor }) => motor);
   const copiedImages = new Map();
   let localImageCount = 0;
-  for (const entry of catalogByName.values()) {
+  for (const entry of catalogEntries) {
     const imageReferences = Array.isArray(entry.motor.images) ? entry.motor.images : (entry.motor.image ? [entry.motor.image] : []);
     const updatedImages = [];
     for (const image of imageReferences) {
@@ -148,7 +154,9 @@ async function main() {
     mode: isApply ? 'APPLY' : 'DRY RUN',
     sites: sourceSites,
     sourceMotorCount,
-    mergedUniqueMotorCount: mergedMotors.length,
+    sourceMotorCounts,
+    ownerMotorCount: sourceMotorCounts[sourceSites[0]] || 0,
+    mergedMotorCount: mergedMotors.length,
     duplicateMotorRecords: sourceMotorCount - mergedMotors.length,
     fifModelCount: Object.keys(mergedPriceList.models).length,
     catalogImageReferences: [...copiedImages.values()].length,

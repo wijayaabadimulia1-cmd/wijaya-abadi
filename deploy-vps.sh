@@ -6,6 +6,15 @@ REPO_URL="${1:-https://github.com/wijayaabadimulia1-cmd/wijaya-abadi.git}"
 BRANCH="${2:-main}"
 MAIN_DOMAIN="kreditmotorhonda.tech"
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@kreditmotorhonda.tech}"
+EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
+
+for host in kreditmotorhonda.tech www.kreditmotorhonda.tech wijaya.kreditmotorhonda.tech solusikreditmotor.cloud www.solusikreditmotor.cloud; do
+  resolved_ips=$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)
+  if [ "$resolved_ips" != "$EXPECTED_VPS_IP" ]; then
+    echo "DNS preflight failed for $host: expected only $EXPECTED_VPS_IP, resolved '${resolved_ips:-no IPv4 address}'. No deploy changes were made." >&2
+    exit 1
+  fi
+done
 
 if [ ! -d "$APP_DIR" ]; then
   sudo mkdir -p "$APP_DIR"

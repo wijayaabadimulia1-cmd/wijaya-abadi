@@ -14,8 +14,40 @@
     "heroTitleHighlight": "Motor Honda Impian Anda",
     "heroSubtitle": "Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.",
     "footerText": "Dealer resmi Honda terpercaya yang siap melayani kebutuhan kendaraan Anda dengan profesional, transparan, dan amanah.",
-    "updated_at": "2026-09-22T04:23:25.075Z",
-    "websiteTemplate": "honda-wijaya"
+    "updated_at": "2026-10-23T11:48:59.980Z",
+    "websiteTemplate": "honda-wijaya",
+    "customization": {
+      "colorPalettes": {
+        "light": {
+          "primaryColor": "#e60012",
+          "secondaryColor": "#38bdf8",
+          "accentColor": "#ff2638",
+          "backgroundColor": "#f7f7f8",
+          "panelColor": "#ffffff",
+          "cardColor": "#ffffff",
+          "elevatedColor": "#ffffff",
+          "borderColor": "#e4e4e7",
+          "textColor": "#171717",
+          "mutedColor": "#52525b",
+          "heroTextColor": "#171717",
+          "heroTitleHighlightColor": "#e60012"
+        },
+        "dark": {
+          "primaryColor": "#ff2638",
+          "secondaryColor": "#38bdf8",
+          "accentColor": "#ff3548",
+          "backgroundColor": "#25282d",
+          "panelColor": "#34383f",
+          "cardColor": "#3d424a",
+          "elevatedColor": "#474d56",
+          "borderColor": "#59616b",
+          "textColor": "#ffffff",
+          "mutedColor": "#e0e3e8",
+          "heroTextColor": "#ffffff",
+          "heroTitleHighlightColor": "#ff3548"
+        }
+      }
+    }
   },
   "motors": [
     {
@@ -450,6 +482,102 @@
   ],
   "auditLogs": [
     {
+      "id": "audit-1792756169005-0e9056",
+      "created_at": "2026-10-23T11:49:29.006Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
+      "id": "audit-1792756139974-0af8be",
+      "created_at": "2026-10-23T11:48:59.974Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792756134458-24f4b4",
+      "created_at": "2026-10-23T11:48:54.458Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792756132642-cadde5",
+      "created_at": "2026-10-23T11:48:52.642Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792755983839-9a1492",
+      "created_at": "2026-10-23T11:46:23.839Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792755977418-c771a8",
+      "created_at": "2026-10-23T11:46:17.418Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
+      "id": "audit-1792755869531-e329c5",
+      "created_at": "2026-10-23T11:44:29.531Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792755614887-f32ba8",
+      "created_at": "2026-10-23T11:40:14.887Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792755608008-539c27",
+      "created_at": "2026-10-23T11:40:08.008Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792755599092-30ef59",
+      "created_at": "2026-10-23T11:39:59.092Z",
+      "actor": "@Abadi",
+      "action": "PUT /settings",
+      "resource": "/settings",
+      "details": "Perubahan data melalui admin panel"
+    },
+    {
+      "id": "audit-1792755583931-27d381",
+      "created_at": "2026-10-23T11:39:43.931Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
+      "id": "audit-1792753958122-6c0e23",
+      "created_at": "2026-10-23T11:12:38.122Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
       "id": "audit-1791950248459-abdc38",
       "created_at": "2026-10-14T03:57:28.459Z",
       "actor": "@Abadi",
@@ -693,6 +821,66 @@
       "id": "visit-1791951519279-3ef9b869",
       "sessionId": "6ad4fc7a-adb2-4f4b-a50c-be92c84b6a8d",
       "timestamp": "2026-10-14T04:18:39.280Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792753795266-90cb785d",
+      "sessionId": "870d8384-9ade-4739-94f8-4ea714ecd724",
+      "timestamp": "2026-10-23T11:09:55.471Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792753879753-eace78ac",
+      "sessionId": "9688264c-70c8-43ae-a142-44b8611487e6",
+      "timestamp": "2026-10-23T11:11:19.753Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792753943274-39ba1f71",
+      "sessionId": "ac186490-a0f2-4822-9749-8c76dd3f2cdf",
+      "timestamp": "2026-10-23T11:12:23.274Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792753990745-d41b030e",
+      "sessionId": "4b8d234d-76fb-459d-a438-4e4230b48a61",
+      "timestamp": "2026-10-23T11:13:10.745Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792755620374-0d7cdbb6",
+      "sessionId": "63ce013e-7b4c-40e6-98f4-240a5d2fe96c",
+      "timestamp": "2026-10-23T11:40:20.374Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792755949760-1a9fdb93",
+      "sessionId": "96ee4e8e-96f6-4381-b273-f68800602a25",
+      "timestamp": "2026-10-23T11:45:49.760Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792755965412-6978e8f9",
+      "sessionId": "197ae751-8c26-4a46-837f-3971674e1926",
+      "timestamp": "2026-10-23T11:46:05.413Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792756154736-658770ed",
+      "sessionId": "56d7f638-48e6-4a86-9949-eeeffeeb7174",
+      "timestamp": "2026-10-23T11:49:14.736Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792756155740-0c24268f",
+      "sessionId": "34819b7e-4fbd-46d7-ab17-723a979b606e",
+      "timestamp": "2026-10-23T11:49:15.740Z",
+      "path": "/"
+    },
+    {
+      "id": "visit-1792757445123-e944c694",
+      "sessionId": "645d4a94-d08f-4422-9c06-a6b7ef49f6b3",
+      "timestamp": "2026-10-23T12:10:45.123Z",
       "path": "/"
     }
   ]
