@@ -1,0 +1,243 @@
+.website-shell.website-template-wijaya-meriah.site-mode-light {
+  --site-bg-effective: #f4f6f9 !important;
+  --site-panel-effective: #ffffff !important;
+  --site-card-effective: #ffffff !important;
+  --site-text-effective: #20252d !important;
+  --site-muted-effective: #52606d !important;
+  --site-accent-effective: #c8102e !important;
+  color: #20252d;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light #home {
+  background-color: #f4f6f9;
+  background-image:
+    linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0.98) 38%, rgba(255, 255, 255, 0.84) 58%, rgba(255, 255, 255, 0.08) 100%),
+    linear-gradient(0deg, rgba(16, 25, 35, 0.14), transparent 40%),
+    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
+  background-position: center, center, center 58%;
+  background-size: cover;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-main-title,
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-subtitle,
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-editable-text,
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-caption-text {
+  color: #20252d !important;
+  text-shadow: none;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-highlight-text {
+  color: #c8102e !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-trust-item {
+  border-color: rgba(32, 37, 45, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: #20252d;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-trust-item p.text-white {
+  color: #20252d !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light .wijaya-meriah-discovery {
+  background: #f4f6f9 !important;
+  color: #20252d;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light .wijaya-meriah-discovery-heading {
+  color: #20252d !important;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light .wijaya-meriah-quick-link:not(.wijaya-meriah-quick-link-primary) {
+  border-color: #dce3e9;
+  background: #ffffff;
+  color: #20252d;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light .wijaya-meriah-quick-link small {
+  color: #52606d;
+}
+
+.website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-visual-frame > .absolute.top-4 {
+  display: none;
+}
+
+.website-shell.website-template-wijaya-meriah #home .hero-visual-frame > .absolute.top-4 {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column {
+    width: 54%;
+    max-width: 690px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-trust-grid {
+    max-width: 650px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-frame img {
+    inset: 0 0 0 auto;
+    width: 58%;
+    object-position: right center;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 24%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 24%);
+  }
+}
+
+@media (max-width: 1023px) {
+  .website-shell.website-template-wijaya-meriah #home {
+    display: block;
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 82px 0 28px !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-content-shell {
+    position: relative;
+    inset: auto;
+    width: min(100% - 40px, 800px);
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-content-grid {
+    display: grid;
+    width: 100%;
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column {
+    width: 100%;
+    max-width: 720px;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    gap: 14px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-column {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    pointer-events: auto;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-group,
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-card {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-frame {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 8;
+    overflow: hidden;
+    border: 1px solid #dce3e9;
+    border-radius: 16px;
+    background: #e8eef3;
+    box-shadow: 0 14px 32px rgba(16, 25, 35, 0.12);
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-frame img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 58%;
+    opacity: 1;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-overlay {
+    display: block;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column .hero-cta-primary,
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column .hero-cta-secondary,
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column .hero-cta-whatsapp {
+    position: relative;
+    z-index: 2;
+  }
+
+  .website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-copy-column .hero-cta-secondary {
+    border-color: #d7dee5;
+    background: #ffffff;
+    color: #20252d !important;
+  }
+
+  .website-shell.website-template-wijaya-meriah.site-mode-light #home .hero-copy-column .hero-cta-whatsapp {
+    border-color: rgba(8, 126, 70, 0.28);
+    background: #effaf4;
+    color: #087e46 !important;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-trust-grid {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-wijaya-meriah #home {
+    padding: 78px 0 22px !important;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-content-shell {
+    width: calc(100% - 32px);
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-content-grid {
+    gap: 18px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-main-title {
+    max-width: 100%;
+    font-size: 32px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column > div.flex.flex-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-copy-column > div.flex.flex-wrap > :is(a, button) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-trust-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding-top: 14px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-trust-item {
+    min-height: 62px;
+    padding: 8px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #home .hero-visual-frame {
+    aspect-ratio: 4 / 3;
+  }
+}
