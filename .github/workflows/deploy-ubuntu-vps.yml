@@ -37,15 +37,20 @@ jobs:
           test -n "$VPS_USER"
           ssh "${VPS_USER}@${VPS_HOST}" <<'SSH'
           set -euo pipefail
-          APP_DIR="/var/www/wijaya-abadi"
+          APP_DIR="/opt/wijaya-abadi-deploy-src"
           APP_REPO="https://github.com/wijayaabadimulia1-cmd/wijaya-abadi.git"
           APP_BRANCH="main"
-          export APP_DIR
-          sudo mkdir -p "$APP_DIR"
-          sudo chown -R "${USER}:${USER}" "$APP_DIR"
           if [ ! -d "$APP_DIR/.git" ]; then
+            sudo install -d -o "$USER" -g "$(id -gn)" "$APP_DIR"
             git clone --branch "$APP_BRANCH" --single-branch "$APP_REPO" "$APP_DIR"
           fi
           cd "$APP_DIR"
-          ./deploy-vps.sh "$APP_REPO" "$APP_BRANCH"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Deployment checkout has local changes; refusing to overwrite it." >&2
+            exit 1
+          fi
+          git fetch origin "$APP_BRANCH"
+          git checkout "$APP_BRANCH"
+          git pull --ff-only origin "$APP_BRANCH"
+          ./deploy-vps-safe.sh
           SSH

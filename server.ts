@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
 
 const PORT = Number(process.env.PORT) || 3000;
-const HOST = '0.0.0.0';
+const HOST = process.env.HOST || '0.0.0.0';
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
