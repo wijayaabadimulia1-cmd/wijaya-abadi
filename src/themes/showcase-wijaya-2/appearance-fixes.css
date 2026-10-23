@@ -1,0 +1,233 @@
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark {
+  --site-bg: #252d36;
+  --site-panel: #303a46;
+  --site-card: #394553;
+  --site-text: #f7f9fc;
+  --site-muted: #d1d9e2;
+  --site-border: #52606e;
+  --site-bg-effective: #252d36 !important;
+  --site-panel-effective: #303a46 !important;
+  --site-card-effective: #394553 !important;
+  --site-text-effective: #f7f9fc !important;
+  --site-muted-effective: #d1d9e2 !important;
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #promo,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #katalog {
+  background: #252d36 !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #katalog .catalog-card,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-quick-link {
+  border-color: #52606e;
+  background: #303a46;
+  color: #f7f9fc;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #katalog .catalog-card p,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #katalog .catalog-card small,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-quick-link small {
+  color: #d1d9e2;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  align-content: start;
+  column-gap: 16px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #home {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  height: 420px;
+  min-height: 420px;
+  padding-top: 68px;
+  background-image:
+    linear-gradient(90deg, rgba(12, 22, 32, 0.76), rgba(12, 22, 32, 0.36) 48%, rgba(12, 22, 32, 0.12)),
+    linear-gradient(0deg, rgba(12, 22, 32, 0.34), transparent 34%),
+    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
+  background-position: center, center, center 53%;
+  background-size: cover;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-main-title,
+.website-shell.website-template-showcase-wijaya-2 #home .hero-subtitle,
+.website-shell.website-template-showcase-wijaya-2 #home .hero-editable-text,
+.website-shell.website-template-showcase-wijaya-2 #home .hero-caption-text {
+  color: #ffffff !important;
+  text-shadow: 0 1px 8px rgba(8, 14, 20, 0.25);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-highlight-text {
+  color: #ff2638 !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > .showcase-quick-links {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  width: 100%;
+  max-width: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-self: start;
+  gap: 10px;
+  margin: -26px 0 0;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-links > .showcase-quick-link:first-child {
+  display: none;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-links > .showcase-quick-link:nth-child(2) { order: 4; }
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-links > .showcase-quick-link:nth-child(3) { order: 1; }
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-links > .showcase-quick-link:nth-child(4) { order: 3; }
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-links > .showcase-quick-link:nth-child(5) { order: 2; }
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-link {
+  min-width: 0;
+  min-height: 68px;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 9px 10px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-quick-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo > .max-w-7xl {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card {
+  min-height: 78px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #katalog {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  width: 100%;
+  padding: 24px 0 56px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .mt-8.grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card {
+  min-width: 0;
+  border-radius: 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div:first-child > button {
+  height: 144px;
+  padding: 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #simulasi { grid-column: 1 / -1; grid-row: 4; }
+.website-shell.website-template-showcase-wijaya-2 main > #manifesto { grid-column: 1 / -1; grid-row: 5; }
+.website-shell.website-template-showcase-wijaya-2 main > #testimoni { grid-column: 1 / -1; grid-row: 6; }
+
+@media (max-width: 1279px) {
+  .website-shell.website-template-showcase-wijaya-2 #katalog .mt-8.grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .website-shell.website-template-showcase-wijaya-2 main {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #home {
+    order: 0;
+    height: auto;
+    min-height: 0;
+    padding: 92px 0 34px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > .showcase-quick-links {
+    order: 1;
+    width: calc(100% - 40px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: -18px auto 12px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo {
+    order: 2;
+    width: 100%;
+    padding: 8px 20px 12px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #katalog { order: 3; }
+  .website-shell.website-template-showcase-wijaya-2 main > #simulasi { order: 4; }
+  .website-shell.website-template-showcase-wijaya-2 main > #manifesto { order: 5; }
+  .website-shell.website-template-showcase-wijaya-2 main > #testimoni { order: 6; }
+
+  .website-shell.website-template-showcase-wijaya-2 #katalog .mt-8.grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-showcase-wijaya-2 main > #home {
+    padding-top: 86px;
+    padding-bottom: 28px;
+    background-image:
+      linear-gradient(90deg, rgba(12, 22, 32, 0.72), rgba(12, 22, 32, 0.3)),
+      linear-gradient(0deg, rgba(12, 22, 32, 0.38), transparent 40%),
+      var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
+    background-position: center, center, center;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > .showcase-quick-links {
+    width: calc(100% - 32px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: -12px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 .showcase-quick-link {
+    min-height: 58px;
+    padding: 8px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > #promo {
+    padding: 6px 16px 10px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #promo .promo-card {
+    min-height: 92px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #katalog .mt-8.grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div:first-child > button {
+    height: 116px;
+  }
+}

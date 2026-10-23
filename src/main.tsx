@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import './themes/wijaya-meriah/theme.css';
 import './themes/showcase-wijaya-2/theme.css';
+import './themes/showcase-wijaya-2/appearance-fixes.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
