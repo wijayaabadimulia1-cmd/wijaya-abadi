@@ -3,9 +3,70 @@
   gap: 14px;
 }
 
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card {
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div:nth-child(2) > button {
+  height: 156px;
+  padding: 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div:nth-child(2) > div.p-6 {
+  padding: 12px 14px 10px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card h3 {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card h3 + p,
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card .mt-4.flex.flex-wrap {
+  display: none;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card .mt-6.pt-4 {
+  margin-top: 0;
+  padding-top: 6px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card .mt-6.pt-4 > div {
+  font-size: 18px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div.p-6.pt-0 {
+  padding: 0 12px 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div.p-6.pt-0 > div.grid {
+  gap: 6px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div.p-6.pt-0 > div.grid > button {
+  min-height: 34px;
+  padding: 6px 4px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div.p-6.pt-0 > button {
+  min-height: 30px;
+  margin-top: 6px;
+  padding: 5px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
 @media (max-width: 640px) {
   .website-shell.website-template-showcase-wijaya-2 #katalog .mt-8.grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #katalog .catalog-card > div:nth-child(2) > button {
+    height: 124px;
   }
 }
