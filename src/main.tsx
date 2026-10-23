@@ -7,6 +7,7 @@ import './themes/showcase-wijaya-2/theme.css';
 import './themes/showcase-wijaya-2/appearance-fixes.css';
 import './themes/wijaya-meriah/appearance-fixes.css';
 import './themes/wijaya-meriah/light-layout-fixes.css';
+import './themes/wijaya-meriah/left-alignment-fix.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
