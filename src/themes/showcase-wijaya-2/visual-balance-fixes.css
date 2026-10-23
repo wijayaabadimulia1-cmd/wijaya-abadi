@@ -33,18 +33,170 @@
     margin-top: -10px;
   }
 
-  .website-shell.website-template-showcase-wijaya-2 #promo .promo-card {
-    min-height: 72px;
-    margin-bottom: 6px;
-    padding: 8px 12px;
-  }
-
-  .website-shell.website-template-showcase-wijaya-2 #promo .promo-card .promo-title {
-    font-size: 14px;
-    line-height: 1.2;
-  }
-
   .website-shell.website-template-showcase-wijaya-2 main > #katalog {
     padding-top: 20px;
+  }
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c8102e !important;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #b80f20, #ed1025) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(200, 16, 46, 0.2);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-cta-primary,
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-cta-primary * {
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-cta-primary:hover,
+.website-shell.website-template-showcase-wijaya-2 #katalog .catalog-cta-primary:focus-visible {
+  border-color: #a80d1f !important;
+  background: #a80d1f !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #katalog .catalog-cta-secondary {
+  border: 1px solid #586675 !important;
+  background: #394654 !important;
+  color: #f7f9fc !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #katalog .catalog-cta-secondary svg {
+  color: #ff6574 !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .mt-12.grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 10px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card {
+  display: grid;
+  min-width: 0;
+  min-height: 126px;
+  grid-template-columns: minmax(0, 1fr) minmax(76px, 36%);
+  grid-template-rows: auto auto auto auto;
+  align-content: center;
+  align-items: center;
+  gap: 5px 8px;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card > div:nth-child(2) {
+  display: contents;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .relative.mb-5 {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  width: 100%;
+  height: 88px;
+  margin: 0;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .relative.mb-5 button {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .relative.mb-5 img {
+  object-fit: contain;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .flex.items-center.justify-between.mb-4 {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  gap: 4px;
+  margin: 0;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .flex.items-center.justify-between.mb-4 > span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .promo-title {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .promo-description {
+  display: -webkit-box;
+  grid-column: 1;
+  grid-row: 3;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .promo-terms,
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card > .mt-4 {
+  display: none;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card > .mt-8 {
+  display: block;
+  grid-column: 1;
+  grid-row: 4;
+  min-width: 0;
+  margin: 2px 0 0;
+  overflow: hidden;
+  font-size: 8px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #promo .promo-card .promo-action {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 26px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff !important;
+  color: #991b1b !important;
+  font-size: 9px;
+  padding: 4px 9px;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #promo .promo-card {
+  border: 1px solid #52606e;
+  color: #f7f9fc;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #promo .promo-card:nth-child(3n + 2) {
+  color: #20252d;
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-showcase-wijaya-2 #promo .mt-12.grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 #promo .promo-card {
+    min-height: 108px;
   }
 }
