@@ -54,6 +54,13 @@
   background-size: cover;
 }
 
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #home {
+  background-image:
+    linear-gradient(90deg, rgba(12, 22, 32, 0.42), rgba(12, 22, 32, 0.18) 48%, rgba(12, 22, 32, 0.06)),
+    linear-gradient(0deg, rgba(12, 22, 32, 0.2), transparent 34%),
+    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
+}
+
 .website-shell.website-template-showcase-wijaya-2 #home .hero-main-title,
 .website-shell.website-template-showcase-wijaya-2 #home .hero-subtitle,
 .website-shell.website-template-showcase-wijaya-2 #home .hero-editable-text,
@@ -200,6 +207,13 @@
       linear-gradient(0deg, rgba(12, 22, 32, 0.38), transparent 40%),
       var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
     background-position: center, center, center;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #home {
+    background-image:
+      linear-gradient(90deg, rgba(12, 22, 32, 0.44), rgba(12, 22, 32, 0.2)),
+      linear-gradient(0deg, rgba(12, 22, 32, 0.22), transparent 40%),
+      var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
   }
 
   .website-shell.website-template-showcase-wijaya-2 main > .showcase-quick-links {
