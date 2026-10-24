@@ -32,7 +32,139 @@
   margin-top: 28px;
 }
 
-.website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #promo {
+.website-shell.website-template-showcase-wijaya-2 main > .showcase-promo-preview {
+  order: 1;
+  padding: 12px 24px 0;
+  background: #f5f7f9;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__inner {
+  width: min(100%, 1240px);
+  margin: 0 auto;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #20252d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__heading a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #d71920;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__heading svg {
+  width: 14px;
+  height: 14px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__card {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  grid-template-columns: minmax(0, 1fr) minmax(84px, 34%);
+  align-items: stretch;
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e9ef;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(16, 20, 25, 0.07);
+  padding: 10px;
+  color: #101419;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__badge {
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(215, 25, 32, 0.1);
+  color: #c71920;
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__copy strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__copy small {
+  color: #626a73;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__image {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f4f6f8;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__image img {
+  width: 100%;
+  height: 100%;
+  max-height: 100px;
+  object-fit: contain;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-promo-preview__heading,
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-promo-preview__card {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-promo-preview__grid {
+  background: transparent;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-promo-preview__card {
+  border-color: var(--site-border);
+  background: var(--site-card-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark .showcase-promo-preview__image {
+  background: #171b20;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark #promo {
   background: var(--site-bg-effective);
 }
 
@@ -44,8 +176,30 @@
   color: var(--site-muted-effective);
 }
 
+.website-shell.website-template-showcase-wijaya-2 main > #promo.showcase-promo-intro .mt-12.grid,
+.website-shell.website-template-showcase-wijaya-2 main > #promo.showcase-promo-intro .mt-6.flex {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .website-shell.website-template-showcase-wijaya-2 main > #promo {
     padding: 40px 0 48px;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 main > .showcase-promo-preview {
+    padding: 12px 16px 0;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__grid {
+    grid-auto-columns: minmax(0, 84%);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .website-shell.website-template-showcase-wijaya-2 .showcase-promo-preview__card {
+    scroll-snap-align: start;
   }
 }
