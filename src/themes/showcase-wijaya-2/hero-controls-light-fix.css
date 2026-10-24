@@ -14,3 +14,14 @@
   justify-content: center;
   text-align: center;
 }
+
+.website-shell.website-template-showcase-wijaya-2 .site-navbar .group > div > div:first-child {
+  gap: 5px;
+  font-size: 14px !important;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-showcase-wijaya-2 .site-navbar .group > div > div:first-child > span:first-child {
+  white-space: nowrap;
+}
