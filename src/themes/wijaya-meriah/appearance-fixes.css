@@ -29,8 +29,8 @@
 .website-shell.website-template-wijaya-meriah.site-mode-dark #home {
   background-color: #252e38;
   background-image:
-    linear-gradient(90deg, rgba(13, 21, 30, 0.82) 0%, rgba(13, 21, 30, 0.62) 42%, rgba(13, 21, 30, 0.14) 78%),
-    linear-gradient(0deg, rgba(13, 21, 30, 0.3), transparent 42%),
+    linear-gradient(90deg, rgba(13, 21, 30, 0.48) 0%, rgba(13, 21, 30, 0.26) 42%, rgba(13, 21, 30, 0.08) 78%),
+    linear-gradient(0deg, rgba(13, 21, 30, 0.22), transparent 42%),
     var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
   background-position: center, center, center 58%;
   background-size: cover;
@@ -142,7 +142,7 @@
     height: 560px;
     min-height: 560px;
     background-image:
-      linear-gradient(180deg, rgba(13, 21, 30, 0.72), rgba(13, 21, 30, 0.64)),
+      linear-gradient(180deg, rgba(13, 21, 30, 0.46), rgba(13, 21, 30, 0.36)),
       var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
     background-position: center, center;
     background-size: cover;

@@ -128,13 +128,6 @@
   background-size: cover;
 }
 
-.website-shell.website-template-wijaya-meriah.site-mode-dark #home {
-  background-image:
-    linear-gradient(90deg, rgba(17, 27, 35, 0.5) 0%, rgba(17, 27, 35, 0.28) 36%, rgba(17, 27, 35, 0.08) 72%),
-    linear-gradient(0deg, rgba(17, 27, 35, 0.22), transparent 38%),
-    var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
-}
-
 .website-shell.website-template-wijaya-meriah #home::before,
 .website-shell.website-template-wijaya-meriah #home .natural-cool-scene,
 .website-shell.website-template-wijaya-meriah #home .hero-background-glow,
