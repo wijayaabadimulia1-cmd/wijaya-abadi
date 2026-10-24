@@ -1527,6 +1527,21 @@ html[data-color-mode="dark"] body {
   font-size: var(--hero-caption-font-size, 12px);
 }
 
+.website-shell.site-mode-light #home .hero-caption-overlay {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.62);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.website-shell.site-mode-light #home .hero-caption-overlay .hero-caption-text,
+.website-shell.site-mode-light #home .hero-caption-overlay p {
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
 @media (max-width: 640px) {
   .website-shell #home .hero-main-title {
     max-width: 100%;

@@ -258,16 +258,8 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                     <span className="text-zinc-200 font-semibold">{formatRupiah(dpAmount)}</span>
                   </div>
                   <div className="flex justify-between text-zinc-400">
-                    <span>Total Pinjaman Pokok</span>
-                    <span className="text-zinc-200 font-semibold">{formatRupiah(loanPrincipal)}</span>
-                  </div>
-                  <div className="flex justify-between text-zinc-400">
                     <span>Tenor Cicilan</span>
                     <span className="text-zinc-200 font-semibold">{tenorMonths} Bulan</span>
-                  </div>
-                  <div className="flex justify-between text-zinc-400">
-                    <span>Total Bayar (setelah DP)</span>
-                    <span className="text-zinc-200 font-semibold">{formatRupiah(totalCustomerSpend)}</span>
                   </div>
                 </div>
               </div>

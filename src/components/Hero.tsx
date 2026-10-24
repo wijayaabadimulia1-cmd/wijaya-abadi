@@ -49,6 +49,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   const fontFamily = getHeroFontStack(heroFont);
   const isWijayaCool = settings.websiteTemplate === 'wijaya-cool';
   const isWijayaMeriah = settings.websiteTemplate === 'wijaya-meriah';
+  const heroBadge = (settings.heroBadge ?? 'Showroom Resmi Bandung').trim();
   const naturalCoolLeaves = Array.from({ length: 9 }, (_, index) => index);
   const naturalCoolParticles = Array.from({ length: 12 }, (_, index) => index);
 
@@ -278,14 +279,15 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                     </>
                   )}
                   
-                  {/* Floating Promo Tag */}
-                  <div className="absolute top-4 left-4 bg-gradient-to-r from-red-600 to-red-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 border border-red-400/40">
-                    <span className="text-yellow-300">★</span>
-                    <span>{settings.heroBadge || 'Showroom Resmi Bandung'}</span>
-                  </div>
+                  {heroBadge && (
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-red-600 to-red-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 border border-red-400/40">
+                      <span className="text-yellow-300">★</span>
+                      <span>{heroBadge}</span>
+                    </div>
+                  )}
 
                   {/* Bottom Image Caption */}
-                  <div className="absolute bottom-4 left-4 right-4 text-left">
+                  <div className="hero-caption-overlay absolute bottom-4 left-4 right-4 text-left">
                     <span className="hero-editable-text hero-caption-text font-semibold tracking-wider uppercase">
                       {settings.heroCaption || 'One Heart. Satu Hati.'}
                     </span>
