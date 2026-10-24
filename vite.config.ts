@@ -6,9 +6,7 @@ import { defineConfig } from 'vite';
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
-export default defineConfig(({ command }) => {
-  const isBuild = command === 'build';
-
+export default defineConfig(() => {
   return {
     base: '/',
     plugins: [
@@ -29,28 +27,6 @@ export default defineConfig(({ command }) => {
               return '';
             });
             return transformedHtml.replace(/<head[^>]*>/i, (head) => `${head}${bundledStylesheet}`);
-          },
-        },
-      },
-      {
-        name: 'github-pages-spa-fallback',
-        apply: 'build',
-        generateBundle: {
-          order: 'post',
-          handler(_options, bundle) {
-            if (!isBuild) return;
-
-            const indexHtml = bundle['index.html'];
-            if (!indexHtml || indexHtml.type !== 'asset') {
-              this.error('Expected Vite build output to contain index.html.');
-              return;
-            }
-
-            this.emitFile({
-              type: 'asset',
-              fileName: '404.html',
-              source: indexHtml.source,
-            });
           },
         },
       },
