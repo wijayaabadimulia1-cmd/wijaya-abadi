@@ -1,0 +1,16 @@
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-badge {
+  position: relative;
+  top: 6px;
+  z-index: 3;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-badge .hero-editable-text {
+  color: #101419 !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-primary,
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-secondary,
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-whatsapp {
+  justify-content: center;
+  text-align: center;
+}
