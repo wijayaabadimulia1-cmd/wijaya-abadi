@@ -1,0 +1,64 @@
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-title-row {
+  justify-content: flex-start;
+  gap: 14px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category {
+  min-height: 136px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category img {
+  object-fit: contain;
+  padding: 8px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-category span {
+  border-radius: 6px;
+  background: rgba(16, 20, 25, 0.78);
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo img {
+  opacity: 0.92;
+}
+
+.website-shell.website-template-wijaya-meriah .wijaya-meriah-featured-promo::after {
+  background: linear-gradient(0deg, rgba(53, 12, 16, 0.78), rgba(53, 12, 16, 0.02));
+}
+
+.website-shell.website-template-wijaya-meriah #katalog .catalog-photo-frame {
+  height: clamp(18rem, 28vw, 22rem);
+  padding: 12px;
+}
+
+.website-shell.website-template-wijaya-meriah #katalog .catalog-photo-frame img {
+  transform: none !important;
+}
+
+.website-shell.website-template-wijaya-meriah #katalog .catalog-photo-frame > div.absolute.top-4.right-4,
+.website-shell.website-template-wijaya-meriah #katalog .catalog-photo-frame > div[data-testid^='motor-bestseller-'] {
+  border-radius: 999px;
+  padding: 6px 12px !important;
+  font-size: 14px !important;
+  line-height: 1.2;
+}
+
+.website-shell.website-template-wijaya-meriah #promo .promo-image-carousel__image img {
+  object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-title-row {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .website-shell.website-template-wijaya-meriah .wijaya-meriah-category {
+    min-height: 120px;
+  }
+
+  .website-shell.website-template-wijaya-meriah #katalog .catalog-photo-frame {
+    height: clamp(16rem, 72vw, 20rem);
+  }
+}
