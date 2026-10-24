@@ -176,11 +176,6 @@
   color: var(--site-muted-effective);
 }
 
-.website-shell.website-template-showcase-wijaya-2 main > #promo.showcase-promo-intro .mt-12.grid,
-.website-shell.website-template-showcase-wijaya-2 main > #promo.showcase-promo-intro .mt-6.flex {
-  display: none;
-}
-
 .website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-primary,
 .website-shell.website-template-showcase-wijaya-2.site-mode-light #katalog .catalog-cta-primary {
   background-color: #b80f20 !important;
