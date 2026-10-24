@@ -16,6 +16,7 @@ import './themes/wijaya-meriah/light-layout-fixes.css';
 import './themes/wijaya-meriah/left-alignment-fix.css';
 import './themes/wijaya-meriah/category-text-contrast.css';
 import './themes/wijaya-meriah/catalog-promo-visibility.css';
+import './themes/showcase-wijaya-2/promo-section-bottom.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

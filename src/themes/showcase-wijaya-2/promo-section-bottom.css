@@ -1,0 +1,46 @@
+.website-shell.website-template-showcase-wijaya-2 main > #promo {
+  order: 4;
+  padding: 56px 0 64px;
+  background: #f5f7f9;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo > .max-w-7xl > .text-center {
+  display: block;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .text-center > div:first-child {
+  border-color: rgba(215, 25, 32, 0.2);
+  color: #d71920;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .text-center h2 {
+  color: #101419;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo .text-center p {
+  color: #626a73;
+}
+
+.website-shell.website-template-showcase-wijaya-2 main > #promo > .max-w-7xl > .mt-12.grid {
+  margin-top: 28px;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #promo {
+  background: var(--site-bg-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #promo .text-center h2 {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #promo .text-center p {
+  color: var(--site-muted-effective);
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-showcase-wijaya-2 main > #promo {
+    padding: 40px 0 48px;
+  }
+}
