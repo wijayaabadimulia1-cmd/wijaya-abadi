@@ -1528,12 +1528,16 @@ html[data-color-mode="dark"] body {
 }
 
 .website-shell.site-mode-light #home .hero-caption-overlay {
+  right: auto;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
   padding: 0.65rem 0.8rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0.75rem;
   background: #d71920;
   box-shadow: 0 8px 24px rgba(120, 10, 18, 0.3);
   backdrop-filter: blur(8px);
+  overflow-wrap: anywhere;
 }
 
 .website-shell.site-mode-light #home .hero-caption-overlay .hero-caption-text,
