@@ -18,6 +18,7 @@ import './themes/wijaya-meriah/category-text-contrast.css';
 import './themes/wijaya-meriah/catalog-promo-visibility.css';
 import './themes/showcase-wijaya-2/promo-section-bottom.css';
 import './themes/showcase-wijaya-2/hero-controls-light-fix.css';
+import './themes/promo-claim-size.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
