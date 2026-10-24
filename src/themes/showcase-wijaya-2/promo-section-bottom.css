@@ -1,3 +1,8 @@
+.website-shell.website-template-showcase-wijaya-2 main {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 .website-shell.website-template-showcase-wijaya-2 main > #promo {
   order: 4;
   padding: 56px 0 64px;
