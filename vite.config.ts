@@ -21,8 +21,8 @@ export default defineConfig(({ command }) => {
           order: 'post',
           handler(html) {
             let bundledStylesheet = '';
-            const transformedHtml = html.replace(/<link\\b[^>]*rel="stylesheet"[^>]*>/g, (link) => {
-              const href = link.match(/\\bhref="([^"]+\\.css)"/)?.[1];
+            const transformedHtml = html.replace(/<link\b[^>]*rel="stylesheet"[^>]*>/g, (link) => {
+              const href = link.match(/\bhref="([^"]+\.css)"/)?.[1];
               if (!href) return link;
 
               bundledStylesheet = `<link rel="preload" as="style" href="${href}" onload="this.onload=null;this.rel='stylesheet'"><noscript>${link}</noscript>`;
@@ -43,6 +43,7 @@ export default defineConfig(({ command }) => {
             const indexHtml = bundle['index.html'];
             if (!indexHtml || indexHtml.type !== 'asset') {
               this.error('Expected Vite build output to contain index.html.');
+              return;
             }
 
             this.emitFile({
