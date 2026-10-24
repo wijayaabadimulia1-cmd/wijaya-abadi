@@ -25,3 +25,23 @@
 .website-shell.website-template-showcase-wijaya-2 .site-navbar .group > div > div:first-child > span:first-child {
   white-space: nowrap;
 }
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-trust-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-trust-item {
+  min-width: 0;
+  gap: 10px;
+  padding: 10px;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-trust-item > div:last-child {
+  min-width: 0;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-trust-item p {
+  line-height: 1.25;
+  overflow-wrap: normal;
+}
