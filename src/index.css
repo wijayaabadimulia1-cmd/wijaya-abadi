@@ -1539,8 +1539,27 @@ html[data-color-mode="dark"] body {
   overflow-wrap: anywhere;
 }
 
+.website-shell.site-mode-dark #home .hero-caption-overlay {
+  right: auto;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow-wrap: anywhere;
+}
+
 .website-shell.site-mode-light #home .hero-caption-overlay .hero-caption-text,
 .website-shell.site-mode-light #home .hero-caption-overlay p {
+  color: #fff !important;
+  -webkit-text-stroke: 0.6px #d71920;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.website-shell.site-mode-dark #home .hero-caption-overlay .hero-caption-text,
+.website-shell.site-mode-dark #home .hero-caption-overlay p {
   color: #fff !important;
   -webkit-text-stroke: 0.6px #d71920;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
