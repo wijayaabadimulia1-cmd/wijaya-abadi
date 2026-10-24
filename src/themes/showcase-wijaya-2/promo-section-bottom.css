@@ -181,6 +181,40 @@
   display: none;
 }
 
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-primary,
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #katalog .catalog-cta-primary {
+  background-color: #b80f20 !important;
+  background-image: linear-gradient(110deg, #b80f20, #ed1025) !important;
+  border: 1px solid #a80e1d;
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-whatsapp {
+  background: #e7f6ed !important;
+  border-color: #198754 !important;
+  color: #14532d !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-whatsapp:hover {
+  background: #d3eedf !important;
+  color: #104522 !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-light #home .hero-cta-whatsapp svg {
+  color: #167346 !important;
+}
+
+.website-shell.website-template-showcase-wijaya-2.site-mode-light .showcase-promo-preview__heading a {
+  min-height: 36px;
+  border: 1px solid #b51220;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #a80e1d;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 @media (max-width: 640px) {
   .website-shell.website-template-showcase-wijaya-2 main > #promo {
     padding: 40px 0 48px;
