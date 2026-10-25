@@ -78,6 +78,7 @@ Saya tertarik untuk pemesanan/konsultasi unit motor Honda:
 • Pembayaran: ${paymentMethod}
 • Simulasi / DP: ${dpDetail}
 ${note ? `• Catatan: ${note}` : ''}
+• Link website: ${window.location.origin}
 
 Mohon informasi ketersediaan unit dan proses pengajuannya. Terima kasih!`;
 

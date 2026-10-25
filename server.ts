@@ -858,6 +858,56 @@ async function startServer() {
       next(error);
     }
   });
+
+  // PROXY KATALOG PUSAT — READ ONLY
+  // Pengaturan situs dan unggahan tetap menggunakan database lokal.
+  app.use(async (req, res, next) => {
+    const pathname = req.path;
+    const isCatalogPath =
+      /^\/api\/(?:motors(?:\/|$)|fif-price-list(?:\/|$))/.test(pathname);
+
+    if (!isCatalogPath) return next();
+
+
+    // Hanya dua endpoint baca publik yang diteruskan ke katalog pusat.
+    const isPublicCatalogRead =
+      pathname === '/api/motors' ||
+      pathname === '/api/fif-price-list';
+
+    if (!['GET', 'HEAD'].includes(req.method) || !isPublicCatalogRead) {
+      return res.status(403).json({
+        error: 'Katalog dikelola melalui panel admin pusat.',
+        adminUrl: 'https://kreditmotorhonda.tech/admin',
+      });
+    }
+
+    try {
+      const upstreamUrl = `http://127.0.0.1:3000${req.originalUrl}`;
+      const upstream = await fetch(upstreamUrl, {
+        method: req.method,
+        headers: { Accept: req.get('accept') || 'application/json' },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      res.status(upstream.status);
+
+      const contentType = upstream.headers.get('content-type');
+      if (contentType) res.setHeader('Content-Type', contentType);
+
+      res.setHeader('Cache-Control', 'no-store');
+
+      if (req.method === 'HEAD') return res.end();
+
+      const body = Buffer.from(await upstream.arrayBuffer());
+      return res.send(body);
+    } catch (error) {
+      console.error('Proxy katalog pusat gagal:', error);
+      return res.status(502).json({
+        error: 'Katalog pusat sementara tidak dapat dihubungi.',
+      });
+    }
+  });
+
   app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '1h' }));
   app.use('/api/files', express.static(UPLOADS_DIR));
 

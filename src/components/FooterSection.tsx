@@ -11,7 +11,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || 'Honda Wijaya Abadi Mulia Motor, Bandung')}`;
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.'
+    `Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.\n\nLink website: ${window.location.origin}`
   )}`;
 
   const scrollToTop = () => {

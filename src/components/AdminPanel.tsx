@@ -1385,7 +1385,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'theme', label: 'Template View Website', icon: Palette },
               { id: 'seo', label: 'Dashboard SEO', icon: Search },
               { id: 'security', label: 'Admin & Histori', icon: Shield },
-              { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].filter((tab) => isCatalogOwner || !['motors', 'credit'].includes(tab.id)).map((tab) => {
               const Icon = tab.icon;
@@ -1870,13 +1869,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <HardDrive className="w-4 h-4" />
                       <span>{isMigratingExternalImages ? 'Menyimpan gambar...' : 'Simpan gambar eksternal ke server'}</span>
                     </button>
-                    <button
-                      onClick={handleOpenAddMotor}
-                      className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-red-900/30 transition-all shrink-0"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Tambah Motor Baru</span>
-                    </button>
+                    
                   </div>
                 </div>
 
@@ -1948,13 +1941,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                               <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => handleOpenEditMotor(m)}
-                                    className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                                    title="Edit Motor"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
+                                  
                                   <button
                                     onClick={() => handleDeleteMotor(m.id, m.name)}
                                     className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
@@ -2935,7 +2922,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               </div>
             )}
 
-            {activeTab === 'credit' && (
+            {false && activeTab === 'credit' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div>
                   <h2 className="text-lg font-bold text-white">Cicilan & Price List FIFGROUP</h2>
