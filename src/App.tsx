@@ -143,7 +143,7 @@ export default function App() {
       void loadData();
       return;
     }
-    if (initialData) return;
+    if (initialData && initialData.motors?.length > 0) return;
 
     let isCurrent = true;
     let idleCallbackId: number | undefined;
@@ -627,7 +627,7 @@ export default function App() {
     ? 'mulia-gradient-motion'
     : '';
   const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
+    `Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.\n\nLink website: ${window.location.origin}`
   )}`;
   const meriahCategoryPreviews = Array.from(new Map(
     motors
