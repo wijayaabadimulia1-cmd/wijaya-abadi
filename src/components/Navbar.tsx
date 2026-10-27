@@ -24,7 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    `Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.\n\nLink website: ${window.location.origin}`
+    'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.'
   )}`;
   const anchorPrefix = window.location.pathname.replace(/\/+$/, '') === '/promo' ? '/' : '';
 

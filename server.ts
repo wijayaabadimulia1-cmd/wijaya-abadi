@@ -858,7 +858,6 @@ async function startServer() {
       next(error);
     }
   });
-
   app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '1h' }));
   app.use('/api/files', express.static(UPLOADS_DIR));
 

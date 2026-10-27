@@ -26,9 +26,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   const [activeSlide, setActiveSlide] = useState(0);
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    `Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.
-
-Link website: ${window.location.origin}`
+    'Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.'
   )}`;
 
   useEffect(() => {
