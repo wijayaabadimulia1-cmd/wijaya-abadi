@@ -285,7 +285,25 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
     : '';
 
-  return html
+  const normalizedSeoPath = pathname.replace(/\/+$/, '') || '/';
+  const fallbackHeading = page
+    ? page.title.split(/[|–—]/)[0].trim()
+    : [
+        String(settings.heroMainTitle || '').trim(),
+        String(settings.heroTitleHighlight || '').trim(),
+      ].filter(Boolean).join(' ');
+  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page);
+  const htmlWithH1Fallback =
+    shouldAddH1Fallback &&
+    fallbackHeading &&
+    !/<h1\b/i.test(html)
+      ? html.replace(
+          '<div id="root"></div>',
+          '<div id="root"><h1>' + escape(fallbackHeading) + '</h1></div>'
+        )
+      : html;
+
+  return htmlWithH1Fallback
     .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
@@ -357,7 +375,9 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
     .find((image: unknown) => typeof image === 'string' && image.startsWith('/uploads/'));
   const image = imagePath ? new URL(String(imagePath), origin).href : '';
   const phone = String(settings.phone || '6282129358899').replace(/[^0-9]/g, '');
-  const whatsappText = encodeURIComponent(`Halo, saya ingin bertanya tentang ${name} di ${settings.name || 'Honda Wijaya Abadi Mulia Motor'}.`);
+  const whatsappText = encodeURIComponent(
+    `Halo, saya ingin bertanya tentang ${name} di ${settings.name || 'Honda Wijaya Abadi Mulia Motor'}.\n\nLink website: ${canonical}`
+  );
   const whatsappUrl = `https://wa.me/${phone}?text=${whatsappText}`;
   const productSchema = {
     '@context': 'https://schema.org',
