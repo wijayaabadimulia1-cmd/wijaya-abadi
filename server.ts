@@ -150,6 +150,73 @@ function createPublicInitialData(db: any) {
   };
 }
 
+
+function updateSeoJsonLdForPage(
+  jsonText: string,
+  pathname: string,
+  canonical: string,
+  title: string,
+  description: string
+): string {
+  try {
+    const schema = JSON.parse(jsonText);
+    const graph = Array.isArray(schema["@graph"]) ? schema["@graph"] : null;
+    if (!graph) return jsonText;
+
+    const pageUrl = new URL(canonical).href;
+    const origin = new URL(pageUrl).origin;
+    const path = new URL(pageUrl).pathname;
+    const pageId = `${pageUrl}#webpage`;
+    const breadcrumbId = `${pageUrl}#breadcrumb`;
+
+    const webPage = graph.find((item: any) => item["@type"] === "WebPage");
+    const breadcrumb = graph.find((item: any) => item["@type"] === "BreadcrumbList");
+
+    if (webPage) {
+      webPage["@id"] = pageId;
+      webPage.name = title;
+      webPage.description = description;
+      webPage.url = pageUrl;
+      webPage.breadcrumb = { "@id": breadcrumbId };
+      if (webPage.isPartOf) {
+        webPage.isPartOf["@id"] = `${origin}/#website`;
+      }
+      if (webPage.about) {
+        webPage.about["@id"] = `${origin}/#dealer`;
+      }
+    }
+
+    if (breadcrumb) {
+      breadcrumb["@id"] = breadcrumbId;
+      const items: any[] = [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Beranda",
+          "item": `${origin}/`
+        }
+      ];
+
+      if (path !== "/") {
+        const segment = path.replace(/^\/+|\/+$/g, "").split("/").pop() || "";
+        const label = title.split(/[|–—]/)[0].trim() || segment;
+        items.push({
+          "@type": "ListItem",
+          "position": 2,
+          "name": label,
+          "item": pageUrl
+        });
+      }
+
+      breadcrumb.itemListElement = items;
+    }
+
+    return JSON.stringify(schema, null, 2);
+  } catch {
+    return jsonText;
+  }
+}
+
 function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', initialData?: unknown) {
   const landingSeo: Record<string, { title: string; description: string; keywords: string }> = {
     '/dealer-honda-bandung': {
@@ -202,9 +269,14 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   const title = String(page?.title || settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
   const description = String(page?.description || settings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
   const keywords = String(page?.keywords || settings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
+  const siteOrigin = getSiteOrigin(settings);
+  const logoValue = String(settings.logo || '/uploads/logo.jpeg').trim();
+  const logoUrl = /^https?:\/\//i.test(logoValue)
+    ? logoValue
+    : `${siteOrigin}${logoValue.startsWith('/') ? '' : '/'}${logoValue}`;
   const canonical = page
-    ? `https://kreditmotorhonda.tech${pathname.replace(/\/+$/, '') || '/'}`
-    : String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/').trim();
+    ? `${siteOrigin}${pathname.replace(/\/+$/, '') || '/'}`
+    : String(settings.seoCanonicalUrl || `${siteOrigin}/`).trim();
   const robots = String(settings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
   const initialSettings = JSON.stringify(settings).replace(/</g, '\\u003c');
@@ -224,14 +296,22 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${escape(description)}" />`)
     .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${escape(canonical)}" />`)
     .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escape(title)}" />`)
-    .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`);
+    .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`)
+    .replace(/<meta\s+property="og:image"[^>]*>/i, `<meta property="og:image" content="${escape(logoUrl)}" />`)
+    .replace(/<meta\s+name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escape(logoUrl)}" />`)
+    .replace(/https:\/\/kreditmotorhonda\.tech\/uploads\/logo\.jpeg/g, escape(logoUrl))
+    .replace(/https:\/\/kreditmotorhonda\.tech/g, escape(siteOrigin))
+    .replace(
+      /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i,
+      (_match, jsonText) => `<script type="application/ld+json">${updateSeoJsonLdForPage(jsonText, pathname, canonical, title, description)}</script>`
+    );;
 }
 
 function getSiteOrigin(settings: any = {}) {
   try {
-    return new URL(String(settings.seoCanonicalUrl || 'https://kreditmotorhonda.tech/')).origin;
+    return new URL(String(settings.seoCanonicalUrl || 'https://www.solusikreditmotor.cloud/')).origin;
   } catch {
-    return 'https://kreditmotorhonda.tech';
+    return 'https://www.solusikreditmotor.cloud';
   }
 }
 
@@ -698,6 +778,36 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 
 async function startServer() {
   const app = express();
+  // CORS_ALLOWLIST_MIDDLEWARE
+  const allowedOrigins = new Set([
+    'https://kreditmotorhonda.tech',
+    'https://wijaya.kreditmotorhonda.tech',
+    'https://solusikreditmotor.cloud',
+  ]);
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS'
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-Requested-With, X-Catalog-Upload'
+      );
+      res.setHeader('Access-Control-Max-Age', '600');
+
+      if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+      }
+    }
+
+    next();
+  });
   app.use(compression());
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
@@ -737,7 +847,7 @@ async function startServer() {
       return res.status(503).json({ error: 'URL layanan katalog bersama tidak valid.' });
     }
 
-    const headers = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
+    const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
     delete headers['x-admin-token'];
     delete headers.connection;
     delete headers['proxy-connection'];
