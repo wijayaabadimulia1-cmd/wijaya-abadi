@@ -7,7 +7,17 @@ export function normalizeWhatsAppNumber(value: string | undefined, fallback = '6
   return digits || fallback;
 }
 
+export function withCurrentWebsiteLink(message = '') {
+  const cleanMessage = String(message || '').trim();
+  const websiteUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  if (!websiteUrl || cleanMessage.includes(websiteUrl)) return cleanMessage;
+
+  return `${cleanMessage}${cleanMessage ? '\n\n' : ''}Link website: ${websiteUrl}`;
+}
+
 export function createWhatsAppUrl(phone: string | undefined, message?: string) {
   const number = normalizeWhatsAppNumber(phone);
-  return `https://wa.me/${number}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
+  const messageWithWebsite = withCurrentWebsiteLink(message);
+  return `https://wa.me/${number}${messageWithWebsite ? `?text=${encodeURIComponent(messageWithWebsite)}` : ''}`;
 }
