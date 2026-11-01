@@ -145,8 +145,9 @@ export const api = {
       headers: adminHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Gagal memperbarui pengaturan dealer');
-    return res.json();
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal memperbarui pengaturan dealer');
+    return result;
   },
 
   // Motors

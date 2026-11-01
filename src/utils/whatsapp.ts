@@ -16,6 +16,12 @@ export function withCurrentWebsiteLink(message = '') {
   return `${cleanMessage}${cleanMessage ? '\n\n' : ''}Link website: ${websiteUrl}`;
 }
 
+export function isValidWhatsAppNumber(value: string | undefined) {
+  const input = String(value ?? '').trim();
+  return /^\+?(?:\d[\d\s()-]*)$/.test(input)
+    && /^\d{8,15}$/.test(normalizeWhatsAppNumber(input, ''));
+}
+
 export function createWhatsAppUrl(phone: string | undefined, message?: string) {
   const number = normalizeWhatsAppNumber(phone);
   const messageWithWebsite = withCurrentWebsiteLink(message);

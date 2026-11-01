@@ -8,6 +8,7 @@ import { request as httpRequest } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
+import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from './src/utils/whatsapp';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -1049,13 +1050,20 @@ async function startServer() {
 
   app.put('/api/settings', (req, res) => {
     const db = readDb();
+    const settingsUpdate = { ...req.body };
+    if (Object.prototype.hasOwnProperty.call(settingsUpdate, 'phone')) {
+      if (typeof settingsUpdate.phone !== 'string' || !isValidWhatsAppNumber(settingsUpdate.phone)) {
+        return res.status(400).json({ error: 'Nomor WhatsApp tidak valid. Masukkan 8–15 digit.' });
+      }
+      settingsUpdate.phone = normalizeWhatsAppNumber(settingsUpdate.phone, '');
+    }
     let hasExternalImage = false;
-    mapImageReferences(req.body, (url) => {
+    mapImageReferences(settingsUpdate, (url) => {
       if (/^https?:\/\//i.test(url)) hasExternalImage = true;
       return url;
     });
     if (hasExternalImage) return res.status(400).json({ error: 'Unggah gambar melalui panel admin agar tersimpan di server.' });
-    db.settings = { ...db.settings, ...req.body, updated_at: new Date().toISOString() };
+    db.settings = { ...db.settings, ...settingsUpdate, updated_at: new Date().toISOString() };
     writeDb(db);
     res.json(db.settings);
   });

@@ -3,6 +3,7 @@ import { Tag, Sparkles, ArrowRight, MessageSquare, CheckCircle, Gift, X } from '
 import { Promo, DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION } from '../catalogAnimation';
 import { MAX_PROMO_IMAGES } from '../constants';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface PromoImageCarouselProps {
   images: string[];
@@ -71,7 +72,6 @@ interface PromoSectionProps {
 
 export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, showMore = false }) => {
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
-  const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const isShowcaseHomepage = settings.websiteTemplate === 'showcase-wijaya-2' && window.location.pathname === '/';
   const isShowcaseHome = settings.websiteTemplate === 'showcase-wijaya-2' && window.location.pathname !== '/promo';
   const visiblePromos = isShowcaseHome ? promos.slice(0, 3) : promos;
@@ -135,9 +135,9 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, sh
             {visiblePromos.map((promo, idx) => {
               const promoImages = (promo.images || []).slice(0, MAX_PROMO_IMAGES);
               const promoTemplate = promo.promoTemplate || 'classic';
-              const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+              const waUrl = createWhatsAppUrl(settings.phone,
                 `Halo Honda Wijaya Abadi, saya ingin klaim penawaran "${promo.title} - ${promo.description}". Mohon informasi syarat dan ketentuannya.`
-              )}`;
+              );
 
               return (
                 <article

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare, Bike, ArrowUp } from 'lucide-react';
 import { DealerSettings } from '../types';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface FooterSectionProps {
   settings: DealerSettings;
@@ -8,11 +9,10 @@ interface FooterSectionProps {
 
 export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || 'Honda Wijaya Abadi Mulia Motor, Bandung')}`;
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+  const whatsappUrl = createWhatsAppUrl(settings.phone,
     'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.'
-  )}`;
+  );
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

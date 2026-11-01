@@ -46,7 +46,7 @@ import {
   MIN_CATALOG_ANIMATION_SPEED,
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
-import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
+import { createWhatsAppUrl, isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp';
 import { CustomizationPanel } from './CustomizationPanel';
 
 interface AdminPanelProps {
@@ -1068,8 +1068,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
+    if (!isValidWhatsAppNumber(settings.phone)) {
+      alert('Nomor WhatsApp tidak valid. Masukkan 8–15 digit, misalnya 081234567890 atau 6281234567890.');
+      return;
+    }
     try {
-      const savedSettings = await api.updateSettings(settings);
+      const savedSettings = await api.updateSettings({
+        ...settings,
+        phone: normalizeWhatsAppNumber(settings.phone, ''),
+      });
       setSettings(savedSettings);
       showToast('Pengaturan dealer berhasil disimpan ke database!');
       onRefreshData();
@@ -2609,14 +2616,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-zinc-300 uppercase mb-1">
-                        Nomor WhatsApp Sales (dengan kode 62)
+                        Nomor WhatsApp Sales
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
                         value={settings.phone}
                         onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                         className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-500"
                       />
+                      <p className="mt-1 text-[10px] text-zinc-500">
+                        Format 08… atau 62… boleh; nomor akan disimpan dengan kode negara 62.
+                      </p>
                     </div>
 
                     <div>
