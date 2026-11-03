@@ -108,6 +108,7 @@ npm ci
 npm run build
 
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
+STAGING_PORT="$(node -e 'const net = require("node:net"); const server = net.createServer(); server.listen(0, "127.0.0.1", () => { console.log(server.address().port); server.close(); });')"
 if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ]; then
   PREVIOUS_DROPIN_BACKUP="$STAGING_DIR/deploy.conf.previous"
   cp "$DROPIN_FILE" "$PREVIOUS_DROPIN_BACKUP"
@@ -117,7 +118,7 @@ cp "$DATA_DIR/db.json" "$STAGING_DIR/data/db.json"
 
 (
   cd "$RELEASE_DIR"
-  exec env NODE_ENV=production HOST=127.0.0.1 PORT=3101 \
+  exec env NODE_ENV=production HOST=127.0.0.1 PORT="$STAGING_PORT" \
     DATA_DIR="$STAGING_DIR/data" UPLOADS_DIR="$STAGING_DIR/uploads" \
     OWNER_ANALYTICS_WIJAYA_DB_FILE="$OWNER_ANALYTICS_WIJAYA_DB_FILE" \
     OWNER_ANALYTICS_SOLUSI_DB_FILE="$OWNER_ANALYTICS_SOLUSI_DB_FILE" \
@@ -127,7 +128,7 @@ STAGING_PID=$!
 
 ready=0
 for attempt in $(seq 1 30); do
-  if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3101/; then
+  if curl --silent --fail --output /dev/null --max-time 2 "http://127.0.0.1:${STAGING_PORT}/"; then
     ready=1
     break
   fi
@@ -138,12 +139,12 @@ if [ "$ready" -ne 1 ]; then
   fail "Staged application did not become healthy on port 3101."
 fi
 
-staged_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:3101/api/motors | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+staged_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${STAGING_PORT}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
 if [ "$staged_motors" != "$EXPECTED_MOTORS" ]; then
   fail "Staged catalog count differs from live data ($staged_motors vs $EXPECTED_MOTORS)."
 fi
 for path in / /sitemap.xml; do
-  status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 "http://127.0.0.1:3101${path}")"
+  status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 "http://127.0.0.1:${STAGING_PORT}${path}")"
   if [ "$status" != "200" ]; then
     fail "Staged endpoint returned HTTP $status: ${path}"
   fi
