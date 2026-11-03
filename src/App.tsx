@@ -683,16 +683,32 @@ export default function App() {
         />
 
         <main className="flex-1">
-          <Hero
-            settings={{ ...settings, customization: activePalette }}
-            contentOverride={{
-              badge: activeLandingPage.eyeBrow,
-              headline: activeLandingPage.headline,
-              subtitle: activeLandingPage.subHeadline,
-            }}
-            onOpenSimulator={() => handleOpenSimulator()}
-            onOpenInterest={() => handleOpenInterest()}
-          />
+          {settings.websiteTemplate === 'astra-honda-red-white' ? (
+            <AstraHondaHero
+              settings={{ ...settings, customization: activePalette }}
+              motors={motors}
+              promos={promos}
+              priceList={fifPriceList}
+              contentOverride={{
+                badge: activeLandingPage.eyeBrow,
+                headline: activeLandingPage.headline,
+                subtitle: activeLandingPage.subHeadline,
+              }}
+              onOpenSimulator={() => handleOpenSimulator()}
+              onOpenInterest={handleOpenInterest}
+            />
+          ) : (
+            <Hero
+              settings={{ ...settings, customization: activePalette }}
+              contentOverride={{
+                badge: activeLandingPage.eyeBrow,
+                headline: activeLandingPage.headline,
+                subtitle: activeLandingPage.subHeadline,
+              }}
+              onOpenSimulator={() => handleOpenSimulator()}
+              onOpenInterest={() => handleOpenInterest()}
+            />
+          )}
 
           {hostSeoPage && (
             <section className="px-4 pb-12 sm:px-6 lg:px-8">

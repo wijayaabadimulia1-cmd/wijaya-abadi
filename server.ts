@@ -1300,7 +1300,7 @@ async function startServer() {
         return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
       }
     }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'seoPages')) {
+    if (!hostPage && Object.prototype.hasOwnProperty.call(req.body || {}, 'seoPages')) {
       const session = (req as any).adminSession || getSession(req);
       if (req.hostname !== 'kreditmotorhonda.tech' || session?.role !== 'Super Admin') {
         return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengelola post subdomain.' });

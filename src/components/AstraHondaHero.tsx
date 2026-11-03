@@ -10,6 +10,7 @@ interface AstraHondaHeroProps {
   motors: Motor[];
   promos: Promo[];
   priceList: FIFPriceList;
+  contentOverride?: { badge?: string; headline?: string; subtitle?: string };
   onOpenSimulator: () => void;
   onOpenInterest: (motor?: Motor) => void;
 }
@@ -51,6 +52,7 @@ export function AstraHondaHero({
   motors,
   promos,
   priceList,
+  contentOverride,
   onOpenSimulator,
   onOpenInterest,
 }: AstraHondaHeroProps) {
@@ -83,14 +85,14 @@ export function AstraHondaHero({
       <div className="astra-honda-hero__inner">
         <div className="astra-honda-hero__copy">
           <span className="astra-honda-hero__badge">
-            <BadgeCheck aria-hidden="true" /> {settings.heroBadge || 'Dealer Resmi Astra Honda Motor'}
+            <BadgeCheck aria-hidden="true" /> {contentOverride?.badge || settings.heroBadge || 'Dealer Resmi Astra Honda Motor'}
           </span>
           <h1>
-            Kredit Motor Honda
-            <span>DP Murah &amp; Berkas Dibantu</span>
+            {contentOverride?.headline || 'Kredit Motor Honda'}
+            <span>{contentOverride?.headline ? 'Harga & Promo Honda' : 'DP Murah & Berkas Dibantu'}</span>
           </h1>
           <p className="astra-honda-hero__description">
-            Temukan motor Honda pilihan dengan informasi harga dan simulasi kredit yang terhubung ke katalog dealer. Tim kami siap membantu proses pengajuan Anda.
+            {contentOverride?.subtitle || 'Temukan motor Honda pilihan dengan informasi harga dan simulasi kredit yang terhubung ke katalog dealer. Tim kami siap membantu proses pengajuan Anda.'}
           </p>
 
           <div className="astra-honda-benefits">
