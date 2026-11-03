@@ -397,7 +397,8 @@
 
 .astra-honda-featured__image-wrap img {
   width: 100%;
-  height: 100%;
+  height: 100% !important;
+  max-height: 100%;
   object-fit: contain;
 }
 
@@ -427,11 +428,14 @@
 
 .astra-honda-featured__details h2 {
   margin: 5px 0 6px;
+  overflow: hidden;
   color: #111827;
   font-size: 20px;
   font-weight: 900;
   line-height: 1.25;
   overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .astra-honda-featured__details p {
