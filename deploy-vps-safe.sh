@@ -101,10 +101,30 @@ fi
 get_service_environment_value() {
   local service="$1"
   local key="$2"
-  systemctl show "$service" --property=Environment --value \
+  local value
+  local environment_files
+  local environment_file
+
+  value="$(systemctl show "$service" --property=Environment --value \
     | tr ' ' '\n' \
     | sed -n "s/^${key}=//p" \
-    | head -n 1
+    | head -n 1)"
+  if [ -n "$value" ]; then
+    printf '%s\n' "$value"
+    return
+  fi
+
+  environment_files="$(systemctl show "$service" --property=EnvironmentFiles --value \
+    | sed 's/ (ignore_errors=[^)]*)//g' \
+    | tr ' ' '\n')"
+  while IFS= read -r environment_file; do
+    [ -n "$environment_file" ] || continue
+    value="$(sed -n "s/^${key}=//p" "$environment_file" | head -n 1)"
+    if [ -n "$value" ]; then
+      printf '%s\n' "$value"
+      return
+    fi
+  done <<< "$environment_files"
 }
 
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
