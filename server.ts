@@ -940,6 +940,21 @@ function normalizeMotorImages(value: unknown, fallback: unknown = []): string[] 
   return source.map((image: unknown) => String(image || '').trim()).filter(Boolean);
 }
 
+function isSharedCatalogImageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const filename = url.pathname.slice('/uploads/'.length);
+    return url.origin === 'https://kreditmotorhonda.tech'
+      && url.pathname.startsWith('/uploads/')
+      && Boolean(filename)
+      && path.basename(filename) === filename
+      && !url.search
+      && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
 const imageReferenceFields = new Set(['image', 'images', 'heroImage', 'heroImages', 'logo', 'avatar', 'photo', 'banner', 'thumbnail']);
 const importableImageHosts = new Set(['images.unsplash.com']);
 
@@ -1061,12 +1076,6 @@ async function startServer() {
     if (needsAdmin && !session) {
       return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
     }
-    if (needsAdmin) {
-      return res.status(403).json({
-        error: 'Katalog dan price list dikelola dari satu panel pusat.',
-        adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
-      });
-    }
 
     let target: URL;
     try {
@@ -1077,9 +1086,16 @@ async function startServer() {
 
     const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
     delete headers['x-admin-token'];
+    delete headers['x-catalog-actor'];
     delete headers.connection;
     delete headers['proxy-connection'];
     delete headers['transfer-encoding'];
+    delete headers['content-length'];
+    const jsonBody = req.body === undefined ? undefined : Buffer.from(JSON.stringify(req.body));
+    if (jsonBody) {
+      headers['content-length'] = String(jsonBody.length);
+      if (session) headers['x-catalog-actor'] = session.username;
+    }
 
     const upstream = httpRequest(target, { method: req.method, headers }, (upstreamResponse) => {
       res.statusCode = upstreamResponse.statusCode || 502;
@@ -1108,7 +1124,8 @@ async function startServer() {
       else res.destroy(error);
     });
     req.on('aborted', () => upstream.destroy());
-    req.pipe(upstream);
+    if (jsonBody) upstream.end(jsonBody);
+    else req.pipe(upstream);
   });
 
   app.use(express.json({ limit: '100mb' }));
@@ -1122,7 +1139,7 @@ async function startServer() {
       if (req.method === 'GET' || req.method === 'HEAD') return next();
       const db = readDb();
       appendAudit(db, {
-        actor: 'shared-catalog-proxy',
+        actor: req.header('x-catalog-actor') || 'shared-catalog-proxy',
         action: `${req.method} ${fullPath}`,
         resource: fullPath,
         details: `Perubahan katalog dari ${req.header('x-forwarded-host') || 'situs lain'}`,
@@ -1220,6 +1237,7 @@ async function startServer() {
   app.get('/api/catalog/status', (_req, res) => {
     res.json({
       owner: !CATALOG_API_URL,
+      canManageCatalog: !CATALOG_API_URL || Boolean(CATALOG_SERVICE_TOKEN),
       adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
     });
   });
@@ -1518,7 +1536,7 @@ async function startServer() {
   app.post('/api/motors', (req, res) => {
     const db = readDb();
     const images = normalizeMotorImages(req.body.images, [req.body.image]);
-    if (images.some((image) => /^https?:\/\//i.test(image))) {
+    if (images.some((image) => /^https?:\/\//i.test(image) && !isSharedCatalogImageUrl(image))) {
       return res.status(400).json({ error: 'Unggah gambar motor melalui panel admin agar tersimpan di server.' });
     }
     if (images.length > MAX_MOTOR_IMAGES) {
@@ -1557,8 +1575,8 @@ async function startServer() {
     }
     const existingImages = Array.isArray(db.motors[index].images) ? db.motors[index].images : [db.motors[index].image];
     const images = normalizeMotorImages(req.body.images, existingImages);
-    if (images.some((image) => /^https?:\/\//i.test(image))) {
-      return res.status(400).json({ error: 'Pindahkan gambar lama ke penyimpanan server atau unggah ulang sebelum menyimpan.' });
+    if (images.some((image) => /^https?:\/\//i.test(image) && !isSharedCatalogImageUrl(image))) {
+      return res.status(400).json({ error: 'Unggah gambar motor melalui panel admin agar tersimpan di server.' });
     }
     if (images.length > MAX_MOTOR_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
@@ -2039,7 +2057,9 @@ async function startServer() {
       const targetPath = path.join(UPLOADS_DIR, safeName);
       fs.writeFileSync(targetPath, buffer);
 
-      const fileUrl = `/uploads/${safeName}`;
+      const fileUrl = req.header('x-catalog-upload') === 'true'
+        ? `https://kreditmotorhonda.tech/uploads/${safeName}`
+        : `/uploads/${safeName}`;
       res.json({ url: fileUrl, filename: safeName, success: true });
     } catch (err: any) {
       console.error('Upload failed:', err);

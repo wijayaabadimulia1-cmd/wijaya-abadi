@@ -35,7 +35,7 @@ async function downloadAdminFile(url: string, fallbackName: string): Promise<voi
 }
 
 export const api = {
-  async getCatalogStatus(): Promise<{ owner: boolean; adminUrl: string }> {
+  async getCatalogStatus(): Promise<{ owner: boolean; canManageCatalog: boolean; adminUrl: string }> {
     const res = await fetch('/api/catalog/status', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal memeriksa panel katalog pusat');
     return res.json();

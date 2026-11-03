@@ -164,6 +164,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [seoPageEditor, setSeoPageEditor] = useState<SeoLandingPage | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
   const [isCatalogOwner, setIsCatalogOwner] = useState(true);
+  const [canManageCatalog, setCanManageCatalog] = useState(true);
   const [catalogAdminUrl, setCatalogAdminUrl] = useState('https://kreditmotorhonda.tech/admin');
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -235,8 +236,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     api.getCatalogStatus()
       .then((status) => {
         setIsCatalogOwner(status.owner);
+        setCanManageCatalog(status.canManageCatalog);
         setCatalogAdminUrl(status.adminUrl);
-        if (!status.owner) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
+        if (!status.canManageCatalog) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
       })
       .catch(() => setIsCatalogOwner(true));
   }, []);
@@ -1587,7 +1589,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].filter((tab) => isSeoPostAdmin
               ? ['settings', 'theme', 'seo'].includes(tab.id)
-              : isCatalogOwner || !['motors', 'credit'].includes(tab.id)).map((tab) => {
+              : canManageCatalog || !['motors', 'credit'].includes(tab.id)).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -1637,7 +1639,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <section className="flex flex-col gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h2 className="text-sm font-bold text-white">Katalog motor dikelola bersama</h2>
-                      <p className="mt-1 text-xs text-zinc-400">Perubahan katalog dan price list dilakukan dari satu panel pusat, lalu tampil di ketiga website.</p>
+                      <p className="mt-1 text-xs text-zinc-400">Perubahan katalog dan price list dari panel ini disimpan ke layanan pusat dan langsung berlaku di seluruh website.</p>
                     </div>
                     <a href={catalogAdminUrl} className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
                       Buka Admin Katalog Pusat
