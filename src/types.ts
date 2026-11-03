@@ -69,6 +69,45 @@ export interface ManifestoItem {
   created_at?: string;
 }
 
+export interface SeoLandingPage {
+  id: string;
+  subdomain: string;
+  adminUserId: string;
+  title: string;
+  content: string;
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
+  seoRobots: string;
+  siteSettings?: Partial<SeoPostSiteSettings>;
+  sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
+  sslError?: string;
+  updated_at?: string;
+}
+
+export interface SeoPostSiteSettings {
+  name?: string;
+  tagline?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+  workingHours?: string;
+  logo?: string;
+  heroImage?: string;
+  heroImages?: string[];
+  heroTitle?: string;
+  heroMainTitle?: string;
+  heroTitleHighlight?: string;
+  heroSubtitle?: string;
+  heroBadge?: string;
+  heroCaption?: string;
+  footerText?: string;
+  websiteTemplate?: WebsiteTemplate;
+  catalogAnimation?: CatalogAnimation;
+  catalogAnimationSpeed?: number;
+  customization?: WebsiteCustomization;
+}
+
 export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban' | 'mulia-cerah' | 'honda-wijaya' | 'wijaya-cool' | 'wijaya-meriah' | 'showcase-wijaya-2' | 'astra-honda-red-white';
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
@@ -150,6 +189,8 @@ export interface DealerSettings {
   seoKeywords?: string;
   seoCanonicalUrl?: string;
   seoRobots?: string;
+  seoPages?: SeoLandingPage[];
+  seoPostHost?: boolean;
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
   catalogAnimationSpeed?: number;

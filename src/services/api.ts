@@ -139,6 +139,12 @@ export const api = {
     return res.json();
   },
 
+  async getAdminSettings(): Promise<DealerSettings> {
+    const res = await fetch('/api/settings', { headers: adminHeaders(), cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal mengambil pengaturan admin');
+    return res.json();
+  },
+
   async updateSettings(data: Partial<DealerSettings>): Promise<DealerSettings> {
     const res = await fetch('/api/settings', {
       method: 'PUT',
@@ -147,6 +153,16 @@ export const api = {
     });
     if (!res.ok) throw new Error('Gagal memperbarui pengaturan dealer');
     return res.json();
+  },
+
+  async provisionSeoPageSsl(id: string): Promise<{ status: 'pending' | 'active' | 'failed'; message: string; seoPages: DealerSettings['seoPages'] }> {
+    const res = await fetch(`/api/admin/seo-pages/${encodeURIComponent(id)}/provision-ssl`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengaktifkan SSL subdomain');
+    return result;
   },
 
   // Motors

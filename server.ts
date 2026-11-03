@@ -4,7 +4,10 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { execFile } from 'node:child_process';
+import { resolve4 } from 'node:dns/promises';
 import { request as httpRequest } from 'node:http';
+import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
@@ -17,6 +20,7 @@ const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cw
 const CATALOG_API_URL = String(process.env.CATALOG_API_URL || '').trim().replace(/\/+$/, '');
 const CATALOG_SERVICE_TOKEN = String(process.env.CATALOG_SERVICE_TOKEN || '');
 const CATALOG_OWNER_DATA_FILE = path.resolve(process.env.CATALOG_OWNER_DATA_FILE || DB_FILE);
+const execFileAsync = promisify(execFile);
 const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
 const FIF_TENORS = [11, 17, 23, 29, 35];
 const FIF_DP_PERCENTAGES = [10, 13, 15, 20, 25];
@@ -217,7 +221,7 @@ function updateSeoJsonLdForPage(
   }
 }
 
-function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', initialData?: unknown) {
+function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', initialData?: unknown, hostname = '') {
   const landingSeo: Record<string, { title: string; description: string; keywords: string }> = {
     '/dealer-honda-bandung': {
       title: 'Dealer Honda Bandung | Promo & Kredit Terbaik',
@@ -265,34 +269,40 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
       keywords: 'Honda ADV Bandung, harga Honda ADV, kredit Honda ADV Bandung',
     },
   };
+  const hostPage = getSeoPageForHost(settings, hostname);
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
-  const title = String(page?.title || settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
-  const description = String(page?.description || settings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
-  const keywords = String(page?.keywords || settings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
-  const siteOrigin = getSiteOrigin(settings);
-  const logoValue = String(settings.logo || '/uploads/logo.jpeg').trim();
+  const pageSettings = getSettingsForSeoPage(settings, hostPage);
+  const title = String(hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
+  const description = String(hostPage?.seoDescription || page?.description || pageSettings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
+  const keywords = String(hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
+  const siteOrigin = hostPage ? `https://${hostPage.subdomain}.kreditmotorhonda.tech` : getSiteOrigin(pageSettings);
+  const logoValue = String(pageSettings.logo || '/uploads/logo.jpeg').trim();
   const logoUrl = /^https?:\/\//i.test(logoValue)
     ? logoValue
     : `${siteOrigin}${logoValue.startsWith('/') ? '' : '/'}${logoValue}`;
-  const canonical = page
+  const canonical = hostPage
+    ? `${siteOrigin}/`
+    : page
     ? `${siteOrigin}${pathname.replace(/\/+$/, '') || '/'}`
-    : String(settings.seoCanonicalUrl || `${siteOrigin}/`).trim();
-  const robots = String(settings.seoRobots || 'index, follow').trim();
+    : String(pageSettings.seoCanonicalUrl || `${siteOrigin}/`).trim();
+  const robots = hostPage && hostPage.sslStatus !== 'active'
+    ? 'noindex, follow'
+    : String(hostPage?.seoRobots || pageSettings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
-  const initialSettings = JSON.stringify(settings).replace(/</g, '\\u003c');
+  const initialSettings = JSON.stringify(publicSettings(pageSettings)).replace(/</g, '\\u003c');
   const initialPublicData = JSON.stringify(initialData).replace(/</g, '\\u003c');
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
     : '';
 
   const normalizedSeoPath = pathname.replace(/\/+$/, '') || '/';
-  const fallbackHeading = page
+  const fallbackHeading = hostPage?.title || (page
     ? page.title.split(/[|–—]/)[0].trim()
     : [
-        String(settings.heroMainTitle || '').trim(),
-        String(settings.heroTitleHighlight || '').trim(),
-      ].filter(Boolean).join(' ');
-  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page);
+        String(pageSettings.heroMainTitle || '').trim(),
+        String(pageSettings.heroTitleHighlight || '').trim(),
+      ].filter(Boolean).join(' '));
+  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page) || Boolean(hostPage);
   const htmlWithH1Fallback =
     shouldAddH1Fallback &&
     fallbackHeading &&
@@ -331,6 +341,138 @@ function getSiteOrigin(settings: any = {}) {
   } catch {
     return 'https://www.solusikreditmotor.cloud';
   }
+}
+
+const RESERVED_SEO_SUBDOMAINS = new Set(['www', 'wijaya', 'admin', 'api', 'mail', 'ftp', 'm', 'static']);
+
+function getSeoPageForHost(settings: any = {}, hostname: string) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
+  const suffix = '.kreditmotorhonda.tech';
+  if (!host.endsWith(suffix)) return undefined;
+  const subdomain = host.slice(0, -suffix.length);
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || RESERVED_SEO_SUBDOMAINS.has(subdomain)) return undefined;
+  return (Array.isArray(settings.seoPages) ? settings.seoPages : []).find((page: any) => page.subdomain === subdomain);
+}
+
+function publicSeoPage(page: any) {
+  return {
+    id: page.id,
+    subdomain: page.subdomain,
+    title: page.title,
+    content: page.content,
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
+    seoKeywords: page.seoKeywords,
+    seoRobots: page.seoRobots,
+    sslStatus: page.sslStatus,
+    updated_at: page.updated_at,
+  };
+}
+
+function publicSettings(settings: any = {}) {
+  return {
+    ...settings,
+    seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : []).map(publicSeoPage),
+  };
+}
+
+function getSettingsForSeoPage(settings: any = {}, page: any) {
+  if (!page) return settings;
+  return {
+    ...settings,
+    ...(page.siteSettings || {}),
+    seoTitle: page.seoTitle || page.title || settings.seoTitle,
+    seoDescription: page.seoDescription || settings.seoDescription,
+    seoKeywords: page.seoKeywords || settings.seoKeywords,
+    seoRobots: page.sslStatus === 'active' ? page.seoRobots || 'index, follow' : 'noindex, follow',
+    seoCanonicalUrl: `https://${page.subdomain}.kreditmotorhonda.tech/`,
+    seoPages: [publicSeoPage(page)],
+    seoPostHost: true,
+  };
+}
+
+async function installManagedNginxConfig(name: string, contents: string) {
+  const configPath = `/etc/nginx/sites-available/${name}`;
+  const enabledPath = `/etc/nginx/sites-enabled/${name}`;
+  const marker = '# Managed by Honda SEO subdomain pages.';
+  try {
+    const existing = await fs.promises.readFile(configPath, 'utf8');
+    if (!existing.startsWith(marker)) throw new Error(`Nginx config already exists and is not managed by the SEO page provisioner: ${configPath}`);
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  await fs.promises.mkdir('/etc/nginx/sites-available', { recursive: true });
+  await fs.promises.mkdir('/etc/nginx/sites-enabled', { recursive: true });
+  const temporaryPath = `${configPath}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
+  await fs.promises.writeFile(temporaryPath, contents, { encoding: 'utf8', mode: 0o644, flag: 'wx' });
+  await fs.promises.rename(temporaryPath, configPath);
+
+  try {
+    const stat = await fs.promises.lstat(enabledPath);
+    if (!stat.isSymbolicLink() || await fs.promises.realpath(enabledPath) !== configPath) {
+      throw new Error(`Nginx site is already enabled from an unmanaged path: ${enabledPath}`);
+    }
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') throw error;
+    await fs.promises.symlink(configPath, enabledPath);
+  }
+}
+
+async function provisionSeoPageSsl(page: any, settings: any) {
+  if (typeof process.getuid === 'function' && process.getuid() !== 0) {
+    return { status: 'pending', message: 'Provisioning SSL memerlukan service server berjalan dengan izin root.' };
+  }
+
+  const subdomain = String(page.subdomain || '').toLocaleLowerCase('en-US');
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || RESERVED_SEO_SUBDOMAINS.has(subdomain)) {
+    return { status: 'failed', message: 'Format subdomain tidak valid atau memakai nama yang dicadangkan.' };
+  }
+  const hostname = `${subdomain}.kreditmotorhonda.tech`;
+  let rootAddresses: string[];
+  let postAddresses: string[];
+  try {
+    [rootAddresses, postAddresses] = await Promise.all([
+      resolve4('kreditmotorhonda.tech'),
+      resolve4(hostname),
+    ]);
+  } catch {
+    return { status: 'pending', message: `DNS ${hostname} belum mengarah ke server utama.` };
+  }
+  if (!postAddresses.some((address) => rootAddresses.includes(address))) {
+    return { status: 'pending', message: `A record ${hostname} harus mengarah ke IP yang sama dengan kreditmotorhonda.tech.` };
+  }
+
+  const certName = `seo-post-${subdomain}`;
+  const certPath = `/etc/letsencrypt/live/${certName}/fullchain.pem`;
+  const keyPath = `/etc/letsencrypt/live/${certName}/privkey.pem`;
+  const webroot = '/var/www/letsencrypt';
+  await fs.promises.mkdir(path.join(webroot, '.well-known', 'acme-challenge'), { recursive: true });
+
+  await installManagedNginxConfig('honda-seo-posts-acme', `# Managed by Honda SEO subdomain pages. ACME HTTP-01 challenge routing.\nserver {\n  listen 80;\n  listen [::]:80;\n  server_name ~^[a-z0-9-]+\\.kreditmotorhonda\\.tech$;\n  location ^~ /.well-known/acme-challenge/ {\n    root ${webroot};\n    default_type text/plain;\n    try_files $uri =404;\n  }\n  location / { return 301 https://$host$request_uri; }\n}\n`);
+  await execFileAsync('nginx', ['-t'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+  await execFileAsync('systemctl', ['reload', 'nginx'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+
+  const configuredEmail = String(process.env.CERTBOT_EMAIL || settings.email || 'admin@kreditmotorhonda.tech').trim();
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) ? configuredEmail : 'admin@kreditmotorhonda.tech';
+  try {
+    await execFileAsync('certbot', [
+      'certonly', '--webroot', '--webroot-path', webroot,
+      '--non-interactive', '--agree-tos', '--keep-until-expiring', '--email', email,
+      '--cert-name', certName, '-d', hostname,
+    ], { timeout: 180000, maxBuffer: 4 * 1024 * 1024 });
+    await fs.promises.access(certPath);
+    await fs.promises.access(keyPath);
+  } catch (error: any) {
+    const message = String(error.stderr || error.message || 'Penerbitan sertifikat gagal').split('\n').slice(-5).join(' ').slice(0, 500);
+    return { status: 'failed', message };
+  }
+
+  const nginxConfigName = `honda-seo-post-${subdomain}`;
+  await installManagedNginxConfig(nginxConfigName, `# Managed by Honda SEO subdomain pages. TLS reverse proxy for ${hostname}.\nserver {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  server_name ${hostname};\n  ssl_certificate ${certPath};\n  ssl_certificate_key ${keyPath};\n  include /etc/letsencrypt/options-ssl-nginx.conf;\n  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;\n  client_max_body_size 100m;\n  location / {\n    proxy_pass http://127.0.0.1:3000;\n    proxy_http_version 1.1;\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n  }\n}\n`);
+  await execFileAsync('nginx', ['-t'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+  await execFileAsync('systemctl', ['reload', 'nginx'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+  return { status: 'active', message: `HTTPS aktif di https://${hostname}` };
 }
 
 function slugifySeoValue(value: unknown) {
@@ -459,8 +601,9 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
 </html>`;
 }
 
-function renderDynamicSitemap(db: any) {
-  const origin = getSiteOrigin(db.settings || {});
+function renderDynamicSitemap(db: any, hostname = '') {
+  const post = getSeoPageForHost(db.settings || {}, hostname);
+  const origin = post ? `https://${post.subdomain}.kreditmotorhonda.tech` : getSiteOrigin(db.settings || {});
   const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
     { path: '/', changefreq: 'daily', priority: '1.0' },
     { path: '/dealer-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
@@ -479,11 +622,21 @@ function renderDynamicSitemap(db: any) {
     priority: '0.8',
     lastmod: motor.updated_at || motor.created_at,
   }));
+  const seoPostPages = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
+    .filter((page: any) => page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' && page.subdomain)
+    .map((page: any) => ({
+      path: `https://${page.subdomain}.kreditmotorhonda.tech/`,
+      changefreq: 'weekly',
+      priority: '0.7',
+      lastmod: page.updated_at,
+      absolute: true,
+    }));
   const today = new Date().toISOString().slice(0, 10);
-  const urls = [...staticPages, ...motorPages].map((page) => {
+  const urls = (post ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...motorPages] : [...staticPages, ...motorPages, ...seoPostPages]).map((page: any) => {
     const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
     const lastmod = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : today;
-    return `  <url><loc>${escapeHtmlAttribute(`${origin}${page.path}`)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`;
+    const url = page.absolute ? page.path : `${origin}${page.path}`;
+    return `  <url><loc>${escapeHtmlAttribute(url)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`;
   });
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
 }
@@ -792,6 +945,16 @@ async function saveExternalImage(url: string): Promise<string> {
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+  const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
+  if (hostPost && session.role !== 'Super Admin') {
+    if (session.id !== hostPost.adminUserId) {
+      return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
+    }
+    const adminPath = req.originalUrl.split('?')[0].replace(/^\/api/, '');
+    if (!['/admin/me', '/admin/logout'].includes(adminPath)) {
+      return res.status(403).json({ error: 'Admin post hanya dapat mengakses pengaturan post yang ditugaskan.' });
+    }
+  }
   (req as any).adminSession = session;
   next();
 }
@@ -926,6 +1089,19 @@ async function startServer() {
     const isPublicWrite =
       req.method === 'POST' &&
       (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit');
+    const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
+    if (hostPost && req.method !== 'GET' && !isPublicWrite) {
+      const session = getSession(req);
+      if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+      if (session.role !== 'Super Admin' && session.id !== hostPost.adminUserId) {
+        return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
+      }
+      const allowedPostWrite = req.method === 'PUT' && req.path === '/settings'
+        || req.method === 'POST' && (req.path === '/admin/logout' || req.path === '/upload');
+      if (!allowedPostWrite) return res.status(403).json({ error: 'Admin post hanya dapat mengubah pengaturan situs post ini.' });
+      (req as any).adminSession = session;
+      return next();
+    }
     if (req.method === 'GET' || isPublicWrite) return next();
     return requireAdmin(req, res, () => {
       const session = (req as any).adminSession;
@@ -1006,7 +1182,12 @@ async function startServer() {
   // Settings
   app.get('/api/settings', (req, res) => {
     const db = readCatalogDb();
-    res.json(db.settings || {});
+    const settings = db.settings || {};
+    const page = getSeoPageForHost(settings, req.hostname);
+    if (page) return res.json(publicSettings(getSettingsForSeoPage(settings, page)));
+    const session = getSession(req);
+    if (req.hostname === 'kreditmotorhonda.tech' && session?.role === 'Super Admin') return res.json(settings);
+    return res.json(publicSettings(settings));
   });
 
   app.get('/api/fif-price-list', (req, res) => {
@@ -1049,12 +1230,48 @@ async function startServer() {
 
   app.put('/api/settings', (req, res) => {
     const db = readDb();
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    if (hostPage) {
+      const session = (req as any).adminSession || getSession(req);
+      if (!session || (session.role !== 'Super Admin' && session.id !== hostPage.adminUserId)) {
+        return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'seoPages')) {
+      const session = (req as any).adminSession || getSession(req);
+      if (req.hostname !== 'kreditmotorhonda.tech' || session?.role !== 'Super Admin') {
+        return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengelola post subdomain.' });
+      }
+    }
     let hasExternalImage = false;
     mapImageReferences(req.body, (url) => {
       if (/^https?:\/\//i.test(url)) hasExternalImage = true;
       return url;
     });
     if (hasExternalImage) return res.status(400).json({ error: 'Unggah gambar melalui panel admin agar tersimpan di server.' });
+    if (hostPage) {
+      const siteSettingFields = [
+        'name', 'tagline', 'phone', 'address', 'email', 'workingHours', 'logo', 'heroImage', 'heroImages',
+        'heroTitle', 'heroMainTitle', 'heroTitleHighlight', 'heroSubtitle', 'heroBadge', 'heroCaption', 'footerText',
+        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'customization',
+      ];
+      const siteSettings = { ...(hostPage.siteSettings || {}) };
+      for (const field of siteSettingFields) {
+        if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) siteSettings[field] = req.body[field];
+      }
+      const nextPage = {
+        ...hostPage,
+        siteSettings,
+        ...(typeof req.body?.seoTitle === 'string' ? { seoTitle: req.body.seoTitle.trim() } : {}),
+        ...(typeof req.body?.seoDescription === 'string' ? { seoDescription: req.body.seoDescription.trim() } : {}),
+        ...(typeof req.body?.seoKeywords === 'string' ? { seoKeywords: req.body.seoKeywords.trim() } : {}),
+        ...(typeof req.body?.seoRobots === 'string' ? { seoRobots: req.body.seoRobots } : {}),
+        updated_at: new Date().toISOString(),
+      };
+      db.settings.seoPages = db.settings.seoPages.map((page: any) => page.id === hostPage.id ? nextPage : page);
+      if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan pengaturan post.' });
+      return res.json(publicSettings(getSettingsForSeoPage(db.settings, nextPage)));
+    }
     db.settings = { ...db.settings, ...req.body, updated_at: new Date().toISOString() };
     writeDb(db);
     res.json(db.settings);
@@ -1741,6 +1958,46 @@ async function startServer() {
     res.json((req as any).adminSession);
   });
 
+  app.post('/api/admin/seo-pages/:id/provision-ssl', requireAdmin, async (req, res) => {
+    const session = (req as any).adminSession;
+    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengaktifkan SSL post.' });
+    }
+
+    const db = readDb();
+    const page = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : []).find((item: any) => item.id === req.params.id);
+    if (!page) return res.status(404).json({ error: 'Post subdomain tidak ditemukan.' });
+
+    page.sslStatus = 'provisioning';
+    page.sslError = undefined;
+    page.updated_at = new Date().toISOString();
+    writeDb(db);
+
+    let result: { status: 'pending' | 'active' | 'failed'; message: string };
+    try {
+      result = await provisionSeoPageSsl(page, db.settings || {});
+    } catch (error: any) {
+      result = { status: 'failed', message: String(error.message || 'Konfigurasi HTTPS gagal.').slice(0, 500) };
+    }
+
+    page.sslStatus = result.status;
+    page.sslError = result.status === 'active' ? undefined : result.message;
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: session.username,
+      action: 'PROVISION_SEO_POST_SSL',
+      resource: page.id,
+      details: `${page.subdomain}.kreditmotorhonda.tech: ${result.status}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Status SSL gagal disimpan.' });
+
+    return res.status(result.status === 'active' ? 200 : 202).json({
+      status: result.status,
+      message: result.message,
+      seoPages: db.settings.seoPages.map(publicSeoPage),
+    });
+  });
+
   app.get('/api/admin/users', requireAdmin, (req, res) => {
     const db = readDb();
     res.json(ensureAdminUsers(db).map(publicAdminUser));
@@ -1956,9 +2213,17 @@ async function startServer() {
     }
   });
 
-  app.get('/sitemap.xml', (_req, res) => {
+  app.get('/sitemap.xml', (req, res) => {
     res.set('Cache-Control', 'no-cache');
-    res.type('application/xml').send(renderDynamicSitemap(readDb()));
+    res.type('application/xml').send(renderDynamicSitemap(readDb(), req.hostname));
+  });
+
+  app.get('/robots.txt', (req, res, next) => {
+    const db = readDb();
+    const page = getSeoPageForHost(db.settings || {}, req.hostname);
+    if (!page) return next();
+    const indexRule = page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' ? 'Allow: /' : 'Disallow: /';
+    return res.type('text/plain').send(`User-agent: *\n${indexRule}\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://${page.subdomain}.kreditmotorhonda.tech/sitemap.xml\n`);
   });
 
   app.get('/motor/:slug', (req, res) => {
@@ -1969,7 +2234,9 @@ async function startServer() {
     }
 
     res.set('Cache-Control', 'public, max-age=300');
-    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, db.settings || {}));
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const hostSettings = hostPage ? getSettingsForSeoPage(db.settings || {}, hostPage) : db.settings || {};
+    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, hostSettings));
   });
 
   // Vite middleware in dev or static files in production
@@ -2000,7 +2267,7 @@ async function startServer() {
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(db)));
+        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(db), req.hostname));
       } catch (error) {
         next(error);
       }
@@ -2024,7 +2291,7 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
         const db = readDb();
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
+        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db), req.hostname));
       } catch (error) {
         next(error);
       }
@@ -2053,7 +2320,7 @@ async function startServer() {
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       const db = readDb();
       res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
+      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db), req.hostname));
     });
   }
 

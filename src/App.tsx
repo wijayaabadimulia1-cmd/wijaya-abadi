@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ArrowRight, Bike, Calculator, MapPin, MessageSquare, Phone, Scale, Search, Shield, Sparkles } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList } from './types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList, SeoLandingPage } from './types';
 import { api } from './services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from './services/fifPriceList';
 import { Navbar } from './components/Navbar';
@@ -104,6 +104,13 @@ export default function App() {
     return 'light';
   });
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  const hostname = window.location.hostname.toLocaleLowerCase('en-US');
+  const subdomain = hostname.endsWith('.kreditmotorhonda.tech')
+    ? hostname.slice(0, -'.kreditmotorhonda.tech'.length)
+    : '';
+  const hostSeoPage: SeoLandingPage | undefined = subdomain && !['www', 'wijaya'].includes(subdomain)
+    ? settings.seoPages?.find((page) => page.subdomain === subdomain)
+    : undefined;
 
   // Fetch initial data from dynamic database
   const loadData = async () => {
@@ -228,6 +235,7 @@ export default function App() {
     return () => window.removeEventListener('hwa-admin-settings-update', handleAdminSettingsUpdate);
   }, []);
 
+
   useEffect(() => {
     if (isAdminRoute || /bot|crawler|spider|slurp/i.test(navigator.userAgent)) return;
 
@@ -336,13 +344,15 @@ export default function App() {
     } as const;
 
     const activeLandingSeo = landingSeo[currentPath as keyof typeof landingSeo];
-    const title = activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
-    const description = activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
-    const keywords = activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
-    const canonicalUrl = activeLandingSeo
+    const title = hostSeoPage?.seoTitle?.trim() || activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
+    const description = hostSeoPage?.seoDescription?.trim() || activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
+    const keywords = hostSeoPage?.seoKeywords?.trim() || activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
+    const canonicalUrl = hostSeoPage
+      ? `https://${hostSeoPage.subdomain}.kreditmotorhonda.tech/`
+      : activeLandingSeo
       ? `https://kreditmotorhonda.tech${currentPath}`
       : settings.seoCanonicalUrl?.trim() || DEFAULT_SEO_CANONICAL_URL;
-    const robots = settings.seoRobots?.trim() || DEFAULT_SEO_ROBOTS;
+    const robots = hostSeoPage?.seoRobots?.trim() || settings.seoRobots?.trim() || DEFAULT_SEO_ROBOTS;
     document.title = title;
 
     const setMeta = (attribute: 'name' | 'property', key: string, content: string) => {
@@ -371,7 +381,7 @@ export default function App() {
       document.head.appendChild(canonical);
     }
     canonical.href = canonicalUrl;
-  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath]);
+  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath, hostSeoPage]);
 
   // Comparison toggle handler
   const handleToggleCompare = (motor: Motor) => {
@@ -608,7 +618,15 @@ export default function App() {
       ],
     },
   } as const;
-  const activeLandingPage = landingPages[currentPath as keyof typeof landingPages];
+  const activeLandingPage = landingPages[currentPath as keyof typeof landingPages] || (hostSeoPage ? {
+    label: hostSeoPage.title,
+    eyeBrow: hostSeoPage.title,
+    headline: hostSeoPage.title,
+    subHeadline: hostSeoPage.seoDescription || hostSeoPage.content.slice(0, 180),
+    bullets: [],
+    stats: [],
+    faq: [],
+  } : undefined);
   const customizationStyle = {
     '--custom-primary': activePalette.primaryColor || undefined,
     '--custom-secondary': activePalette.secondaryColor || undefined,
@@ -676,7 +694,16 @@ export default function App() {
             onOpenInterest={() => handleOpenInterest()}
           />
 
-          <section className="px-4 pb-16 sm:px-6 lg:px-8">
+          {hostSeoPage && (
+            <section className="px-4 pb-12 sm:px-6 lg:px-8">
+              <article className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-900/60 p-6 text-zinc-200 sm:p-8">
+                <h2 className="mb-4 text-xl font-black text-white">{hostSeoPage.title}</h2>
+                <div className="whitespace-pre-line text-sm leading-7 text-zinc-300">{hostSeoPage.content}</div>
+              </article>
+            </section>
+          )}
+
+          {activeLandingPage.bullets.length > 0 && <section className="px-4 pb-16 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6 sm:p-8">
               <div className="grid gap-6 md:grid-cols-3">
                 {activeLandingPage.bullets.map((item) => (
@@ -687,7 +714,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-          </section>
+          </section>}
 
           <CatalogSection
             motors={motors}
@@ -720,7 +747,7 @@ export default function App() {
             }}
           />
 
-          <section className="px-4 pb-20 sm:px-6 lg:px-8">
+          {activeLandingPage.faq.length > 0 && <section className="px-4 pb-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl">
               <div className="mb-8 text-center">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">FAQ</p>
@@ -738,7 +765,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-          </section>
+          </section>}
         </main>
 
         <FooterSection settings={settings} />
@@ -856,6 +883,21 @@ export default function App() {
             onOpenInterest={() => handleOpenInterest()}
           />
         )}
+
+        {currentPath === '/' && hostname === 'kreditmotorhonda.tech' && settings.seoPages?.some((page) => page.sslStatus === 'active') ? (
+          <section className="px-4 py-8 sm:px-6 lg:px-8" aria-labelledby="seo-posts-heading">
+            <div className="mx-auto max-w-7xl border-y border-zinc-200 py-6">
+              <h2 id="seo-posts-heading" className="text-lg font-black text-zinc-900">Informasi Kredit Motor Honda</h2>
+              <nav className="mt-3 flex flex-wrap gap-x-6 gap-y-2" aria-label="Post dealer">
+                {settings.seoPages.filter((page) => page.sslStatus === 'active').map((page) => (
+                  <a key={page.id} href={`https://${page.subdomain}.kreditmotorhonda.tech/`} className="text-sm font-semibold text-red-700 underline-offset-4 hover:underline">
+                    {page.title}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </section>
+        ) : null}
 
         {settings.websiteTemplate === 'wijaya-meriah' && (
           <section className="wijaya-meriah-discovery" aria-label="Jelajahi motor dan layanan Honda">
