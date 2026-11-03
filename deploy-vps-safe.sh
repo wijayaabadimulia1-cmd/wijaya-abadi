@@ -3,7 +3,7 @@ set -euo pipefail
 
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
-SERVICE="kreditmotorhonda.service"
+SERVICE="kreditmotorhonda-id.service"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMIT="$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)"
 RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
@@ -75,6 +75,25 @@ if [ ! -s "$DATA_DIR/db.json" ] || [ ! -d "$UPLOADS_DIR" ] || [ ! -f "$ENV_FILE"
   fail "Live catalog, uploads, or environment file is missing; refusing deployment."
 fi
 
+get_service_environment_value() {
+  local service="$1"
+  local key="$2"
+  systemctl show "$service" --property=Environment --value \
+    | tr ' ' '\n' \
+    | sed -n "s/^${key}=//p" \
+    | head -n 1
+}
+
+WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
+SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
+OWNER_ANALYTICS_WIJAYA_DB_FILE="${OWNER_ANALYTICS_WIJAYA_DB_FILE:-${WIJAYA_DATA_DIR}/db.json}"
+OWNER_ANALYTICS_SOLUSI_DB_FILE="${OWNER_ANALYTICS_SOLUSI_DB_FILE:-${SOLUSI_DATA_DIR}/db.json}"
+if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
+  || [ ! -s "$OWNER_ANALYTICS_WIJAYA_DB_FILE" ] \
+  || [ ! -s "$OWNER_ANALYTICS_SOLUSI_DB_FILE" ]; then
+  fail "Could not verify the Wijaya and Solusi site databases for owner analytics."
+fi
+
 EXPECTED_MOTORS="$(node -e 'const db = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (!Array.isArray(db.motors)) process.exit(2); console.log(db.motors.length)' "$DATA_DIR/db.json")"
 if [ "$EXPECTED_MOTORS" -lt 1 ]; then
   fail "The live catalog is empty; refusing deployment."
@@ -100,6 +119,8 @@ cp "$DATA_DIR/db.json" "$STAGING_DIR/data/db.json"
   cd "$RELEASE_DIR"
   exec env NODE_ENV=production HOST=127.0.0.1 PORT=3101 \
     DATA_DIR="$STAGING_DIR/data" UPLOADS_DIR="$STAGING_DIR/uploads" \
+    OWNER_ANALYTICS_WIJAYA_DB_FILE="$OWNER_ANALYTICS_WIJAYA_DB_FILE" \
+    OWNER_ANALYTICS_SOLUSI_DB_FILE="$OWNER_ANALYTICS_SOLUSI_DB_FILE" \
     node dist/server.cjs >"$STAGING_DIR/server.log" 2>&1
 ) &
 STAGING_PID=$!
@@ -152,6 +173,8 @@ Environment=PORT=3000
 Environment=APP_URL=https://$DOMAIN
 Environment=DATA_DIR=$DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
+Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
+Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
