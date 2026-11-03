@@ -153,6 +153,7 @@ export interface DealerSettings {
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
   catalogAnimationSpeed?: number;
+  featuredMotorRotationInterval?: number;
   customization?: WebsiteCustomization;
   updated_at?: string;
 }

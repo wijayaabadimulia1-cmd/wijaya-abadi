@@ -4,6 +4,16 @@ export const MAX_MOTOR_IMAGES = 15;
 export const MAX_HERO_IMAGES = 15;
 export const MAX_PROMO_IMAGES = 5;
 export const MAX_IMAGE_UPLOAD_BYTES = 100 * 1024 * 1024;
+export const DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL = 20;
+export const MIN_FEATURED_MOTOR_ROTATION_INTERVAL = 5;
+export const MAX_FEATURED_MOTOR_ROTATION_INTERVAL = 60;
+
+export function normalizeFeaturedMotorRotationInterval(value: unknown): number {
+	const interval = Number(value);
+	if (!Number.isFinite(interval)) return DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL;
+	return Math.min(MAX_FEATURED_MOTOR_ROTATION_INTERVAL, Math.max(MIN_FEATURED_MOTOR_ROTATION_INTERVAL, Math.round(interval)));
+}
+
 export const DEFAULT_SEO_TITLE = 'Dealer Motor Honda Bandung | Harga & Kredit';
 export const DEFAULT_SEO_DESCRIPTION = 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.';
 export const DEFAULT_SEO_FOCUS_KEYWORD = 'Honda Bandung';

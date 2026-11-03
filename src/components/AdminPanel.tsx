@@ -36,7 +36,14 @@ import {
 import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, FIF_DP_PERCENTAGES, FIF_TENORS, getFIFPriceListModel, normalizeMotorOtrPrice } from '../services/fifPriceList';
-import { MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from '../constants';
+import {
+  DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL,
+  MAX_FEATURED_MOTOR_ROTATION_INTERVAL,
+  MAX_MOTOR_IMAGES,
+  MAX_PROMO_IMAGES,
+  MIN_FEATURED_MOTOR_ROTATION_INTERVAL,
+  normalizeFeaturedMotorRotationInterval,
+} from '../constants';
 import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
@@ -2413,6 +2420,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </div>
                     </div>
                   </section>
+                  )}
+                  {activeTab === 'theme' && settings.websiteTemplate === 'astra-honda-red-white' && (
+                    <section className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4 sm:p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <label htmlFor="featured-motor-rotation-interval" className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-200">
+                            Jeda pergantian motor unggulan
+                          </label>
+                          <p className="mt-1 text-[11px] text-zinc-500">Mengatur berapa lama tiap motor bestseller ditampilkan pada hero.</p>
+                        </div>
+                        <span className="shrink-0 text-sm font-bold text-red-400">
+                          {normalizeFeaturedMotorRotationInterval(settings.featuredMotorRotationInterval ?? DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL)} detik
+                        </span>
+                      </div>
+                      <input
+                        id="featured-motor-rotation-interval"
+                        type="range"
+                        min={MIN_FEATURED_MOTOR_ROTATION_INTERVAL}
+                        max={MAX_FEATURED_MOTOR_ROTATION_INTERVAL}
+                        step="1"
+                        value={normalizeFeaturedMotorRotationInterval(settings.featuredMotorRotationInterval ?? DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL)}
+                        onChange={(event) => setSettings({ ...settings, featuredMotorRotationInterval: Number(event.target.value) })}
+                        className="w-full accent-red-600"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-500">
+                        <span>{MIN_FEATURED_MOTOR_ROTATION_INTERVAL} detik</span>
+                        <span>{MAX_FEATURED_MOTOR_ROTATION_INTERVAL} detik</span>
+                      </div>
+                    </section>
                   )}
                   {activeTab === 'settings' && (
                   <>

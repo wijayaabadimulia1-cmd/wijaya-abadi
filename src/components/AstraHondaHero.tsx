@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, BadgeCheck, Bike, Calculator, Clock3, Phone, ShieldCheck, Truck } from 'lucide-react';
 import type { DealerSettings, FIFPriceList, Motor, Promo } from '../types';
 import { getMotorOtrPrice } from '../services/fifPriceList';
 import { formatRupiah } from '../services/api';
+import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, normalizeFeaturedMotorRotationInterval } from '../constants';
 
 interface AstraHondaHeroProps {
   settings: DealerSettings;
@@ -53,10 +54,29 @@ export function AstraHondaHero({
   onOpenSimulator,
   onOpenInterest,
 }: AstraHondaHeroProps) {
-  const featuredMotor = motors.find((motor) => motor.is_bestseller) || motors[0];
+  const bestsellerMotors = motors.filter((motor) => motor.is_bestseller);
+  const rotatingMotors = bestsellerMotors.length > 0 ? bestsellerMotors : motors.slice(0, 1);
+  const [featuredMotorIndex, setFeaturedMotorIndex] = useState(0);
+  const rotationInterval = normalizeFeaturedMotorRotationInterval(
+    settings.featuredMotorRotationInterval ?? DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL,
+  );
+  const featuredMotor = rotatingMotors.length > 0
+    ? rotatingMotors[featuredMotorIndex % rotatingMotors.length]
+    : undefined;
   const featuredPromo = promos[0];
   const motorImage = featuredMotor?.images?.[0] || featuredMotor?.image || settings.heroImage;
   const motorPrice = featuredMotor ? getMotorOtrPrice(featuredMotor, priceList) : 0;
+
+  useEffect(() => {
+    setFeaturedMotorIndex(0);
+    if (rotatingMotors.length < 2) return;
+
+    const timerId = window.setInterval(() => {
+      setFeaturedMotorIndex((current) => (current + 1) % rotatingMotors.length);
+    }, rotationInterval * 1000);
+
+    return () => window.clearInterval(timerId);
+  }, [rotatingMotors.length, rotationInterval]);
 
   return (
     <section id="home" className="astra-honda-hero">
@@ -98,7 +118,7 @@ export function AstraHondaHero({
           </div>
         </div>
 
-        <aside className="astra-honda-featured" aria-label="Motor pilihan dealer">
+        <aside key={featuredMotor?.id || 'empty'} className="astra-honda-featured" aria-label="Motor bestseller pilihan dealer">
           <span className="astra-honda-featured__ribbon">{featuredPromo?.badge || 'Pilihan Motor Honda'}</span>
           {motorImage ? (
             <div className="astra-honda-featured__image-wrap">
