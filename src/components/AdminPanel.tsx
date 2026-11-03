@@ -829,6 +829,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'wijaya-cool', label: 'Wijaya Cool', accent: 'bg-gradient-to-r from-emerald-600 to-sky-400', description: 'Nuansa sejuk pegunungan Bandung, kabut lembut, cahaya berkilau, dan daun jatuh.' },
     { value: 'wijaya-meriah', label: 'Wijaya Meriah', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Tema Honda yang cerah dan dinamis dengan aksen merah, putih, charcoal, dan langit biru.' },
     { value: 'showcase-wijaya-2', label: 'Showcase Wijaya 2', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Showcase Honda merah-putih dengan hero langit pegunungan, CTA tegas, dan katalog bersih.' },
+    { value: 'astra-honda-red-white', label: 'Astra Honda Motor Red & White', accent: 'bg-gradient-to-r from-red-600 via-white to-red-600', description: 'Tema merah-putih Astra Honda yang mengikuti referensi, dengan katalog dan simulasi kredit dealer.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -897,8 +898,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const isHondaWijaya = template === 'honda-wijaya';
     const isWijayaMeriah = template === 'wijaya-meriah';
     const isShowcaseWijaya2 = template === 'showcase-wijaya-2';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2;
+    const isAstraHondaRedWhite = template === 'astra-honda-red-white';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -1012,6 +1014,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               },
             },
           }
+      : isAstraHondaRedWhite
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              light: {
+                primaryColor: '#e60012',
+                secondaryColor: '#111827',
+                accentColor: '#cc0010',
+                backgroundColor: '#ffffff',
+                panelColor: '#f8f9fa',
+                cardColor: '#ffffff',
+                elevatedColor: '#ffffff',
+                borderColor: '#e5e7eb',
+                textColor: '#111827',
+                mutedColor: '#6b7280',
+                heroTextColor: '#111827',
+                heroTitleHighlightColor: '#e60012',
+              },
+              dark: {
+                primaryColor: '#e60012',
+                secondaryColor: '#f9fafb',
+                accentColor: '#ff4b57',
+                backgroundColor: '#17191d',
+                panelColor: '#22262c',
+                cardColor: '#292e35',
+                elevatedColor: '#343a42',
+                borderColor: '#414750',
+                textColor: '#f9fafb',
+                mutedColor: '#c4c8ce',
+                heroTextColor: '#f9fafb',
+                heroTitleHighlightColor: '#ff4b57',
+              },
+            },
+          }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -1054,7 +1092,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);

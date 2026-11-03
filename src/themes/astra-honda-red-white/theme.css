@@ -1,0 +1,160 @@
+.website-template-astra-honda-red-white {
+  --site-bg: #ffffff;
+  --site-panel: #f8f9fa;
+  --site-card: #ffffff;
+  --site-text: #111827;
+  --site-muted: #6b7280;
+  --site-accent: #e60012;
+  --site-accent-soft: rgba(230, 0, 18, 0.08);
+  --site-border: rgba(17, 24, 39, 0.12);
+}
+
+.website-template-astra-honda-red-white.site-mode-dark {
+  --site-bg: #17191d;
+  --site-panel: #22262c;
+  --site-card: #292e35;
+  --site-text: #f9fafb;
+  --site-muted: #c4c8ce;
+  --site-accent: #ff4b57;
+  --site-border: rgba(255, 255, 255, 0.12);
+}
+
+.website-shell.website-template-astra-honda-red-white,
+.website-shell.website-template-astra-honda-red-white.site-mode-light,
+.website-shell.website-template-astra-honda-red-white.site-mode-dark {
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-red-white .site-navbar {
+  border-bottom: 1px solid var(--site-border);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 5px 20px rgba(17, 24, 39, 0.07);
+  color: #111827;
+}
+
+.website-shell.website-template-astra-honda-red-white.site-mode-dark .site-navbar {
+  background: rgba(23, 25, 29, 0.94);
+  color: #f9fafb;
+}
+
+.website-shell.website-template-astra-honda-red-white .site-navbar nav a:first-child {
+  border-radius: 12px;
+  background: #fff0f1;
+  color: #e60012 !important;
+  padding: 9px 16px;
+}
+
+.website-shell.website-template-astra-honda-red-white.site-mode-dark .site-navbar nav a:first-child {
+  background: rgba(230, 0, 18, 0.18);
+  color: #ff6b75 !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #home {
+  background: linear-gradient(180deg, #fff0f1 0%, #ffffff 68%);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-red-white.site-mode-dark #home {
+  background: linear-gradient(145deg, #292126, #17191d 72%);
+}
+
+.website-shell.website-template-astra-honda-red-white #home .hero-editable-text,
+.website-shell.website-template-astra-honda-red-white #home .hero-subtitle,
+.website-shell.website-template-astra-honda-red-white #home .hero-caption-text,
+.website-shell.website-template-astra-honda-red-white #home .hero-main-title {
+  color: var(--site-text-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #home .hero-highlight-text {
+  color: var(--site-accent-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #home .hero-subtitle {
+  color: var(--site-muted-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #home .bg-zinc-900\/90,
+.website-shell.website-template-astra-honda-red-white #home .bg-zinc-900\/80,
+.website-shell.website-template-astra-honda-red-white #home .bg-zinc-900\/60,
+.website-shell.website-template-astra-honda-red-white #home .bg-zinc-900,
+.website-shell.website-template-astra-honda-red-white #home .bg-zinc-950 {
+  border-color: var(--site-border) !important;
+  background: var(--site-panel-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #home .text-white,
+.website-shell.website-template-astra-honda-red-white #home .text-zinc-100,
+.website-shell.website-template-astra-honda-red-white #home .text-zinc-200,
+.website-shell.website-template-astra-honda-red-white #home .text-zinc-300,
+.website-shell.website-template-astra-honda-red-white #home .text-zinc-400,
+.website-shell.website-template-astra-honda-red-white #home .text-zinc-500 {
+  color: var(--site-muted-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #home a.bg-gradient-to-r.text-white,
+.website-shell.website-template-astra-honda-red-white #home .hero-caption-overlay h3.text-white {
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-astra-honda-red-white #katalog,
+.website-shell.website-template-astra-honda-red-white #promo,
+.website-shell.website-template-astra-honda-red-white #manifesto,
+.website-shell.website-template-astra-honda-red-white #testimoni,
+.website-shell.website-template-astra-honda-red-white #simulasi,
+.website-shell.website-template-astra-honda-red-white #kontak {
+  background-color: var(--site-bg-effective) !important;
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-red-white #katalog,
+.website-shell.website-template-astra-honda-red-white #manifesto,
+.website-shell.website-template-astra-honda-red-white #kontak {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white .catalog-card,
+.website-shell.website-template-astra-honda-red-white .simulator-container {
+  border-color: var(--site-border) !important;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.07);
+}
+
+.website-shell.website-template-astra-honda-red-white .bg-red-600,
+.website-shell.website-template-astra-honda-red-white .hover\:bg-red-500:hover {
+  background-color: #e60012 !important;
+}
+
+.website-shell.website-template-astra-honda-red-white .text-red-400,
+.website-shell.website-template-astra-honda-red-white .text-red-500,
+.website-shell.website-template-astra-honda-red-white .text-red-600 {
+  color: var(--site-accent-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-red-white .border-red-500,
+.website-shell.website-template-astra-honda-red-white .border-red-600 {
+  border-color: #e60012 !important;
+}
+
+.website-shell.website-template-astra-honda-red-white input[type='range'] {
+  accent-color: #e60012;
+}
+
+.website-shell.website-template-astra-honda-red-white footer {
+  border-top: 3px solid #e60012;
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-astra-honda-red-white #home {
+    background: linear-gradient(180deg, #fff0f1 0%, #ffffff 78%);
+  }
+
+  .website-shell.website-template-astra-honda-red-white.site-mode-dark #home {
+    background: linear-gradient(160deg, #292126, #17191d 78%);
+  }
+}

@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './themes/wijaya-meriah/theme.css';
+import './themes/astra-honda-red-white/theme.css';
 import './themes/showcase-wijaya-2/theme.css';
 import './themes/showcase-wijaya-2/appearance-fixes.css';
 import './themes/showcase-wijaya-2/visual-balance-fixes.css';
