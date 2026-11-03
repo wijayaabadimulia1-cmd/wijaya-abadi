@@ -162,6 +162,10 @@ if ! sudo tar -tzf "$BACKUP_FILE" | grep -Fx 'db.json' > /dev/null; then
   fail "Catalog backup verification failed: $BACKUP_FILE"
 fi
 
+if command -v pm2 >/dev/null 2>&1 && pm2 describe honda-wijaya-abadi >/dev/null 2>&1; then
+  pm2 stop honda-wijaya-abadi
+fi
+
 sudo install -d -m 755 "$DROPIN_DIR"
 sudo tee "$DROPIN_FILE" >/dev/null <<EOF
 [Service]
@@ -183,6 +187,10 @@ EOF
 CUTOVER_STARTED=1
 sudo systemctl daemon-reload
 sudo systemctl restart "$SERVICE"
+
+if ! systemctl show "$SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+  fail "$SERVICE did not start the new release; refusing to validate a different process."
+fi
 
 check_http_200() {
   local url="$1"
