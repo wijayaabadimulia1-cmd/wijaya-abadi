@@ -2644,6 +2644,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                   {activeTab === 'theme' && (
                   <div className="space-y-3">
+                    <label className="block text-xs font-bold text-zinc-300 uppercase">
+                      Tulisan badge di foto hero
+                      <input
+                        type="text"
+                        value={settings.heroBadge ?? 'Showroom Resmi Bandung'}
+                        onChange={(event) => setSettings({ ...settings, heroBadge: event.target.value })}
+                        placeholder="Kosongkan untuk menyembunyikan badge"
+                        className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs font-normal normal-case text-white focus:border-red-500 focus:outline-none"
+                      />
+                    </label>
                     <label className="block text-xs font-bold text-zinc-300 uppercase mb-1">
                       Template View Website
                     </label>

@@ -430,7 +430,7 @@ async function installManagedNginxConfig(name: string, contents: string) {
   }
 }
 
-async function provisionSeoPageSsl(page: any, settings: any) {
+async function provisionSeoPageSsl(page: any, settings: any): Promise<{ status: 'active' | 'failed' | 'pending'; message: string }> {
   if (typeof process.getuid === 'function' && process.getuid() !== 0) {
     return { status: 'pending', message: 'Provisioning SSL memerlukan service server berjalan dengan izin root.' };
   }
@@ -1011,7 +1011,8 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
       return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
     }
     const adminPath = req.originalUrl.split('?')[0].replace(/^\/api/, '');
-    if (!['/admin/me', '/admin/logout'].includes(adminPath)) {
+    const canSaveAssignedPostSettings = req.method === 'PUT' && adminPath === '/settings';
+    if (!['/admin/me', '/admin/logout'].includes(adminPath) && !canSaveAssignedPostSettings) {
       return res.status(403).json({ error: 'Admin post hanya dapat mengakses pengaturan post yang ditugaskan.' });
     }
   }
