@@ -10,12 +10,21 @@ RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
 BACKUP_DIR="/var/backups/honda-wijaya-abadi"
 DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/deploy.conf"
+SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
+SATELLITE_PORTS=(3001 3002)
+SATELLITE_DROPIN_FILES=(
+  "/etc/systemd/system/kreditmotorhonda.service.d/zz-catalog-release.conf"
+  "/etc/systemd/system/solusikreditmotor.service.d/zz-catalog-release.conf"
+)
+SATELLITE_DROPIN_EXISTED=(0 0)
+SATELLITE_DROPIN_BACKUPS=("" "")
 STAGING_DIR=""
 STAGING_PID=""
 PREVIOUS_DROPIN_EXISTS=0
 PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
+SATELLITE_UPDATES_STARTED=0
 
 fail() {
   echo "$*" >&2
@@ -24,6 +33,20 @@ fail() {
 
 cleanup() {
   local result=$?
+  if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    echo "Satellite catalog deployment failed; restoring previous service releases." >&2
+    for index in "${!SATELLITE_SERVICES[@]}"; do
+      if [ "${SATELLITE_DROPIN_EXISTED[$index]}" -eq 1 ] && [ -f "${SATELLITE_DROPIN_BACKUPS[$index]}" ]; then
+        sudo install -m 644 "${SATELLITE_DROPIN_BACKUPS[$index]}" "${SATELLITE_DROPIN_FILES[$index]}"
+      else
+        sudo rm -f "${SATELLITE_DROPIN_FILES[$index]}"
+      fi
+    done
+    sudo systemctl daemon-reload || true
+    for service in "${SATELLITE_SERVICES[@]}"; do
+      sudo systemctl restart "$service" || true
+    done
+  fi
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Deployment health check failed; restoring the previous systemd service." >&2
     if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
@@ -86,6 +109,15 @@ get_service_environment_value() {
 
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
 SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
+for service in "${SATELLITE_SERVICES[@]}"; do
+  if ! systemctl is-active --quiet "$service"; then
+    fail "$service is not active; refusing to replace an unknown production state."
+  fi
+  catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
+  if [ "$catalog_api_url" != "http://127.0.0.1:3000" ]; then
+    fail "$service is not configured to use the main catalog API; refusing deployment."
+  fi
+done
 OWNER_ANALYTICS_WIJAYA_DB_FILE="${OWNER_ANALYTICS_WIJAYA_DB_FILE:-${WIJAYA_DATA_DIR}/db.json}"
 OWNER_ANALYTICS_SOLUSI_DB_FILE="${OWNER_ANALYTICS_SOLUSI_DB_FILE:-${SOLUSI_DATA_DIR}/db.json}"
 if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
@@ -222,6 +254,49 @@ if [ "$live_motors" != "$EXPECTED_MOTORS" ] || [ ! -s "$DATA_DIR/db.json" ]; the
 fi
 check_http_200 "https://${DOMAIN}/"
 check_http_200 "https://${DOMAIN}/sitemap.xml"
+
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  service="${SATELLITE_SERVICES[$index]}"
+  dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
+  if [ -e "$dropin_file" ]; then
+    if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$dropin_file" \
+      || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file"; then
+      fail "$dropin_file is not a recognized managed catalog release; review it before deployment."
+    fi
+    SATELLITE_DROPIN_EXISTED[$index]=1
+    SATELLITE_DROPIN_BACKUPS[$index]="$STAGING_DIR/satellite-${index}.previous"
+    cp "$dropin_file" "${SATELLITE_DROPIN_BACKUPS[$index]}"
+  fi
+done
+
+SATELLITE_UPDATES_STARTED=1
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
+  sudo install -d -m 755 "$(dirname "$dropin_file")"
+  sudo tee "$dropin_file" >/dev/null <<EOF
+[Service]
+WorkingDirectory=$RELEASE_DIR
+ExecStart=
+ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
+EOF
+done
+sudo systemctl daemon-reload
+
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  service="${SATELLITE_SERVICES[$index]}"
+  port="${SATELLITE_PORTS[$index]}"
+  sudo systemctl restart "$service"
+  if ! systemctl is-active --quiet "$service" \
+    || ! systemctl show "$service" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+    fail "$service did not start the new catalog release."
+  fi
+
+  satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+  if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
+    fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
+  fi
+  echo "${service} catalog verified: ${satellite_motors} motors"
+done
 
 DEPLOY_SUCCEEDED=1
 CUTOVER_STARTED=0
