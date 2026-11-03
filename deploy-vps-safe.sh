@@ -311,6 +311,18 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     fail "$service did not start the new catalog release."
   fi
 
+  satellite_ready=0
+  for attempt in $(seq 1 30); do
+    if curl --silent --fail --output /dev/null --max-time 2 "http://127.0.0.1:${port}/api/health"; then
+      satellite_ready=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$satellite_ready" -ne 1 ]; then
+    fail "$service did not become healthy on port ${port}."
+  fi
+
   satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
   if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
     fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
