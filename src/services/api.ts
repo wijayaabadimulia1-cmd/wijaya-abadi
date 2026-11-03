@@ -79,14 +79,14 @@ export const api = {
     return res.json();
   },
 
-  async createAdminUser(data: { username: string; password: string; role?: string }): Promise<AdminUser> {
+  async createAdminUser(data: { username: string; password: string; role?: string; assignedSeoPageId?: string }): Promise<AdminUser> {
     const res = await fetch('/api/admin/users', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(data) });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Gagal membuat admin');
     return result;
   },
 
-  async updateAdminUser(id: string, data: { username?: string; password?: string; role?: string }): Promise<AdminUser> {
+  async updateAdminUser(id: string, data: { username?: string; password?: string; role?: string; assignedSeoPageId?: string }): Promise<AdminUser> {
     const res = await fetch(`/api/admin/users/${id}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify(data) });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Gagal mengubah admin');
@@ -105,6 +105,36 @@ export const api = {
     const res = await fetch('/api/admin/audit', { headers: adminHeaders() });
     if (!res.ok) throw new Error('Gagal mengambil histori perubahan');
     return res.json();
+  },
+
+  async getOwnerDashboardConfig(): Promise<{ selectedHosts: string[]; dashboardUrl: string }> {
+    const res = await fetch('/api/admin/owner-dashboard', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengambil konfigurasi dashboard owner');
+    return result;
+  },
+
+  async saveOwnerDashboardConfig(hosts: string[]): Promise<{ selectedHosts: string[]; dashboardUrl: string }> {
+    const res = await fetch('/api/admin/owner-dashboard', {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ hosts }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menyimpan konfigurasi dashboard owner');
+    return result;
+  },
+
+  async getOwnerDashboardAnalytics(key: string, startDate?: string, endDate?: string): Promise<any> {
+    const res = await fetch('/api/owner-dashboard/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ key, startDate, endDate }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Tautan dashboard tidak valid atau sudah dinonaktifkan');
+    return result;
   },
 
   async getFifPriceList(): Promise<FIFPriceList> {

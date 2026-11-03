@@ -212,6 +212,17 @@ export interface AdminUser {
   role: string;
   created_at?: string;
   updated_at?: string;
+  assignedSeoPageId?: string | null;
+  assignedSeoPage?: {
+    id: string;
+    subdomain: string;
+    title?: string;
+  } | null;
+  assignedSeoPages?: Array<{
+    id: string;
+    subdomain: string;
+    title?: string;
+  }>;
 }
 
 export interface AuditLog {

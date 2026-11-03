@@ -149,7 +149,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [securityForm, setSecurityForm] = useState({ username: '', password: '', role: 'Staff Admin' });
+  const [securityForm, setSecurityForm] = useState({ username: '', password: '', role: 'Staff Admin', assignedSeoPageId: '' });
+  const [ownerDashboardHosts, setOwnerDashboardHosts] = useState<string[]>([]);
+  const [ownerDashboardUrl, setOwnerDashboardUrl] = useState('');
+  const [isSavingOwnerDashboard, setIsSavingOwnerDashboard] = useState(false);
 
   // Local state for all dynamic data
   const [motors, setMotors] = useState<Motor[]>([]);
@@ -310,6 +313,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   }, [adminSession]);
 
   useEffect(() => {
+    if (adminSession?.role !== 'Super Admin' || window.location.hostname !== 'kreditmotorhonda.tech') return;
+    api.getOwnerDashboardConfig()
+      .then((config) => {
+        setOwnerDashboardHosts(config.selectedHosts);
+        setOwnerDashboardUrl(config.dashboardUrl);
+      })
+      .catch(() => undefined);
+  }, [adminSession]);
+
+  useEffect(() => {
     if (!adminSession || activeTab !== 'seo') return;
 
     void handleCheckSeoFiles();
@@ -349,11 +362,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     event.preventDefault();
     try {
       await api.createAdminUser(securityForm);
-      setSecurityForm({ username: '', password: '', role: 'Staff Admin' });
+      setSecurityForm({ username: '', password: '', role: 'Staff Admin', assignedSeoPageId: '' });
       await refreshSecurityData();
       showToast('Admin baru berhasil dibuat');
     } catch (error: any) {
       alert(error.message || 'Gagal membuat admin');
+    }
+  };
+
+  const handleSaveOwnerDashboard = async () => {
+    setIsSavingOwnerDashboard(true);
+    try {
+      const result = await api.saveOwnerDashboardConfig(ownerDashboardHosts);
+      setOwnerDashboardHosts(result.selectedHosts);
+      setOwnerDashboardUrl(result.dashboardUrl);
+      showToast('Dashboard owner berhasil diperbarui');
+    } catch (error: any) {
+      alert(error.message || 'Gagal menyimpan dashboard owner');
+    } finally {
+      setIsSavingOwnerDashboard(false);
     }
   };
 
@@ -3251,20 +3278,124 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         <option>Staff Admin</option>
                         <option>Super Admin</option>
                       </select>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Admin Pos</label>
+                        <select
+                          value={securityForm.assignedSeoPageId}
+                          onChange={(event) => setSecurityForm({ ...securityForm, assignedSeoPageId: event.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white focus:border-red-500 focus:outline-none"
+                        >
+                          <option value="">Tanpa admin pos</option>
+                          {(settings?.seoPages || []).map((page) => (
+                            <option key={page.id} value={page.id}>{page.subdomain}.kreditmotorhonda.tech</option>
+                          ))}
+                        </select>
+                      </div>
                       <button className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20">Tambah Admin</button>
                     </form>
                   )}
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6">
+                  {adminSession.role === 'Super Admin' && window.location.hostname === 'kreditmotorhonda.tech' && (
+                    <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 sm:p-5">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h3 className="font-bold text-white">Dashboard Owner</h3>
+                          <p className="mt-1 max-w-2xl text-[11px] text-zinc-400">Pilih website yang dapat dipantau owner. Link bersifat rahasia, siapa pun yang memilikinya dapat melihat ringkasan kunjungan.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveOwnerDashboard}
+                          disabled={isSavingOwnerDashboard || ownerDashboardHosts.length === 0}
+                          className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isSavingOwnerDashboard ? 'Menyimpan...' : 'Simpan & buat link'}
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {[
+                          { host: 'kreditmotorhonda.tech', label: 'Website utama' },
+                          { host: 'wijaya.kreditmotorhonda.tech', label: 'Wijaya Kredit Motor' },
+                          { host: 'solusikreditmotor.cloud', label: 'Solusi Kredit Motor' },
+                          ...(settings?.seoPages || []).map((page) => ({
+                            host: `${page.subdomain}.kreditmotorhonda.tech`,
+                            label: page.title || page.subdomain,
+                          })),
+                        ].map((site) => (
+                          <label key={site.host} className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-zinc-950/60 px-3 py-2.5 text-xs text-zinc-200">
+                            <input
+                              type="checkbox"
+                              checked={ownerDashboardHosts.includes(site.host)}
+                              onChange={(event) => setOwnerDashboardHosts((current) => event.target.checked
+                                ? [...current, site.host]
+                                : current.filter((host) => host !== site.host))}
+                              className="h-4 w-4 shrink-0 accent-emerald-500"
+                            />
+                            <span className="min-w-0">
+                              <span className="block truncate font-semibold">{site.label}</span>
+                              <span className="mt-0.5 block truncate text-[10px] text-zinc-500">{site.host}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+
+                      {ownerDashboardUrl && (
+                        <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row">
+                          <input readOnly value={ownerDashboardUrl} aria-label="Link dashboard owner" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-300" />
+                          <button type="button" onClick={async () => { await navigator.clipboard.writeText(ownerDashboardUrl); showToast('Link dashboard owner disalin'); }} className="rounded-lg border border-white/15 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-white/5">Salin link</button>
+                        </div>
+                      )}
+                    </section>
+                  )}
                   <h3 className="mb-4 font-bold text-white">Daftar Admin</h3>
                   <div className="space-y-2">
-                    {adminUsers.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-zinc-950/70 px-4 py-3">
-                        <div><div className="text-sm font-bold text-white">{user.username}</div><div className="text-[11px] text-zinc-400">{user.role}</div></div>
-                        {adminSession.role === 'Super Admin' && user.id !== adminSession.id && <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); setAdminUsers((prev) => prev.filter((item) => item.id !== user.id)); showToast(`Admin ${user.username} berhasil dihapus`); }} className="text-[10px] text-red-400 hover:text-red-300">Hapus</button>}
-                      </div>
-                    ))}
+                    {adminUsers.map((user) => {
+                      const assignedPage = (settings?.seoPages || []).find((page) => page.adminUserId === user.id);
+
+                      return (
+                        <div key={user.id} className="rounded-xl border border-white/5 bg-zinc-950/70 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-bold text-white">{user.username}</div>
+                              <div className="text-[11px] text-zinc-400">{user.role}</div>
+                            </div>
+                            {adminSession.role === 'Super Admin' && user.id !== adminSession.id && (
+                              <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); setAdminUsers((prev) => prev.filter((item) => item.id !== user.id)); showToast(`Admin ${user.username} berhasil dihapus`); }} className="text-[10px] text-red-400 hover:text-red-300">Hapus</button>
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <div className="text-[11px] text-zinc-400">
+                              {assignedPage ? `Admin Pos: ${assignedPage.subdomain}.kreditmotorhonda.tech` : 'Belum ditugaskan ke admin pos'}
+                            </div>
+
+                            {adminSession.role === 'Super Admin' && (
+                              <select
+                                value={assignedPage?.id || ''}
+                                onChange={async (event) => {
+                                  const selectedPageId = event.target.value;
+                                  try {
+                                    await api.updateAdminUser(user.id, { assignedSeoPageId: selectedPageId });
+                                    await refreshSecurityData();
+                                    showToast(`Admin ${user.username} diperbarui ke pos ${selectedPageId ? 'terpilih' : 'umum'}`);
+                                  } catch (error: any) {
+                                    alert(error.message || 'Gagal memperbarui admin pos');
+                                  }
+                                }}
+                                className="w-full max-w-xs rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-[11px] text-white focus:border-red-500 focus:outline-none"
+                              >
+                                <option value="">Tanpa admin pos</option>
+                                {(settings?.seoPages || []).map((page) => (
+                                  <option key={page.id} value={page.id}>{page.subdomain}.kreditmotorhonda.tech</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

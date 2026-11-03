@@ -16,6 +16,11 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
+const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
+  'wijaya.kreditmotorhonda.tech': path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json'),
+  'solusikreditmotor.cloud': path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json'),
+};
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
 const CATALOG_API_URL = String(process.env.CATALOG_API_URL || '').trim().replace(/\/+$/, '');
 const CATALOG_SERVICE_TOKEN = String(process.env.CATALOG_SERVICE_TOKEN || '');
@@ -354,6 +359,11 @@ function getSeoPageForHost(settings: any = {}, hostname: string) {
   return (Array.isArray(settings.seoPages) ? settings.seoPages : []).find((page: any) => page.subdomain === subdomain);
 }
 
+function normalizeAnalyticsHost(hostname: unknown) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
+  return host.startsWith('www.') ? host.slice(4) : host;
+}
+
 function publicSeoPage(page: any) {
   return {
     id: page.id,
@@ -370,8 +380,9 @@ function publicSeoPage(page: any) {
 }
 
 function publicSettings(settings: any = {}) {
+  const { ownerDashboard: _ownerDashboard, ...publicValues } = settings;
   return {
-    ...settings,
+    ...publicValues,
     seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : []).map(publicSeoPage),
   };
 }
@@ -868,14 +879,48 @@ function ensureAdminUsers(db: any) {
   return db.adminUsers;
 }
 
-function publicAdminUser(user: any) {
+function publicAdminUser(user: any, db: any = readDb()) {
+  const assignedSeoPages = Array.isArray((db.settings || {}).seoPages)
+    ? (db.settings || {}).seoPages.filter((page: any) => page.adminUserId === user.id)
+    : [];
+  const assignedSeoPage = assignedSeoPages[0]
+    ? {
+        id: assignedSeoPages[0].id,
+        subdomain: assignedSeoPages[0].subdomain,
+        title: assignedSeoPages[0].title || assignedSeoPages[0].seoTitle || assignedSeoPages[0].subdomain,
+      }
+    : null;
+
   return {
     id: user.id,
     username: user.username,
     role: user.role,
     created_at: user.created_at,
     updated_at: user.updated_at,
+    assignedSeoPageId: assignedSeoPage?.id || null,
+    assignedSeoPage,
+    assignedSeoPages: assignedSeoPages.map((page: any) => ({
+      id: page.id,
+      subdomain: page.subdomain,
+      title: page.title || page.seoTitle || page.subdomain,
+    })),
   };
+}
+
+function syncAdminPostAssignment(db: any, adminUserId: string, nextSeoPageId: string | null | undefined) {
+  const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+  if (!adminUserId) return;
+
+  seoPages.forEach((page: any) => {
+    if (page.adminUserId === adminUserId && page.id !== nextSeoPageId) {
+      delete page.adminUserId;
+    }
+  });
+
+  if (nextSeoPageId) {
+    const targetPage = seoPages.find((page: any) => page.id === nextSeoPageId);
+    if (targetPage) targetPage.adminUserId = adminUserId;
+  }
 }
 
 function getSession(req: express.Request) {
@@ -1088,7 +1133,7 @@ async function startServer() {
 
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/owner-dashboard/analytics');
     const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
     if (hostPost && req.method !== 'GET' && !isPublicWrite) {
       const session = getSession(req);
@@ -1740,24 +1785,143 @@ async function startServer() {
   app.post('/api/analytics/visit', (req, res) => {
     const sessionId = String(req.body?.sessionId || '');
     const pagePath = String(req.body?.path || '/');
+    const host = normalizeAnalyticsHost(req.hostname);
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !pagePath.startsWith('/') || pagePath.length > 200 || pagePath.startsWith('/admin')) {
       return res.status(400).json({ error: 'Data kunjungan tidak valid.' });
     }
 
     const db = readDb();
     db.visitorLogs = Array.isArray(db.visitorLogs) ? db.visitorLogs : [];
-    const existing = db.visitorLogs.find((entry: any) => entry.sessionId === sessionId);
+    const existing = db.visitorLogs.find((entry: any) => entry.sessionId === sessionId && (entry.host || 'kreditmotorhonda.tech') === host);
     if (existing) return res.status(200).json({ recorded: false });
 
     const visit = {
       id: `visit-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
       sessionId,
+      host,
       timestamp: new Date().toISOString(),
       path: pagePath,
     };
     db.visitorLogs.push(visit);
     if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan log pengunjung.' });
     return res.status(201).json({ recorded: true });
+  });
+
+  app.get('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    }
+    const db = readDb();
+    const config = db.settings?.ownerDashboard || {};
+    const token = String(config.token || '');
+    return res.json({
+      selectedHosts: Array.isArray(config.hosts) ? config.hosts : [],
+      dashboardUrl: token ? `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}` : '',
+    });
+  });
+
+  app.put('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    }
+
+    const db = readDb();
+    const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const allowedHosts = new Set([
+      'kreditmotorhonda.tech',
+      ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
+      ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech`),
+    ]);
+    const requestedHosts = Array.isArray(req.body?.hosts) ? req.body.hosts : [];
+    const hosts = [...new Set(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
+      .filter((host) => allowedHosts.has(host));
+    if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
+
+    const token = String(db.settings?.ownerDashboard?.token || crypto.randomBytes(32).toString('base64url'));
+    db.settings = { ...db.settings, ownerDashboard: { token, hosts }, updated_at: new Date().toISOString() };
+    appendAudit(db, { actor: session.username, action: 'UPDATE_OWNER_DASHBOARD', resource: 'owner-dashboard', details: `Website owner: ${hosts.join(', ')}` });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan konfigurasi dashboard owner.' });
+
+    return res.json({
+      selectedHosts: hosts,
+      dashboardUrl: `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}`,
+    });
+  });
+
+  app.post('/api/owner-dashboard/analytics', (req, res) => {
+    const db = readDb();
+    const config = db.settings?.ownerDashboard || {};
+    const providedToken = Buffer.from(String(req.body?.key || ''));
+    const expectedToken = Buffer.from(String(config.token || ''));
+    if (!expectedToken.length || providedToken.length !== expectedToken.length || !crypto.timingSafeEqual(providedToken, expectedToken)) {
+      return res.status(404).json({ error: 'Tautan dashboard tidak valid atau sudah dinonaktifkan.' });
+    }
+
+    const validHosts = new Set<string>(Array.isArray(config.hosts) ? config.hosts.map(String) : []);
+    const validStart = isValidDateKey(req.body?.startDate) ? req.body.startDate : '';
+    const validEnd = isValidDateKey(req.body?.endDate) ? req.body.endDate : '';
+    let startDate = validStart;
+    let endDate = validEnd;
+    if (startDate && endDate && startDate > endDate) [startDate, endDate] = [endDate, startDate];
+
+    const databaseSources = new Map<string, string>();
+    for (const host of validHosts) {
+      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
+      if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, OWNER_ANALYTICS_SITE_DB_FILES[host] ? host : 'kreditmotorhonda.tech');
+    }
+    const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
+    for (const [sourceFile, legacyHost] of databaseSources) {
+      try {
+        const sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
+        const sourceLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
+        allLogs.push(...sourceLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') console.error(`Owner analytics could not read ${sourceFile}:`, error.message);
+      }
+    }
+    const logs = allLogs
+      .filter((log) => validHosts.has(log.host || ''))
+      .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const countsByHost = new Map<string, number>();
+    const countsByDate = new Map<string, number>();
+    const countsByPage = new Map<string, number>();
+    logs.forEach((log) => {
+      countsByHost.set(log.host, (countsByHost.get(log.host) || 0) + 1);
+      countsByDate.set(log.date, (countsByDate.get(log.date) || 0) + 1);
+      const pageKey = `${log.host}${log.path || '/'}`;
+      countsByPage.set(pageKey, (countsByPage.get(pageKey) || 0) + 1);
+    });
+
+    const recordedDates = [...countsByDate.keys()].sort();
+    const rangeStart = startDate || recordedDates[0];
+    const rangeEnd = endDate || recordedDates.at(-1);
+    const dateKeys = rangeStart && rangeEnd ? buildDateKeys(rangeStart, rangeEnd) : [];
+    const dailyVisitors = dateKeys.map((date) => ({
+      date,
+      label: new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(`${date}T12:00:00+07:00`)),
+      visits: countsByDate.get(date) || 0,
+    }));
+    const sites = [...validHosts].map((host) => ({ host, visits: countsByHost.get(host) || 0 }))
+      .sort((left, right) => right.visits - left.visits);
+    const topPages = [...countsByPage.entries()]
+      .map(([page, visits]) => ({ page, visits }))
+      .sort((left, right) => right.visits - left.visits)
+      .slice(0, 10);
+
+    return res.json({
+      totalVisits: logs.length,
+      siteCount: validHosts.size,
+      sites,
+      dailyVisitors,
+      topPages,
+      timeZone: 'Asia/Jakarta',
+    });
   });
 
   // Analytics & Stats
@@ -2000,7 +2164,7 @@ async function startServer() {
 
   app.get('/api/admin/users', requireAdmin, (req, res) => {
     const db = readDb();
-    res.json(ensureAdminUsers(db).map(publicAdminUser));
+    res.json(ensureAdminUsers(db).map((user: any) => publicAdminUser(user, db)));
   });
 
   app.post('/api/admin/users', requireAdmin, (req, res) => {
@@ -2010,15 +2174,19 @@ async function startServer() {
     const users = ensureAdminUsers(db);
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '');
+    const assignedSeoPageId = req.body && Object.prototype.hasOwnProperty.call(req.body, 'assignedSeoPageId')
+      ? String(req.body.assignedSeoPageId || '').trim()
+      : '';
     if (!username || password.length < 8) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
     if (users.some((item: any) => item.username.toLowerCase() === username.toLowerCase())) {
       return res.status(409).json({ error: 'Username sudah digunakan' });
     }
     const newUser = { id: `admin-${Date.now()}`, username, passwordHash: hashPassword(password), role: req.body?.role === 'Super Admin' ? 'Super Admin' : 'Staff Admin', created_at: new Date().toISOString() };
     db.adminUsers.push(newUser);
+    syncAdminPostAssignment(db, newUser.id, assignedSeoPageId || null);
     appendAudit(db, { actor: session.username, action: 'CREATE_ADMIN', resource: newUser.id, details: `Membuat admin ${username}` });
     writeDb(db);
-    res.status(201).json(publicAdminUser(newUser));
+    res.status(201).json(publicAdminUser(newUser, db));
   });
 
   app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
@@ -2031,11 +2199,14 @@ async function startServer() {
     const current = users[index];
     const username = String(req.body?.username ?? current.username).trim();
     const password = req.body?.password ? String(req.body.password) : '';
+    const hasAssignmentUpdate = Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedSeoPageId');
+    const assignedSeoPageId = hasAssignmentUpdate ? String(req.body.assignedSeoPageId || '').trim() : undefined;
     if (!username || (password && password.length < 8)) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
     users[index] = { ...current, username, ...(password ? { passwordHash: hashPassword(password) } : {}), ...(session.role === 'Super Admin' && req.body?.role ? { role: req.body.role } : {}), updated_at: new Date().toISOString() };
+    if (hasAssignmentUpdate) syncAdminPostAssignment(db, users[index].id, assignedSeoPageId || null);
     appendAudit(db, { actor: session.username, action: 'UPDATE_ADMIN', resource: current.id, details: `Mengubah akun ${current.username}` });
     writeDb(db);
-    res.json(publicAdminUser(users[index]));
+    res.json(publicAdminUser(users[index], db));
   });
 
   app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
@@ -2046,6 +2217,7 @@ async function startServer() {
     if (users.length <= 1) return res.status(400).json({ error: 'Minimal harus ada satu admin' });
     const deleted = users.find((item: any) => item.id === req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Admin tidak ditemukan' });
+    syncAdminPostAssignment(db, deleted.id, null);
     db.adminUsers = users.filter((item: any) => item.id !== req.params.id);
     appendAudit(db, { actor: session.username, action: 'DELETE_ADMIN', resource: deleted.id, details: `Menghapus akun ${deleted.username}` });
     writeDb(db);
