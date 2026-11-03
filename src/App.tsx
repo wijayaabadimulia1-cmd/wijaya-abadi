@@ -5,6 +5,7 @@ import { api } from './services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from './services/fifPriceList';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
+import { AstraHondaHero, AstraHondaTopBar } from './components/AstraHondaHero';
 import { CatalogSection } from './components/CatalogSection';
 import { CreditSimulator } from './components/CreditSimulator';
 import { CompareModal } from './components/CompareModal';
@@ -824,6 +825,7 @@ export default function App() {
 
   return (
     <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+      {settings.websiteTemplate === 'astra-honda-red-white' && <AstraHondaTopBar settings={settings} />}
       {/* Navbar */}
       <Navbar
         settings={settings}
@@ -837,11 +839,22 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Hero Section */}
-        <Hero
-          settings={{ ...settings, customization: activePalette }}
-          onOpenSimulator={() => handleOpenSimulator()}
-          onOpenInterest={() => handleOpenInterest()}
-        />
+        {settings.websiteTemplate === 'astra-honda-red-white' ? (
+          <AstraHondaHero
+            settings={{ ...settings, customization: activePalette }}
+            motors={motors}
+            promos={promos}
+            priceList={fifPriceList}
+            onOpenSimulator={() => handleOpenSimulator()}
+            onOpenInterest={handleOpenInterest}
+          />
+        ) : (
+          <Hero
+            settings={{ ...settings, customization: activePalette }}
+            onOpenSimulator={() => handleOpenSimulator()}
+            onOpenInterest={() => handleOpenInterest()}
+          />
+        )}
 
         {settings.websiteTemplate === 'wijaya-meriah' && (
           <section className="wijaya-meriah-discovery" aria-label="Jelajahi motor dan layanan Honda">
