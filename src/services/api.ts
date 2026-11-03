@@ -138,7 +138,7 @@ export const api = {
   },
 
   async getFifPriceList(): Promise<FIFPriceList> {
-    const res = await fetch('/api/fif-price-list');
+    const res = await fetch('/api/fif-price-list', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil price list cicilan FIF');
     return res.json();
   },
@@ -198,7 +198,7 @@ export const api = {
 
   // Motors
   async getMotors(): Promise<Motor[]> {
-    const res = await fetch('/api/motors');
+    const res = await fetch('/api/motors', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil katalog motor');
     return res.json();
   },

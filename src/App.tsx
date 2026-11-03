@@ -214,6 +214,38 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isAdminOpen) return;
+
+    let isCurrent = true;
+    const refreshCatalog = async () => {
+      try {
+        const [motorsData, priceListData] = await Promise.all([
+          api.getMotors(),
+          api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
+        ]);
+        if (!isCurrent) return;
+
+        setFifPriceList(priceListData);
+        setMotors(motorsData.map((motor) => normalizeMotorOtrPrice(motor, priceListData)));
+      } catch (err) {
+        console.error('Failed to refresh shared catalog:', err);
+      }
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshCatalog();
+    };
+
+    const intervalId = window.setInterval(refreshWhenVisible, 30_000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      isCurrent = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [isAdminOpen]);
+
+  useEffect(() => {
     const handleAdminSettingsUpdate = (event: Event) => {
       const detail = (event as CustomEvent<DealerSettings>).detail;
       if (!detail) return;
