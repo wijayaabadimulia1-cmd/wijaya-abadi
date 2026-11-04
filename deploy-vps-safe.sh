@@ -296,6 +296,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
+Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
