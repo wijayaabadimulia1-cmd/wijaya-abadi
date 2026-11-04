@@ -16,6 +16,7 @@ import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
 import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from './constants';
+import { trackWhatsAppClick } from './utils/whatsapp';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel: panel }) => ({ default: panel })));
 
@@ -300,6 +301,34 @@ export default function App() {
       window.removeEventListener('load', scheduleTracking);
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
+  }, [isAdminRoute]);
+
+  useEffect(() => {
+    if (isAdminRoute) return;
+
+    const handleWhatsAppClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest<HTMLAnchorElement>('a[href]');
+      if (!link) return;
+
+      let destination: URL;
+      try {
+        destination = new URL(link.href);
+      } catch {
+        return;
+      }
+      if (!['wa.me', 'api.whatsapp.com'].includes(destination.hostname.toLowerCase())) return;
+
+      const section = link.closest<HTMLElement>('nav, header, footer, section, [role="region"]');
+      const heading = section?.querySelector<HTMLElement>('h1, h2, h3')?.innerText.trim();
+      const area = section?.getAttribute('aria-label') || heading || section?.tagName;
+      const label = link.getAttribute('aria-label') || link.title || link.innerText.trim() || 'WhatsApp';
+      trackWhatsAppClick(area ? `${area} / ${label}` : label);
+    };
+
+    document.addEventListener('click', handleWhatsAppClick, true);
+    return () => document.removeEventListener('click', handleWhatsAppClick, true);
   }, [isAdminRoute]);
 
   useEffect(() => {

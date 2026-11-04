@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Link2,
   Menu,
+  MessageSquare,
   Moon,
   RefreshCw,
   Search,
@@ -25,6 +26,7 @@ interface OwnerAnalytics {
   dailyVisitors: Array<{ date: string; label: string; visits: number }>;
   topPages: Array<{ page: string; visits: number }>;
   searchTerms: Array<{ keyword: string; searches: number; uniqueVisitors: number }>;
+  whatsappClicks: Array<{ host: string; path: string; menu: string; clicks: number; uniqueVisitors: number }>;
   timeZone: string;
 }
 
@@ -481,6 +483,42 @@ export default function OwnerDashboard() {
                     </table>
                   </div>
                 ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada kata kunci pencarian pada periode ini. Pencatatan dimulai setelah fitur ini aktif.</p>}
+              </section>
+
+              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Klik WhatsApp">
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><MessageSquare className="h-4 w-4 text-emerald-600" />Klik WhatsApp</h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Gabungan seluruh website pada periode terpilih ({analytics?.whatsappClicks?.length || 0} menu)</p>
+                  </div>
+                  <div className="text-xs text-slate-400">Diurutkan berdasarkan jumlah klik</div>
+                </div>
+                {analytics?.whatsappClicks?.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] border-collapse text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                          <th className="px-5 py-3.5 sm:px-6">Website</th>
+                          <th className="px-5 py-3.5">Menu / Tombol</th>
+                          <th className="px-5 py-3.5">Halaman</th>
+                          <th className="px-5 py-3.5 text-right">Klik</th>
+                          <th className="px-5 py-3.5 text-right sm:px-6">Pengunjung unik</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {analytics.whatsappClicks.map((click) => (
+                          <tr key={`${click.host}-${click.path}-${click.menu}`} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                            <td className="px-5 py-3.5 font-medium text-slate-700 dark:text-slate-300 sm:px-6">{click.host}</td>
+                            <td className="max-w-[22rem] break-words px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">{click.menu}</td>
+                            <td className="max-w-[16rem] truncate px-5 py-3.5 text-slate-500 dark:text-slate-400">{click.path}</td>
+                            <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white">{click.clicks.toLocaleString('id-ID')}</td>
+                            <td className="px-5 py-3.5 text-right font-medium tabular-nums text-slate-600 dark:text-slate-300 sm:px-6">{click.uniqueVisitors.toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada klik WhatsApp pada periode ini. Klik mulai tercatat setelah fitur ini aktif.</p>}
               </section>
             </div>
           </div>

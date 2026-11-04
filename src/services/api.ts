@@ -382,6 +382,16 @@ export const api = {
     if (!res.ok) throw new Error('Gagal menyimpan kata kunci pencarian');
   },
 
+  async trackWhatsAppClick(sessionId: string, path: string, menu: string, eventId: string): Promise<void> {
+    const res = await fetch('/api/analytics/whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, path, menu, eventId }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error('Gagal menyimpan klik WhatsApp');
+  },
+
   // Upload image
   async migrateExternalImages(): Promise<{ migratedCount: number; updatedReferences: number; unsupportedCount: number; failedCount: number }> {
     const res = await fetch('/api/admin/images/migrate-external', {

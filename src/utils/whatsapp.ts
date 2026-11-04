@@ -1,3 +1,5 @@
+import { api } from '../services/api';
+
 export function normalizeWhatsAppNumber(value: string | undefined, fallback = '6282129358899') {
   const digits = String(value || fallback).replace(/\D/g, '');
   if (digits.startsWith('00')) return digits.slice(2);
@@ -20,4 +22,25 @@ export function createWhatsAppUrl(phone: string | undefined, message?: string) {
   const number = normalizeWhatsAppNumber(phone);
   const messageWithWebsite = withCurrentWebsiteLink(message);
   return `https://wa.me/${number}${messageWithWebsite ? `?text=${encodeURIComponent(messageWithWebsite)}` : ''}`;
+}
+
+export function trackWhatsAppClick(menu: string) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const sessionKey = 'hwa-visitor-session';
+    let sessionId = sessionStorage.getItem(sessionKey);
+    if (!sessionId) {
+      sessionId = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `visit_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(sessionKey, sessionId);
+    }
+    const eventId = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `click_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    void api.trackWhatsAppClick(sessionId, window.location.pathname, menu.slice(0, 120), eventId).catch(() => undefined);
+  } catch {
+    // Keep WhatsApp navigation working when browser storage is unavailable.
+  }
 }

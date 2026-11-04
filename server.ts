@@ -1888,6 +1888,40 @@ async function startServer() {
     return res.status(201).json({ recorded: true });
   });
 
+  app.post('/api/analytics/whatsapp', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const eventId = String(req.body?.eventId || '');
+    const pagePath = String(req.body?.path || '/');
+    const menu = String(req.body?.menu || '').trim().replace(/[\u0000-\u001f]/g, ' ');
+    const host = normalizeAnalyticsHost(req.hostname);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId)
+      || (eventId && !/^[a-zA-Z0-9_-]{8,100}$/.test(eventId))
+      || !pagePath.startsWith('/') || pagePath.length > 200
+      || pagePath.startsWith('/admin') || pagePath.startsWith('/owner-dashboard')
+      || !menu || menu.length > 120) {
+      return res.status(400).json({ error: 'Data klik WhatsApp tidak valid.' });
+    }
+
+    const db = readDb();
+    db.whatsappLogs = Array.isArray(db.whatsappLogs) ? db.whatsappLogs : [];
+    if (eventId && db.whatsappLogs.some((entry: any) => entry.eventId === eventId && entry.sessionId === sessionId)) {
+      return res.status(200).json({ recorded: false });
+    }
+
+    db.whatsappLogs.push({
+      id: `whatsapp-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      eventId,
+      sessionId,
+      host,
+      timestamp: new Date().toISOString(),
+      path: pagePath,
+      menu,
+    });
+    if (db.whatsappLogs.length > 20_000) db.whatsappLogs.splice(0, db.whatsappLogs.length - 20_000);
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan klik WhatsApp.' });
+    return res.status(201).json({ recorded: true });
+  });
+
   app.get('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
     const session = (req as any).adminSession;
     if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
@@ -1954,16 +1988,22 @@ async function startServer() {
     }
     const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
     const allSearchLogs: Array<{ timestamp: string; keyword?: string; host?: string; sessionId?: string }> = [];
+    const allWhatsappLogs: Array<{ timestamp: string; path?: string; menu?: string; host?: string; sessionId?: string }> = [];
     for (const [sourceFile, legacyHost] of databaseSources) {
       try {
         const sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
         const sourceLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
         const sourceSearchLogs = Array.isArray(sourceDb.searchLogs) ? sourceDb.searchLogs : [];
+        const sourceWhatsappLogs = Array.isArray(sourceDb.whatsappLogs) ? sourceDb.whatsappLogs : [];
         allLogs.push(...sourceLogs.map((log: any) => ({
           ...log,
           host: normalizeAnalyticsHost(log.host || legacyHost),
         })));
         allSearchLogs.push(...sourceSearchLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+        allWhatsappLogs.push(...sourceWhatsappLogs.map((log: any) => ({
           ...log,
           host: normalizeAnalyticsHost(log.host || legacyHost),
         })));
@@ -2021,6 +2061,25 @@ async function startServer() {
       .map(({ keyword, searches, sessions }) => ({ keyword, searches, uniqueVisitors: sessions.size }))
       .sort((left, right) => right.searches - left.searches || left.keyword.localeCompare(right.keyword, 'id'))
       .slice(0, 50);
+    const filteredWhatsappLogs = allWhatsappLogs
+      .filter((log) => validHosts.has(log.host || ''))
+      .map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const whatsappClicksByMenu = new Map<string, { host: string; path: string; menu: string; clicks: number; sessions: Set<string> }>();
+    filteredWhatsappLogs.forEach((log) => {
+      const host = normalizeAnalyticsHost(log.host);
+      const path = String(log.path || '/');
+      const menu = String(log.menu || 'WhatsApp');
+      const key = `${host}\u0000${path}\u0000${normalizeSearchKeyword(menu)}`;
+      const current = whatsappClicksByMenu.get(key) || { host, path, menu, clicks: 0, sessions: new Set<string>() };
+      current.clicks += 1;
+      if (log.sessionId) current.sessions.add(log.sessionId);
+      whatsappClicksByMenu.set(key, current);
+    });
+    const whatsappClicks = [...whatsappClicksByMenu.values()]
+      .map(({ sessions, ...item }) => ({ ...item, uniqueVisitors: sessions.size }))
+      .sort((left, right) => right.clicks - left.clicks || left.host.localeCompare(right.host, 'en'))
+      .slice(0, 100);
 
     return res.json({
       totalVisits: logs.length,
@@ -2029,6 +2088,7 @@ async function startServer() {
       dailyVisitors,
       topPages,
       searchTerms,
+      whatsappClicks,
       timeZone: 'Asia/Jakarta',
     });
   });
