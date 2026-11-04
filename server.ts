@@ -160,15 +160,15 @@ function createPublicInitialData(db: any) {
 }
 
 async function createSsrInitialData(db: any) {
-  if (!CATALOG_API_URL) return createPublicInitialData(db);
+  if (!CATALOG_API_URL) return createPublicInitialData(readCatalogDb());
 
-  const headers = { 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
-  const options = { headers, cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
+  const catalogApiUrl = `http://127.0.0.1:${PORT}`;
+  const options = { cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
 
   try {
     const [motorsResponse, priceListResponse] = await Promise.all([
-      fetch(`${CATALOG_API_URL}/api/motors`, options),
-      fetch(`${CATALOG_API_URL}/api/fif-price-list`, options),
+      fetch(`${catalogApiUrl}/api/motors`, options),
+      fetch(`${catalogApiUrl}/api/fif-price-list`, options),
     ]);
     if (!motorsResponse.ok) throw new Error(`Catalog API returned HTTP ${motorsResponse.status}`);
 
