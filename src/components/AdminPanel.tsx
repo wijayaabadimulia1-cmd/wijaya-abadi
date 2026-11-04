@@ -1231,6 +1231,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     try {
       const saved = await api.updateSettings({ seoPages: nextPages });
       let updatedSettings = saved;
+      setSettings(saved);
+      setSeoPageEditor({ ...page, sslStatus: page.sslStatus || 'provisioning' });
       let sslResult: Awaited<ReturnType<typeof api.provisionSeoPageSsl>> | null = null;
       if (page.sslStatus !== 'active') {
         sslResult = await api.provisionSeoPageSsl(page.id);
