@@ -364,6 +364,10 @@ function normalizeAnalyticsHost(hostname: unknown) {
   return host.startsWith('www.') ? host.slice(4) : host;
 }
 
+function normalizeSearchKeyword(value: unknown) {
+  return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
+}
+
 function publicSeoPage(page: any) {
   return {
     id: page.id,
@@ -1151,7 +1155,7 @@ async function startServer() {
 
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/owner-dashboard/analytics');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/search' || req.path === '/owner-dashboard/analytics');
     const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
     if (hostPost && req.method !== 'GET' && !isPublicWrite) {
       const session = getSession(req);
@@ -1826,6 +1830,39 @@ async function startServer() {
     return res.status(201).json({ recorded: true });
   });
 
+  app.post('/api/analytics/search', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const eventId = String(req.body?.eventId || '');
+    const keyword = String(req.body?.keyword ?? req.body?.query ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ');
+    const normalizedKeyword = normalizeSearchKeyword(keyword);
+    const host = normalizeAnalyticsHost(req.hostname);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || (eventId && !/^[a-zA-Z0-9_-]{8,100}$/.test(eventId)) || keyword.length < 2 || keyword.length > 100 || /[\u0000-\u001f]/.test(keyword)) {
+      return res.status(400).json({ error: 'Kata kunci pencarian tidak valid.' });
+    }
+
+    const db = readDb();
+    db.searchLogs = Array.isArray(db.searchLogs) ? db.searchLogs : [];
+    const existing = db.searchLogs.find((entry: any) =>
+      normalizeAnalyticsHost(entry.host || 'kreditmotorhonda.tech') === host
+      && (eventId
+        ? entry.sessionId === sessionId && entry.eventId === eventId
+        : entry.sessionId === sessionId && normalizeSearchKeyword(entry.keyword) === normalizedKeyword)
+    );
+    if (existing) return res.status(200).json({ recorded: false });
+
+    db.searchLogs.push({
+      id: `search-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      ...(eventId ? { eventId } : {}),
+      sessionId,
+      host,
+      timestamp: new Date().toISOString(),
+      keyword,
+    });
+    if (db.searchLogs.length > 20_000) db.searchLogs.splice(0, db.searchLogs.length - 20_000);
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan kata kunci pencarian.' });
+    return res.status(201).json({ recorded: true });
+  });
+
   app.get('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
     const session = (req as any).adminSession;
     if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
@@ -1891,11 +1928,17 @@ async function startServer() {
       if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, OWNER_ANALYTICS_SITE_DB_FILES[host] ? host : 'kreditmotorhonda.tech');
     }
     const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
+    const allSearchLogs: Array<{ timestamp: string; keyword?: string; host?: string; sessionId?: string }> = [];
     for (const [sourceFile, legacyHost] of databaseSources) {
       try {
         const sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
         const sourceLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
+        const sourceSearchLogs = Array.isArray(sourceDb.searchLogs) ? sourceDb.searchLogs : [];
         allLogs.push(...sourceLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+        allSearchLogs.push(...sourceSearchLogs.map((log: any) => ({
           ...log,
           host: normalizeAnalyticsHost(log.host || legacyHost),
         })));
@@ -1932,6 +1975,27 @@ async function startServer() {
       .map(([page, visits]) => ({ page, visits }))
       .sort((left, right) => right.visits - left.visits)
       .slice(0, 10);
+    const filteredSearchLogs = allSearchLogs
+      .filter((log) => validHosts.has(log.host || ''))
+      .map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const searchTermsByKeyword = new Map<string, { keyword: string; searches: number; sessions: Set<string> }>();
+    filteredSearchLogs.forEach((log) => {
+      const normalizedKeyword = normalizeSearchKeyword(log.keyword);
+      if (!normalizedKeyword) return;
+      const current = searchTermsByKeyword.get(normalizedKeyword) || {
+        keyword: String(log.keyword).trim(),
+        searches: 0,
+        sessions: new Set<string>(),
+      };
+      current.searches += 1;
+      if (log.sessionId) current.sessions.add(log.sessionId);
+      searchTermsByKeyword.set(normalizedKeyword, current);
+    });
+    const searchTerms = [...searchTermsByKeyword.values()]
+      .map(({ keyword, searches, sessions }) => ({ keyword, searches, uniqueVisitors: sessions.size }))
+      .sort((left, right) => right.searches - left.searches || left.keyword.localeCompare(right.keyword, 'id'))
+      .slice(0, 50);
 
     return res.json({
       totalVisits: logs.length,
@@ -1939,6 +2003,7 @@ async function startServer() {
       sites,
       dailyVisitors,
       topPages,
+      searchTerms,
       timeZone: 'Asia/Jakarta',
     });
   });

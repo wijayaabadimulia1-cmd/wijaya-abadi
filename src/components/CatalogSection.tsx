@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Flame, Sparkles, Scale, Check, MessageSquare, Calculator, Tag, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CatalogAnimation, FIFPriceList, Motor } from '../types';
-import { formatRupiah } from '../services/api';
+import { api, formatRupiah } from '../services/api';
 import { getMotorOtrPrice } from '../services/fifPriceList';
 import {
   DEFAULT_CATALOG_ANIMATION,
@@ -210,6 +210,28 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
     () => filterCatalogMotors(motors, activeCategory, searchQuery, sortBy),
     [motors, activeCategory, searchQuery, sortBy],
   );
+
+  useEffect(() => {
+    const keyword = searchQuery.trim().replace(/\s+/g, ' ');
+    if (keyword.length < 2) return;
+
+    const timeoutId = window.setTimeout(() => {
+      const sessionKey = 'hwa-visitor-session';
+      let sessionId = sessionStorage.getItem(sessionKey);
+      if (!sessionId) {
+        sessionId = typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `visit_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        sessionStorage.setItem(sessionKey, sessionId);
+      }
+      const eventId = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `search_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      void api.trackSearch(sessionId, keyword, eventId).catch(() => undefined);
+    }, 700);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   return (
     <section id="katalog" className="py-24 bg-zinc-950 relative">

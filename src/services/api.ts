@@ -372,6 +372,16 @@ export const api = {
     if (!res.ok) throw new Error('Gagal menyimpan kunjungan website');
   },
 
+  async trackSearch(sessionId: string, keyword: string, eventId: string): Promise<void> {
+    const res = await fetch('/api/analytics/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, keyword, eventId }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error('Gagal menyimpan kata kunci pencarian');
+  },
+
   // Upload image
   async migrateExternalImages(): Promise<{ migratedCount: number; updatedReferences: number; unsupportedCount: number; failedCount: number }> {
     const res = await fetch('/api/admin/images/migrate-external', {
