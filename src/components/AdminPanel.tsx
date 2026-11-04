@@ -1231,17 +1231,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     try {
       const saved = await api.updateSettings({ seoPages: nextPages });
       let updatedSettings = saved;
+      let sslResult: Awaited<ReturnType<typeof api.provisionSeoPageSsl>> | null = null;
       if (page.sslStatus !== 'active') {
-        const sslResult = await api.provisionSeoPageSsl(page.id);
+        sslResult = await api.provisionSeoPageSsl(page.id);
         updatedSettings = await api.getAdminSettings();
-        showToast(sslResult.message);
       }
       setSettings(updatedSettings);
-      setSeoPageEditor(null);
-      if (page.sslStatus === 'active') {
-        showToast(`Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
-      }
       onRefreshData();
+      if (sslResult && sslResult.status !== 'active') {
+        setSeoPageEditor({ ...page, sslStatus: sslResult.status, sslError: sslResult.message });
+        showToast(`Subdomain tersimpan, tetapi belum aktif: ${sslResult.message}`);
+        return;
+      }
+      setSeoPageEditor(null);
+      showToast(sslResult?.message || `Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
     } catch (error: any) {
       alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
     } finally {

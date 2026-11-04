@@ -393,6 +393,164 @@ function normalizeSearchKeyword(value: unknown) {
   return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
 }
 
+let cachedGscAccessToken: { token: string; expiresAt: number } | null = null;
+const googleSearchConsoleReportCache = new Map<string, { expiresAt: number; report: any }>();
+
+async function getGoogleSearchConsoleAccessToken() {
+  const credentialsFile = process.env.GSC_SERVICE_ACCOUNT_FILE || '/etc/wijaya-abadi/gsc-service-account.json';
+  if (!fs.existsSync(credentialsFile)) return null;
+  if (cachedGscAccessToken && cachedGscAccessToken.expiresAt > Date.now() + 60_000) {
+    return cachedGscAccessToken.token;
+  }
+
+  let account: { client_email?: string; private_key?: string };
+  try {
+    account = JSON.parse(fs.readFileSync(credentialsFile, 'utf8'));
+  } catch {
+    throw new Error('File service account Search Console tidak valid.');
+  }
+  if (!account.client_email || !account.private_key) {
+    throw new Error('Service account Search Console tidak memiliki client_email atau private_key.');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const base64url = (value: string | Buffer) => Buffer.from(value).toString('base64url');
+  const unsignedToken = [
+    base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' })),
+    base64url(JSON.stringify({
+      iss: account.client_email,
+      scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    })),
+  ].join('.');
+  const signer = crypto.createSign('RSA-SHA256');
+  signer.update(unsignedToken);
+  signer.end();
+  const assertion = `${unsignedToken}.${signer.sign(account.private_key).toString('base64url')}`;
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+    }),
+  });
+  const result = await response.json() as { access_token?: string; expires_in?: number };
+  if (!response.ok || !result.access_token) throw new Error('Google Search Console menolak autentikasi service account.');
+
+  cachedGscAccessToken = {
+    token: result.access_token,
+    expiresAt: Date.now() + Number(result.expires_in || 3600) * 1000,
+  };
+  return cachedGscAccessToken.token;
+}
+
+async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: string) {
+  const sites = [...new Set((process.env.GSC_SITE_URLS
+    || 'sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud')
+    .split(',')
+    .map((site) => site.trim())
+    .filter(Boolean))];
+  const today = new Date();
+  const latestFinalDate = new Date(today);
+  latestFinalDate.setUTCDate(latestFinalDate.getUTCDate() - 3);
+  const effectiveEndDate = endDate && endDate < latestFinalDate.toISOString().slice(0, 10)
+    ? endDate
+    : latestFinalDate.toISOString().slice(0, 10);
+  const earliestDate = new Date(today);
+  earliestDate.setUTCMonth(earliestDate.getUTCMonth() - 16);
+  const effectiveStartDate = startDate || earliestDate.toISOString().slice(0, 10);
+  if (effectiveStartDate > effectiveEndDate) {
+    return { configured: true, startDate: effectiveStartDate, endDate: effectiveEndDate, sites, rows: [], errors: [] };
+  }
+
+  const cacheKey = `${effectiveStartDate}:${effectiveEndDate}:${sites.join(',')}`;
+  const cached = googleSearchConsoleReportCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.report;
+
+  const token = await getGoogleSearchConsoleAccessToken();
+  if (!token) {
+    return {
+      configured: false,
+      startDate: effectiveStartDate,
+      endDate: effectiveEndDate,
+      sites,
+      rows: [],
+      errors: ['Search Console belum terhubung. Admin perlu menambahkan secret GSC_SERVICE_ACCOUNT_JSON di GitHub Actions.'],
+    };
+  }
+
+  const responses = await Promise.all(sites.map(async (site) => {
+    try {
+      const response = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(site)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: effectiveStartDate,
+          endDate: effectiveEndDate,
+          dimensions: ['query'],
+          rowLimit: 25_000,
+          dataState: 'final',
+        }),
+      });
+      const body = await response.json() as {
+        rows?: Array<{ keys?: string[]; clicks?: number; impressions?: number; position?: number }>;
+        error?: { message?: string };
+      };
+      if (!response.ok) throw new Error(body.error?.message || `Gagal mengambil data untuk ${site}.`);
+      return { site, rows: body.rows || [], error: '' };
+    } catch (error: any) {
+      return { site, rows: [], error: String(error?.message || `Gagal mengambil data untuk ${site}.`) };
+    }
+  }));
+
+  const keywordTotals = new Map<string, { keyword: string; clicks: number; impressions: number; positionWeight: number; positionTotal: number; sites: Set<string> }>();
+  for (const result of responses) {
+    for (const row of result.rows) {
+      const keyword = String(row.keys?.[0] || '').trim();
+      const normalizedKeyword = normalizeSearchKeyword(keyword);
+      if (!normalizedKeyword) continue;
+      const impressions = Number(row.impressions || 0);
+      const aggregate = keywordTotals.get(normalizedKeyword) || {
+        keyword,
+        clicks: 0,
+        impressions: 0,
+        positionWeight: 0,
+        positionTotal: 0,
+        sites: new Set<string>(),
+      };
+      aggregate.clicks += Number(row.clicks || 0);
+      aggregate.impressions += impressions;
+      aggregate.positionWeight += impressions;
+      aggregate.positionTotal += Number(row.position || 0) * impressions;
+      aggregate.sites.add(result.site);
+      keywordTotals.set(normalizedKeyword, aggregate);
+    }
+  }
+
+  const rows = [...keywordTotals.values()]
+    .map(({ positionWeight, positionTotal, sites: matchedSites, ...row }) => ({
+      ...row,
+      ctr: row.impressions ? row.clicks / row.impressions : 0,
+      position: positionWeight ? positionTotal / positionWeight : 0,
+      siteCount: matchedSites.size,
+    }))
+    .sort((left, right) => right.impressions - left.impressions || right.clicks - left.clicks)
+    .slice(0, 50);
+  const report = {
+    configured: true,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
+    sites,
+    rows,
+    errors: responses.filter((result) => result.error).map((result) => result.error),
+  };
+  googleSearchConsoleReportCache.set(cacheKey, { report, expiresAt: Date.now() + 15 * 60 * 1000 });
+  return report;
+}
+
 function publicSeoPage(page: any) {
   return {
     id: page.id,
@@ -1965,7 +2123,7 @@ async function startServer() {
     });
   });
 
-  app.post('/api/owner-dashboard/analytics', (req, res) => {
+  app.post('/api/owner-dashboard/analytics', async (req, res) => {
     const db = readDb();
     const config = db.settings?.ownerDashboard || {};
     const providedToken = Buffer.from(String(req.body?.key || ''));
@@ -2080,6 +2238,17 @@ async function startServer() {
       .map(({ sessions, ...item }) => ({ ...item, uniqueVisitors: sessions.size }))
       .sort((left, right) => right.clicks - left.clicks || left.host.localeCompare(right.host, 'en'))
       .slice(0, 100);
+    let googleSearchConsole;
+    try {
+      googleSearchConsole = await getGoogleSearchConsoleKeywords(startDate || undefined, endDate || undefined);
+    } catch (error: any) {
+      googleSearchConsole = {
+        configured: true,
+        rows: [],
+        sites: [],
+        errors: [String(error?.message || 'Gagal mengambil data Google Search Console.')],
+      };
+    }
 
     return res.json({
       totalVisits: logs.length,
@@ -2088,6 +2257,7 @@ async function startServer() {
       dailyVisitors,
       topPages,
       searchTerms,
+      googleSearchConsole,
       whatsappClicks,
       timeZone: 'Asia/Jakarta',
     });

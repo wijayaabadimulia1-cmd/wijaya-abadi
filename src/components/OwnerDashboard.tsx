@@ -26,6 +26,14 @@ interface OwnerAnalytics {
   dailyVisitors: Array<{ date: string; label: string; visits: number }>;
   topPages: Array<{ page: string; visits: number }>;
   searchTerms: Array<{ keyword: string; searches: number; uniqueVisitors: number }>;
+  googleSearchConsole?: {
+    configured: boolean;
+    startDate?: string;
+    endDate?: string;
+    sites: string[];
+    rows: Array<{ keyword: string; clicks: number; impressions: number; ctr: number; position: number; siteCount: number }>;
+    errors: string[];
+  };
   whatsappClicks: Array<{ host: string; path: string; menu: string; clicks: number; uniqueVisitors: number }>;
   timeZone: string;
 }
@@ -456,8 +464,8 @@ export default function OwnerDashboard() {
               <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Kata kunci pencarian">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
-                    <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Search className="h-4 w-4 text-red-600" />Kata Kunci Pencarian</h3>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Gabungan seluruh website pada periode terpilih ({analytics?.searchTerms?.length || 0} kata kunci)</p>
+                    <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Search className="h-4 w-4 text-red-600" />Pencarian Katalog</h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Kata yang diketik di pencarian katalog website ({analytics?.searchTerms?.length || 0} kata kunci)</p>
                   </div>
                   <div className="text-xs text-slate-400">Diurutkan berdasarkan frekuensi pencarian</div>
                 </div>
@@ -483,6 +491,64 @@ export default function OwnerDashboard() {
                     </table>
                   </div>
                 ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada kata kunci pencarian pada periode ini. Pencatatan dimulai setelah fitur ini aktif.</p>}
+              </section>
+
+              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Kata kunci Google">
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Search className="h-4 w-4 text-blue-600" />Kata Kunci Google</h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Query Google gabungan ({analytics?.googleSearchConsole?.rows?.length || 0})
+                      {analytics?.googleSearchConsole?.startDate && analytics.googleSearchConsole?.endDate
+                        ? ` · ${analytics.googleSearchConsole.startDate} – ${analytics.googleSearchConsole.endDate}`
+                        : ''}
+                    </p>
+                  </div>
+                  <div className="text-xs text-slate-400">Data Search Console dapat tertunda hingga 3 hari</div>
+                </div>
+                {analytics?.googleSearchConsole?.configured === false ? (
+                  <div className="m-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                    <p className="font-semibold">Google Search Console belum terhubung</p>
+                    <p className="mt-1 leading-relaxed">Admin perlu menambahkan secret <code>GSC_SERVICE_ACCOUNT_JSON</code> di GitHub Actions dan memberi service account akses baca ke properti Search Console yang dipantau.</p>
+                  </div>
+                ) : analytics?.googleSearchConsole?.errors?.length && !analytics.googleSearchConsole?.rows?.length ? (
+                  <div className="m-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                    <p className="font-semibold">Sebagian data Search Console tidak tersedia</p>
+                    <p className="mt-1 leading-relaxed">{analytics.googleSearchConsole.errors.join(' ')}</p>
+                  </div>
+                ) : analytics?.googleSearchConsole?.rows?.length ? (
+                  <div className="overflow-x-auto">
+                    {analytics.googleSearchConsole.errors.length > 0 && (
+                      <p className="mx-5 mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                        Sebagian properti tidak dapat dibaca: {analytics.googleSearchConsole.errors.join(' ')}
+                      </p>
+                    )}
+                    <table className="w-full min-w-[680px] border-collapse text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                          <th className="px-5 py-3.5 sm:px-6">Query Google</th>
+                          <th className="px-5 py-3.5 text-right">Klik</th>
+                          <th className="px-5 py-3.5 text-right">Impresi</th>
+                          <th className="px-5 py-3.5 text-right">CTR</th>
+                          <th className="px-5 py-3.5 text-right">Posisi rata-rata</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {analytics.googleSearchConsole.rows.map((row) => (
+                          <tr key={row.keyword} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                            <td className="max-w-[28rem] break-words px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200 sm:px-6">{row.keyword}</td>
+                            <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white">{row.clicks.toLocaleString('id-ID')}</td>
+                            <td className="px-5 py-3.5 text-right font-medium tabular-nums text-slate-600 dark:text-slate-300">{row.impressions.toLocaleString('id-ID')}</td>
+                            <td className="px-5 py-3.5 text-right font-medium tabular-nums text-slate-600 dark:text-slate-300">{(row.ctr * 100).toFixed(1)}%</td>
+                            <td className="px-5 py-3.5 text-right font-medium tabular-nums text-slate-600 dark:text-slate-300">{row.position.toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada query Google pada periode ini. Periksa periode, properti Search Console, dan status indeks website.</p>
+                )}
               </section>
 
               <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Klik WhatsApp">

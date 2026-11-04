@@ -4,6 +4,7 @@ set -euo pipefail
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-id.service"
+GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMIT="$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)"
 RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
@@ -87,6 +88,10 @@ if [ -e "$DROPIN_FILE" ]; then
 fi
 
 SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value)"
+SERVICE_USER="$(systemctl show "$SERVICE" --property=User --value)"
+SERVICE_GROUP="$(systemctl show "$SERVICE" --property=Group --value)"
+SERVICE_USER="${SERVICE_USER:-root}"
+SERVICE_GROUP="${SERVICE_GROUP:-$(id -gn "$SERVICE_USER")}"
 DATA_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*DATA_DIR=\([^ ]*\).*/\1/p')"
 UPLOADS_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*UPLOADS_DIR=\([^ ]*\).*/\1/p')"
 ENV_FILE="$(systemctl show "$SERVICE" --property=EnvironmentFiles --value | sed -n 's/^\([^ ]*\).*/\1/p')"
@@ -218,6 +223,14 @@ if command -v pm2 >/dev/null 2>&1 && pm2 describe honda-wijaya-abadi >/dev/null 
   pm2 stop honda-wijaya-abadi
 fi
 
+GSC_CREDENTIALS_DIR="/etc/wijaya-abadi"
+GSC_CREDENTIALS_FILE="$GSC_CREDENTIALS_DIR/gsc-service-account.json"
+if [ -f "$GSC_CREDENTIALS_FILE" ]; then
+  sudo chown "$SERVICE_USER:$SERVICE_GROUP" "$GSC_CREDENTIALS_DIR" "$GSC_CREDENTIALS_FILE"
+  sudo chmod 700 "$GSC_CREDENTIALS_DIR"
+  sudo chmod 600 "$GSC_CREDENTIALS_FILE"
+fi
+
 sudo install -d -m 755 "$DROPIN_DIR"
 sudo tee "$DROPIN_FILE" >/dev/null <<EOF
 [Service]
@@ -230,6 +243,8 @@ Environment=PORT=3000
 Environment=APP_URL=https://$DOMAIN
 Environment=DATA_DIR=$DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
+Environment=GSC_SERVICE_ACCOUNT_FILE=/etc/wijaya-abadi/gsc-service-account.json
+Environment=GSC_SITE_URLS=$GSC_SITE_URLS
 Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
 Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
 ExecStart=
