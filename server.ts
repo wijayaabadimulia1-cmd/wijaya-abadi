@@ -2524,8 +2524,9 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
+        const catalogDb = readCatalogDb();
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(db), req.hostname));
+        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(catalogDb), req.hostname));
       } catch (error) {
         next(error);
       }
