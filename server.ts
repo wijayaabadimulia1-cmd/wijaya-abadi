@@ -159,6 +159,31 @@ function createPublicInitialData(db: any) {
   };
 }
 
+async function createSsrInitialData(db: any) {
+  if (!CATALOG_API_URL) return createPublicInitialData(db);
+
+  const headers = { 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
+  const options = { headers, cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
+
+  try {
+    const [motorsResponse, priceListResponse] = await Promise.all([
+      fetch(`${CATALOG_API_URL}/api/motors`, options),
+      fetch(`${CATALOG_API_URL}/api/fif-price-list`, options),
+    ]);
+    if (!motorsResponse.ok) throw new Error(`Catalog API returned HTTP ${motorsResponse.status}`);
+
+    const motors = await motorsResponse.json();
+    if (!Array.isArray(motors)) throw new Error('Catalog API returned invalid motor data');
+
+    const catalogDb = { ...db, motors };
+    if (priceListResponse.ok) catalogDb.fifPriceList = await priceListResponse.json();
+    return createPublicInitialData(catalogDb);
+  } catch (error) {
+    console.error('Shared catalog SSR fetch failed:', error);
+    return createPublicInitialData(readCatalogDb());
+  }
+}
+
 
 function updateSeoJsonLdForPage(
   jsonText: string,
@@ -2524,9 +2549,9 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
-        const catalogDb = readCatalogDb();
+        const initialData = await createSsrInitialData(db);
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(catalogDb), req.hostname));
+        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, initialData, req.hostname));
       } catch (error) {
         next(error);
       }
