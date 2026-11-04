@@ -11,7 +11,7 @@ interface OwnerAnalytics {
   timeZone: string;
 }
 
-type DateRange = '7d' | '30d' | 'all';
+type DateRange = '7d' | '30d' | 'all' | 'custom';
 
 function jakartaDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
@@ -26,6 +26,8 @@ function daysBefore(dateKey: string, days: number) {
 export default function OwnerDashboard() {
   const key = new URLSearchParams(window.location.search).get('key') || '';
   const [range, setRange] = useState<DateRange>('7d');
+  const [startDate, setStartDate] = useState(() => daysBefore(jakartaDateKey(new Date()), 6));
+  const [endDate, setEndDate] = useState(() => jakartaDateKey(new Date()));
   const [analytics, setAnalytics] = useState<OwnerAnalytics | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -41,9 +43,26 @@ export default function OwnerDashboard() {
     let active = true;
     const refresh = async () => {
       const today = jakartaDateKey(new Date());
-      const startDate = range === 'all' ? undefined : daysBefore(today, range === '7d' ? 6 : 29);
+      const requestStartDate = range === 'all'
+        ? undefined
+        : range === 'custom'
+          ? startDate
+          : daysBefore(today, range === '7d' ? 6 : 29);
+      const requestEndDate = range === 'all'
+        ? undefined
+        : range === 'custom'
+          ? endDate
+          : today;
+
+      if (range === 'custom' && (!requestStartDate || !requestEndDate || requestStartDate > requestEndDate)) {
+        setError('Pilih tanggal mulai dan akhir yang valid. Tanggal mulai tidak boleh melewati tanggal akhir.');
+        setAnalytics(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const result = await api.getOwnerDashboardAnalytics(key, startDate, range === 'all' ? undefined : today);
+        const result = await api.getOwnerDashboardAnalytics(key, requestStartDate, requestEndDate);
         if (!active) return;
         setAnalytics(result);
         setError('');
@@ -62,10 +81,47 @@ export default function OwnerDashboard() {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [key, range]);
+  }, [key, range, startDate, endDate]);
+
+  const selectRange = (nextRange: DateRange) => {
+    const today = jakartaDateKey(new Date());
+    if (nextRange === '7d') {
+      setStartDate(daysBefore(today, 6));
+      setEndDate(today);
+    } else if (nextRange === '30d') {
+      setStartDate(daysBefore(today, 29));
+      setEndDate(today);
+    } else if (nextRange === 'all') {
+      setStartDate('');
+      setEndDate('');
+    } else if (range === 'all') {
+      setStartDate(daysBefore(today, 6));
+      setEndDate(today);
+    }
+    setRange(nextRange);
+  };
+
+  const updateStartDate = (value: string) => {
+    if (range === 'all') setEndDate(value);
+    setStartDate(value);
+    setRange('custom');
+  };
+
+  const updateEndDate = (value: string) => {
+    if (range === 'all') setStartDate(value);
+    setEndDate(value);
+    setRange('custom');
+  };
 
   const maxDailyVisits = Math.max(1, ...(analytics?.dailyVisitors || []).map((item) => item.visits));
   const visibleDays = (analytics?.dailyVisitors || []).slice(-30);
+  const rangeLabel = range === 'all'
+    ? 'Semua data'
+    : range === 'custom'
+      ? `${startDate} - ${endDate}`
+      : range === '7d'
+        ? '7 hari terakhir'
+        : '30 hari terakhir';
 
   return (
     <main className="min-h-screen bg-[#f4f6f5] text-zinc-900">
@@ -90,13 +146,14 @@ export default function OwnerDashboard() {
                 ['7d', '7 hari'],
                 ['30d', '30 hari'],
                 ['all', 'Semua'],
+                ['custom', 'Tanggal'],
               ] as const).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
                   aria-pressed={range === value}
-                  onClick={() => setRange(value)}
-                  className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold ${range === value ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-white'}`}
+                  onClick={() => selectRange(value)}
+                  className={`rounded-md px-2 py-1.5 text-[11px] font-semibold ${range === value ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-white'}`}
                 >
                   {label}
                 </button>
@@ -107,6 +164,39 @@ export default function OwnerDashboard() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-7 sm:py-8">
+        <section className="grid grid-cols-1 gap-3 rounded-lg border border-zinc-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="min-w-0 space-y-1.5 text-[11px] font-semibold text-zinc-600">
+                <span>Tanggal mulai</span>
+                <input
+                  type="date"
+                  aria-label="Tanggal mulai"
+                  value={range === 'all' ? '' : startDate}
+                  max={endDate || undefined}
+                  onChange={(event) => updateStartDate(event.target.value)}
+                  className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              </label>
+              <label className="min-w-0 space-y-1.5 text-[11px] font-semibold text-zinc-600">
+                <span>Tanggal akhir</span>
+                <input
+                  type="date"
+                  aria-label="Tanggal akhir"
+                  value={range === 'all' ? '' : endDate}
+                  min={startDate || undefined}
+                  onChange={(event) => updateEndDate(event.target.value)}
+                  className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              </label>
+            </div>
+            <p className="mt-2 text-[10px] text-zinc-500">Tanggal awal dan akhir termasuk dalam hasil. Pilih tanggal yang sama untuk melihat satu hari.</p>
+          </div>
+          {range === 'custom' && startDate && endDate && startDate > endDate && (
+            <p className="text-xs text-red-700" role="alert">Tanggal mulai tidak boleh melewati tanggal akhir.</p>
+          )}
+        </section>
+
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
             {error}
@@ -148,7 +238,7 @@ export default function OwnerDashboard() {
                     <h2 className="text-sm font-bold">Pergerakan kunjungan</h2>
                     <p className="mt-1 text-[11px] text-zinc-500">Jumlah kunjungan harian dari seluruh website terpilih</p>
                   </div>
-                  <span className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700">{range === 'all' ? 'Semua data' : range === '7d' ? '7 hari terakhir' : '30 hari terakhir'}</span>
+                  <span className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700">{rangeLabel}</span>
                 </div>
                 {visibleDays.length ? (
                   <div className="flex h-48 items-end gap-1 border-b border-zinc-200 pb-2 sm:gap-2">
