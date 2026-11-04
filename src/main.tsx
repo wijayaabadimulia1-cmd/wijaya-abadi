@@ -21,8 +21,9 @@ import './themes/wijaya-meriah/catalog-promo-visibility.css';
 import './themes/showcase-wijaya-2/promo-section-bottom.css';
 import './themes/showcase-wijaya-2/hero-controls-light-fix.css';
 import './themes/promo-claim-size.css';
+import './themes/showcase-wijaya-2/mobile-navbar-fit.css';
 
-const RootView = window.location.pathname.replace(/\/+$/, '') === '/owner-dashboard'
+const RootView = window.location.pathname.replace(/\\/+$/, '') === '/owner-dashboard'
   ? <OwnerDashboard />
   : <App />;
 
