@@ -1180,7 +1180,7 @@ async function startServer() {
 
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/search' || req.path === '/owner-dashboard/analytics');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/search' || req.path === '/analytics/whatsapp' || req.path === '/owner-dashboard/analytics');
     const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
     if (hostPost && req.method !== 'GET' && !isPublicWrite) {
       const session = getSession(req);
