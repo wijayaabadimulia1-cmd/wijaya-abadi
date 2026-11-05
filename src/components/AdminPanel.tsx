@@ -1401,6 +1401,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const handleSaveSeoSubdomain = async () => {
     if (!settings || !seoSubdomainEditor) return;
+    const continuePostCreation = activeTab === 'seo-posts' && Boolean(seoPageEditor && !seoPageEditor.id);
     const subdomain = slugifySubdomain(seoSubdomainEditor.subdomain);
     const seoTitle = seoSubdomainEditor.seoTitle.trim();
     const adminUser = adminUsers.find((user) => user.id === seoSubdomainEditor.adminUserId);
@@ -1451,14 +1452,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       }
       setSettings(updatedSettings);
       setSeoSubdomainEditor(null);
+      if (continuePostCreation && seoPageEditor) {
+        setSeoPageEditor({ ...seoPageEditor, subdomain: page.subdomain });
+      }
       onRefreshData();
       if (sslResult && sslResult.status !== 'active') {
         setSeoSubdomainEditor({ ...page, sslStatus: sslResult.status, sslError: sslResult.message });
-        showToast(`Subdomain tersimpan, tetapi belum aktif: ${sslResult.message}`);
+        showToast(continuePostCreation
+          ? `Subdomain tersimpan dan sudah dipilih untuk pos. SSL belum aktif: ${sslResult.message}`
+          : `Subdomain tersimpan, tetapi belum aktif: ${sslResult.message}`);
         return;
       }
-      setSeoPageEditor(null);
-      showToast(sslResult?.message || `Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
+      if (!continuePostCreation) setSeoPageEditor(null);
+      showToast(continuePostCreation
+        ? `Subdomain tersimpan. Lanjutkan membuat pos di ${page.subdomain}.kreditmotorhonda.tech.`
+        : sslResult?.message || `Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
     } catch (error: any) {
       alert(`Gagal menyimpan SEO subdomain: ${error.message || 'Silakan coba lagi.'}`);
     }
@@ -1837,7 +1845,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <button
                     onClick={() => {
                       setActiveTab(tab.id as any);
-                      if (tab.id === 'seo-posts') setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' });
+                      if (tab.id === 'seo-posts') {
+                        setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' });
+                        setSeoSubdomainEditor({
+                          id: '',
+                          subdomain: '',
+                          adminUserId: adminSession.id,
+                          title: '',
+                          content: '',
+                          seoTitle: '',
+                          seoDescription: '',
+                          seoKeywords: '',
+                          seoRobots: 'index, follow',
+                        });
+                      }
                       if (tab.id === 'seo-subdomains' || tab.id === 'seo-posts') {
                         const targetId = tab.id === 'seo-subdomains' ? 'seo-subdomain-manager' : 'seo-post-manager';
                         window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
@@ -3291,11 +3312,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </button>
                     </section>
 
-                    <section id="seo-subdomain-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
+                    <section id="seo-subdomain-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-subdomains' || activeTab === 'seo-posts' ? '' : 'hidden'}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-sm font-bold text-white">Pengaturan SEO Subdomain</h3>
-                          <p className="mt-1 text-xs text-zinc-400">Atur alamat subdomain, metadata pencarian, dan admin. Konten post dikelola terpisah.</p>
+                          <h3 className="text-sm font-bold text-white">{activeTab === 'seo-posts' ? 'SEO Subdomain untuk Pos Baru' : 'Pengaturan SEO Subdomain'}</h3>
+                          <p className="mt-1 text-xs text-zinc-400">{activeTab === 'seo-posts' ? 'Isi subdomain dan metadata SEO, simpan, lalu lanjutkan menulis pos pada subdomain tersebut.' : 'Atur alamat subdomain, metadata pencarian, dan admin. Konten post dikelola terpisah.'}</p>
                         </div>
                         <button
                           type="button"
@@ -3312,13 +3333,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           })}
                           className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500"
                         >
-                          <Plus className="h-3.5 w-3.5" /> Tambah SEO subdomain
+                          <Plus className="h-3.5 w-3.5" /> {activeTab === 'seo-posts' ? 'Subdomain baru' : 'Tambah SEO subdomain'}
                         </button>
                       </div>
                       <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200">
                         Subdomain baru memerlukan wildcard DNS dan sertifikat HTTPS wildcard sebelum link dapat dibuka publik.
                       </div>
-                      {settings.seoPages?.length ? (
+                      {activeTab !== 'seo-posts' && settings.seoPages?.length ? (
                         <div className="divide-y divide-white/10 rounded-xl border border-white/10">
                           {settings.seoPages.map((page) => (
                             <div key={page.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -3343,9 +3364,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             </div>
                           ))}
                         </div>
-                      ) : (
+                      ) : activeTab !== 'seo-posts' ? (
                         <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada konfigurasi SEO subdomain.</p>
-                      )}
+                      ) : null}
                       {seoSubdomainEditor && (
                         <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
                           <div className="flex items-center justify-between gap-3">
