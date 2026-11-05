@@ -6,7 +6,8 @@ DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-id.service"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMIT="$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)"
+COMMIT="${DEPLOY_COMMIT:-$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)}"
+COMMIT="${COMMIT:0:12}"
 RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
 BACKUP_DIR="/var/backups/honda-wijaya-abadi"
 DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
@@ -159,7 +160,11 @@ fi
 DEPLOY_USER="${SUDO_USER:-$(id -un)}"
 DEPLOY_GROUP="$(id -gn "$DEPLOY_USER")"
 sudo install -d -o "$DEPLOY_USER" -g "$DEPLOY_GROUP" "$RELEASE_DIR"
-git -C "$SOURCE_DIR" archive --format=tar HEAD | tar -xf - -C "$RELEASE_DIR"
+if git -C "$SOURCE_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
+  git -C "$SOURCE_DIR" archive --format=tar HEAD | tar -xf - -C "$RELEASE_DIR"
+else
+  tar -cf - -C "$SOURCE_DIR" . | tar -xf - -C "$RELEASE_DIR"
+fi
 cd "$RELEASE_DIR"
 npm ci
 npm run build
