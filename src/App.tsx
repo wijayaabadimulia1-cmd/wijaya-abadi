@@ -496,6 +496,14 @@ export default function App() {
 
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
+  const isTokyoRacingEdition = settings.websiteTemplate === 'honda-tokyo-racing-edition';
+  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isTokyoRacingEdition;
+  const tokyoHeroContent = isTokyoRacingEdition ? {
+    badge: settings.heroBadge || 'TOKYO RACING & STREETWEAR CREDIT 2026',
+    headline: settings.heroMainTitle || 'STREET RIDE.',
+    highlight: settings.heroTitleHighlight || 'LOW DP. NO DRAMA.',
+    subtitle: settings.heroSubtitle,
+  } : undefined;
   const customization = settings.customization || {};
   const templatePalette = settings.websiteTemplate === 'honda-wijaya'
     ? HONDA_WIJAYA_COLOR_PALETTES[colorMode]
@@ -740,6 +748,7 @@ export default function App() {
   if (activeLandingPage) {
     return (
       <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+        {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
         <Navbar
           settings={settings}
           compareList={compareList}
@@ -750,7 +759,7 @@ export default function App() {
         />
 
         <main className="flex-1">
-          {settings.websiteTemplate === 'astra-honda-red-white' ? (
+          {usesAstraHondaHero ? (
             <AstraHondaHero
               settings={{ ...settings, customization: activePalette }}
               motors={motors}
@@ -907,6 +916,7 @@ export default function App() {
   if (currentPath === '/promo') {
     return (
       <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+        {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
         <Navbar
           settings={settings}
           compareList={compareList}
@@ -952,7 +962,7 @@ export default function App() {
 
   return (
     <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
-      {settings.websiteTemplate === 'astra-honda-red-white' && <AstraHondaTopBar settings={settings} />}
+      {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
       {/* Navbar */}
       <Navbar
         settings={settings}
@@ -966,12 +976,13 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Hero Section */}
-        {settings.websiteTemplate === 'astra-honda-red-white' ? (
+        {usesAstraHondaHero ? (
           <AstraHondaHero
             settings={{ ...settings, customization: activePalette }}
             motors={motors}
             promos={promos}
             priceList={fifPriceList}
+            contentOverride={tokyoHeroContent}
             onOpenSimulator={() => handleOpenSimulator()}
             onOpenInterest={handleOpenInterest}
           />

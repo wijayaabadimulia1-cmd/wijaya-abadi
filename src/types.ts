@@ -120,7 +120,7 @@ export interface SeoPostSiteSettings {
   customization?: WebsiteCustomization;
 }
 
-export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban' | 'mulia-cerah' | 'honda-wijaya' | 'wijaya-cool' | 'wijaya-meriah' | 'showcase-wijaya-2' | 'astra-honda-red-white';
+export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban' | 'mulia-cerah' | 'honda-wijaya' | 'wijaya-cool' | 'wijaya-meriah' | 'showcase-wijaya-2' | 'astra-honda-red-white' | 'honda-tokyo-racing-edition';
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
 export type ThemeMode = 'light' | 'dark';

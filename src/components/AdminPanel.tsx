@@ -904,6 +904,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'wijaya-meriah', label: 'Wijaya Meriah', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Tema Honda yang cerah dan dinamis dengan aksen merah, putih, charcoal, dan langit biru.' },
     { value: 'showcase-wijaya-2', label: 'Showcase Wijaya 2', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Showcase Honda merah-putih dengan hero langit pegunungan, CTA tegas, dan katalog bersih.' },
     { value: 'astra-honda-red-white', label: 'Astra Honda Motor Red & White', accent: 'bg-gradient-to-r from-red-600 via-white to-red-600', description: 'Tema merah-putih Astra Honda yang mengikuti referensi, dengan katalog dan simulasi kredit dealer.' },
+    { value: 'honda-tokyo-racing-edition', label: 'Honda Tokyo Racing Edition', accent: 'bg-gradient-to-r from-red-600 via-zinc-950 to-cyan-400', description: 'Gaya Tokyo Racing terang dengan pola Jepang, aksen merah-sian, katalog dealer, dan simulasi kredit.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -973,8 +974,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const isWijayaMeriah = template === 'wijaya-meriah';
     const isShowcaseWijaya2 = template === 'showcase-wijaya-2';
     const isAstraHondaRedWhite = template === 'astra-honda-red-white';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite;
+    const isTokyoRacingEdition = template === 'honda-tokyo-racing-edition';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -1124,6 +1126,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               },
             },
           }
+        : isTokyoRacingEdition
+          ? {
+              ...baseCustomization,
+              templatePaletteBackup: previousColorPalettes,
+              colorPalettes: {
+                ...(previousColorPalettes || {}),
+                light: {
+                  primaryColor: '#e60012',
+                  secondaryColor: '#0d1117',
+                  accentColor: '#00c8ff',
+                  backgroundColor: '#f4f6fb',
+                  panelColor: '#ffffff',
+                  cardColor: '#ffffff',
+                  elevatedColor: '#ffffff',
+                  borderColor: '#e2e8f0',
+                  textColor: '#0d1117',
+                  mutedColor: '#6e7681',
+                  heroTextColor: '#0d1117',
+                  heroTitleHighlightColor: '#e60012',
+                },
+                dark: {
+                  primaryColor: '#ff3548',
+                  secondaryColor: '#f4f6fb',
+                  accentColor: '#00f0ff',
+                  backgroundColor: '#0d1117',
+                  panelColor: '#151a22',
+                  cardColor: '#1b222c',
+                  elevatedColor: '#232d39',
+                  borderColor: '#34404e',
+                  textColor: '#f4f6fb',
+                  mutedColor: '#b4bfcc',
+                  heroTextColor: '#f4f6fb',
+                  heroTitleHighlightColor: '#ff4653',
+                },
+              },
+            }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -1152,6 +1190,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             heroTitleHighlight: 'Motor Honda Impian Anda',
             heroSubtitle: 'Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.',
           }
+      : isTokyoRacingEdition
+        ? {
+            heroBadge: 'TOKYO RACING & STREETWEAR CREDIT 2026',
+            heroMainTitle: 'STREET RIDE.',
+            heroTitleHighlight: 'LOW DP. NO DRAMA.',
+            heroSubtitle: 'Nikmati cicilan kredit motor Honda resmi dengan proses mudah, berkas dibantu, dan pilihan pembayaran yang jelas.',
+          }
       : isShowcaseWijaya2
         ? {
             heroMainTitle: 'Saatnya Punya',
@@ -1166,7 +1211,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);

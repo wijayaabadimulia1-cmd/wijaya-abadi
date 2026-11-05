@@ -168,7 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-zinc-800 bg-zinc-950/95 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="site-navbar-mobile-menu lg:hidden py-4 border-t border-zinc-800 bg-zinc-950/95 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex flex-col space-y-2">
               {navLinks.map((link) => (
                 <a
