@@ -2209,8 +2209,9 @@ async function startServer() {
       const sourceDb = databaseContents.get(sourceFile) || {};
       const assignedSeoPage = (Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : [])
         .find((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech` === host);
-      const admins = (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : [])
-        .filter((user: any) => !assignedSeoPage || user.role === 'Super Admin' || user.id === assignedSeoPage.adminUserId)
+      const hasSeoPost = assignedSeoPage && getSeoLandingPosts(assignedSeoPage).length > 0;
+      const admins = (hasSeoPost ? (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : []) : [])
+        .filter((user: any) => user.role !== 'Super Admin' && user.id === assignedSeoPage.adminUserId)
         .map((user: any) => ({ username: String(user.username || ''), role: String(user.role || 'Admin') }))
         .filter((user: any) => user.username);
       return { host, dataAvailable: databaseContents.has(sourceFile), admins };

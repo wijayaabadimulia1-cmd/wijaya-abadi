@@ -438,7 +438,7 @@ export default function OwnerDashboard() {
                 <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Admin Owner per Website</h3>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Kumpulan akun admin yang memakai setiap website terpilih.</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Admin non-super yang ditugaskan ke subdomain dengan post SEO.</p>
                   </div>
                   <span className="text-[11px] text-slate-400">{analytics?.siteAdmins?.length || 0} website</span>
                 </div>
@@ -455,7 +455,7 @@ export default function OwnerDashboard() {
                               </span>
                             ))}
                           </div>
-                        ) : <p className="mt-1 text-xs text-slate-500">{site.dataAvailable ? 'Belum ada akun admin terdaftar.' : 'Data admin tidak tersedia untuk website ini.'}</p>}
+                        ) : <p className="mt-1 text-xs text-slate-500">{site.dataAvailable ? 'Belum ada admin post SEO yang ditugaskan.' : 'Data admin tidak tersedia untuk website ini.'}</p>}
                       </div>
                     </div>
                   ))}
