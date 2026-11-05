@@ -1561,7 +1561,9 @@ async function startServer() {
       return res.json(publicSettings(getSettingsForSeoPage(db.settings, nextPage)));
     }
     db.settings = { ...db.settings, ...settingsUpdates, updated_at: new Date().toISOString() };
-    writeDb(db);
+    if (!writeDb(db)) {
+      return res.status(500).json({ error: 'Gagal menyimpan pengaturan dealer. Periksa ruang penyimpanan dan izin database server.' });
+    }
     res.json(db.settings);
   });
 

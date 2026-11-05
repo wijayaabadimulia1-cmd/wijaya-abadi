@@ -67,6 +67,25 @@ jobs:
               sudo rm -rf -- "$release"
             fi
           done
+          mapfile -t releases < <(find "$RELEASE_ROOT" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
+          retained_backups=0
+          for release in "${releases[@]}"; do
+            [ -f "$release/dist/server.cjs" ] || continue
+            referenced=0
+            for service in kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+              if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
+                referenced=1
+                break
+              fi
+            done
+            [ "$referenced" -eq 0 ] || continue
+            if [ "$retained_backups" -lt 2 ]; then
+              retained_backups=$((retained_backups + 1))
+              continue
+            fi
+            echo "Removing inactive old deployment release: $release"
+            sudo rm -rf -- "$release"
+          done
           find /tmp -maxdepth 1 -type f -name 'wijaya-abadi-*.tar' -print -delete
           df -h / /tmp /opt
           df -i / /tmp /opt
