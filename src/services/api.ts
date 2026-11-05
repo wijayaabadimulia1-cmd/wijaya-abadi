@@ -125,12 +125,24 @@ export const api = {
     return result;
   },
 
-  async getOwnerDashboardAnalytics(key: string, startDate?: string, endDate?: string): Promise<any> {
+  async getOwnerDashboardAnalytics(
+    key: string,
+    startDate?: string,
+    endDate?: string,
+    includeAll?: { pages?: boolean; searchTerms?: boolean; leads?: boolean },
+  ): Promise<any> {
     const res = await fetch('/api/owner-dashboard/analytics', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
-      body: JSON.stringify({ key, startDate, endDate }),
+      body: JSON.stringify({
+        key,
+        startDate,
+        endDate,
+        includeAllPages: includeAll?.pages === true,
+        includeAllSearchTerms: includeAll?.searchTerms === true,
+        includeAllLeads: includeAll?.leads === true,
+      }),
     });
     const result = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(result.error || 'Tautan dashboard tidak valid atau sudah dinonaktifkan');

@@ -11,6 +11,7 @@ import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
+import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './src/utils/seoPosts';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -300,10 +301,12 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     },
   };
   const hostPage = getSeoPageForHost(settings, hostname);
+  const hostPost = hostPage ? findSeoLandingPost(hostPage, pathname) : undefined;
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
   const pageSettings = getSettingsForSeoPage(settings, hostPage);
-  const title = String(hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
-  const description = String(hostPage?.seoDescription || page?.description || pageSettings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
+  const isHostPost = Boolean(hostPost && hostPage && hostPost.id !== hostPage.id);
+  const title = String(isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
+  const description = String(isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
   const keywords = String(hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
   const siteOrigin = hostPage ? `https://${hostPage.subdomain}.kreditmotorhonda.tech` : getSiteOrigin(pageSettings);
   const logoValue = String(pageSettings.logo || '/uploads/logo.jpeg').trim();
@@ -311,7 +314,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     ? logoValue
     : `${siteOrigin}${logoValue.startsWith('/') ? '' : '/'}${logoValue}`;
   const canonical = hostPage
-    ? `${siteOrigin}/`
+    ? `${siteOrigin}${hostPost ? getSeoLandingPostPath(hostPage, hostPost) : '/'}`
     : page
     ? `${siteOrigin}${pathname.replace(/\/+$/, '') || '/'}`
     : String(pageSettings.seoCanonicalUrl || `${siteOrigin}/`).trim();
@@ -326,7 +329,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     : '';
 
   const normalizedSeoPath = pathname.replace(/\/+$/, '') || '/';
-  const fallbackHeading = hostPage?.title || (page
+  const fallbackHeading = hostPost?.title || hostPage?.seoTitle || hostPage?.title || (page
     ? page.title.split(/[|–—]/)[0].trim()
     : [
         String(pageSettings.heroMainTitle || '').trim(),
@@ -557,6 +560,12 @@ function publicSeoPage(page: any) {
     subdomain: page.subdomain,
     title: page.title,
     content: page.content,
+    posts: getSeoLandingPosts(page).map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      content: post.content,
+    })),
     seoTitle: page.seoTitle,
     seoDescription: page.seoDescription,
     seoKeywords: page.seoKeywords,
@@ -822,15 +831,36 @@ function renderDynamicSitemap(db: any, hostname = '') {
   }));
   const seoPostPages = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
     .filter((page: any) => page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' && page.subdomain)
-    .map((page: any) => ({
-      path: `https://${page.subdomain}.kreditmotorhonda.tech/`,
-      changefreq: 'weekly',
-      priority: '0.7',
-      lastmod: page.updated_at,
-      absolute: true,
-    }));
+    .flatMap((page: any) => [
+      {
+        path: `https://${page.subdomain}.kreditmotorhonda.tech/`,
+        changefreq: 'weekly',
+        priority: '0.7',
+        lastmod: page.updated_at,
+        absolute: true,
+      },
+      ...getSeoLandingPosts(page)
+        .filter((post) => post.id !== page.id)
+        .map((post) => ({
+          path: `https://${page.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(page, post)}`,
+          changefreq: 'weekly',
+          priority: '0.7',
+          lastmod: post.updated_at || page.updated_at,
+          absolute: true,
+        })),
+    ]);
+  const hostPostPages = post
+    ? getSeoLandingPosts(post)
+        .filter((seoPost) => seoPost.id !== post.id)
+        .map((seoPost) => ({
+          path: getSeoLandingPostPath(post, seoPost),
+          changefreq: 'weekly',
+          priority: '0.8',
+          lastmod: seoPost.updated_at || post.updated_at,
+        }))
+    : [];
   const today = new Date().toISOString().slice(0, 10);
-  const urls = (post ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...motorPages] : [...staticPages, ...motorPages, ...seoPostPages]).map((page: any) => {
+  const urls = (post ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...hostPostPages, ...motorPages] : [...staticPages, ...motorPages, ...seoPostPages]).map((page: any) => {
     const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
     const lastmod = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : today;
     const url = page.absolute ? page.path : `${origin}${page.path}`;
@@ -1948,6 +1978,7 @@ async function startServer() {
     const db = readDb();
     const newLead = {
       id: `lead-${Date.now()}`,
+      host: normalizeAnalyticsHost(req.hostname),
       motor_id: req.body.motor_id || '',
       motor_name: req.body.motor_name || 'Umum',
       customer_name: req.body.customer_name || 'Calon Pembeli',
@@ -2144,12 +2175,14 @@ async function startServer() {
       const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
       if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, OWNER_ANALYTICS_SITE_DB_FILES[host] ? host : 'kreditmotorhonda.tech');
     }
+    const databaseContents = new Map<string, any>();
     const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
     const allSearchLogs: Array<{ timestamp: string; keyword?: string; host?: string; sessionId?: string }> = [];
     const allWhatsappLogs: Array<{ timestamp: string; path?: string; menu?: string; host?: string; sessionId?: string }> = [];
     for (const [sourceFile, legacyHost] of databaseSources) {
       try {
         const sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
+        databaseContents.set(sourceFile, sourceDb);
         const sourceLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
         const sourceSearchLogs = Array.isArray(sourceDb.searchLogs) ? sourceDb.searchLogs : [];
         const sourceWhatsappLogs = Array.isArray(sourceDb.whatsappLogs) ? sourceDb.whatsappLogs : [];
@@ -2169,6 +2202,36 @@ async function startServer() {
         if (error.code !== 'ENOENT') console.error(`Owner analytics could not read ${sourceFile}:`, error.message);
       }
     }
+    const siteAdmins = [...validHosts].map((host) => {
+      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
+      const sourceDb = databaseContents.get(sourceFile) || {};
+      const assignedSeoPage = (Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : [])
+        .find((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech` === host);
+      const admins = (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : [])
+        .filter((user: any) => !assignedSeoPage || user.role === 'Super Admin' || user.id === assignedSeoPage.adminUserId)
+        .map((user: any) => ({ username: String(user.username || ''), role: String(user.role || 'Admin') }))
+        .filter((user: any) => user.username);
+      return { host, dataAvailable: databaseContents.has(sourceFile), admins };
+    });
+    const allSiteLeads = [...databaseSources.entries()].flatMap(([sourceFile, legacyHost]) => {
+      const sourceDb = databaseContents.get(sourceFile) || {};
+      const interests = Array.isArray(sourceDb.interests) ? sourceDb.interests : [];
+      return interests.map((lead: any) => ({
+        id: String(lead.id || ''),
+        host: normalizeAnalyticsHost(lead.host || legacyHost),
+        customerName: String(lead.customer_name || 'Calon Pembeli'),
+        motorName: String(lead.motor_name || 'Umum'),
+        status: String(lead.status || 'Baru'),
+        createdAt: String(lead.created_at || ''),
+      })).filter((lead: any) => lead.id && validHosts.has(lead.host));
+    }).sort((left: any, right: any) => right.createdAt.localeCompare(left.createdAt));
+    const filteredSiteLeads = allSiteLeads.filter((lead: any) => {
+      if (!startDate && !endDate) return true;
+      if (!Number.isFinite(Date.parse(lead.createdAt))) return false;
+      const date = getJakartaDateParts(lead.createdAt).date;
+      return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+    });
+    const siteLeads = req.body?.includeAllLeads === true ? filteredSiteLeads : filteredSiteLeads.slice(0, 20);
     const logs = allLogs
       .filter((log) => validHosts.has(log.host || ''))
       .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
@@ -2194,10 +2257,10 @@ async function startServer() {
     }));
     const sites = [...validHosts].map((host) => ({ host, visits: countsByHost.get(host) || 0 }))
       .sort((left, right) => right.visits - left.visits);
-    const topPages = [...countsByPage.entries()]
+    const allTopPages = [...countsByPage.entries()]
       .map(([page, visits]) => ({ page, visits }))
-      .sort((left, right) => right.visits - left.visits)
-      .slice(0, 10);
+      .sort((left, right) => right.visits - left.visits);
+    const topPages = req.body?.includeAllPages === true ? allTopPages : allTopPages.slice(0, 10);
     const filteredSearchLogs = allSearchLogs
       .filter((log) => validHosts.has(log.host || ''))
       .map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }))
@@ -2215,10 +2278,10 @@ async function startServer() {
       if (log.sessionId) current.sessions.add(log.sessionId);
       searchTermsByKeyword.set(normalizedKeyword, current);
     });
-    const searchTerms = [...searchTermsByKeyword.values()]
+    const allSearchTerms = [...searchTermsByKeyword.values()]
       .map(({ keyword, searches, sessions }) => ({ keyword, searches, uniqueVisitors: sessions.size }))
-      .sort((left, right) => right.searches - left.searches || left.keyword.localeCompare(right.keyword, 'id'))
-      .slice(0, 50);
+      .sort((left, right) => right.searches - left.searches || left.keyword.localeCompare(right.keyword, 'id'));
+    const searchTerms = req.body?.includeAllSearchTerms === true ? allSearchTerms : allSearchTerms.slice(0, 50);
     const filteredWhatsappLogs = allWhatsappLogs
       .filter((log) => validHosts.has(log.host || ''))
       .map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }))
@@ -2254,9 +2317,14 @@ async function startServer() {
       totalVisits: logs.length,
       siteCount: validHosts.size,
       sites,
+      siteAdmins,
+      siteLeads,
+      siteLeadsTotal: filteredSiteLeads.length,
       dailyVisitors,
       topPages,
+      topPagesTotal: allTopPages.length,
       searchTerms,
+      searchTermsTotal: allSearchTerms.length,
       googleSearchConsole,
       whatsappClicks,
       timeZone: 'Asia/Jakarta',

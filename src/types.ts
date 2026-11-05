@@ -75,6 +75,7 @@ export interface SeoLandingPage {
   adminUserId: string;
   title: string;
   content: string;
+  posts?: SeoLandingPost[];
   seoTitle: string;
   seoDescription: string;
   seoKeywords: string;
@@ -82,6 +83,15 @@ export interface SeoLandingPage {
   siteSettings?: Partial<SeoPostSiteSettings>;
   sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
   sslError?: string;
+  updated_at?: string;
+}
+
+export interface SeoLandingPost {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  created_at?: string;
   updated_at?: string;
 }
 

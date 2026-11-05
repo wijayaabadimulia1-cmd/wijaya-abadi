@@ -17,6 +17,7 @@ import { InterestModal } from './components/InterestModal';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
 import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from './constants';
 import { trackWhatsAppClick } from './utils/whatsapp';
+import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './utils/seoPosts';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel: panel }) => ({ default: panel })));
 
@@ -112,6 +113,7 @@ export default function App() {
   const hostSeoPage: SeoLandingPage | undefined = subdomain && !['www', 'wijaya'].includes(subdomain)
     ? settings.seoPages?.find((page) => page.subdomain === subdomain)
     : undefined;
+  const hostSeoPost = hostSeoPage ? findSeoLandingPost(hostSeoPage, currentPath) : undefined;
 
   // Fetch initial data from dynamic database
   const loadData = async () => {
@@ -405,11 +407,15 @@ export default function App() {
     } as const;
 
     const activeLandingSeo = landingSeo[currentPath as keyof typeof landingSeo];
-    const title = hostSeoPage?.seoTitle?.trim() || activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
-    const description = hostSeoPage?.seoDescription?.trim() || activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
+    const title = hostSeoPost && hostSeoPost.id !== hostSeoPage?.id
+      ? hostSeoPost.title
+      : hostSeoPage?.seoTitle?.trim() || activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
+    const description = hostSeoPost && hostSeoPost.id !== hostSeoPage?.id
+      ? hostSeoPost.content.trim().slice(0, 160)
+      : hostSeoPage?.seoDescription?.trim() || activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
     const keywords = hostSeoPage?.seoKeywords?.trim() || activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
     const canonicalUrl = hostSeoPage
-      ? `https://${hostSeoPage.subdomain}.kreditmotorhonda.tech/`
+      ? `https://${hostSeoPage.subdomain}.kreditmotorhonda.tech${hostSeoPost ? getSeoLandingPostPath(hostSeoPage, hostSeoPost) : '/'}`
       : activeLandingSeo
       ? `https://kreditmotorhonda.tech${currentPath}`
       : settings.seoCanonicalUrl?.trim() || DEFAULT_SEO_CANONICAL_URL;
@@ -442,7 +448,7 @@ export default function App() {
       document.head.appendChild(canonical);
     }
     canonical.href = canonicalUrl;
-  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath, hostSeoPage]);
+  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath, hostSeoPage, hostSeoPost]);
 
   // Comparison toggle handler
   const handleToggleCompare = (motor: Motor) => {
@@ -680,10 +686,10 @@ export default function App() {
     },
   } as const;
   const activeLandingPage = landingPages[currentPath as keyof typeof landingPages] || (hostSeoPage ? {
-    label: hostSeoPage.title,
-    eyeBrow: hostSeoPage.title,
-    headline: hostSeoPage.title,
-    subHeadline: hostSeoPage.seoDescription || hostSeoPage.content.slice(0, 180),
+    label: hostSeoPost?.title || hostSeoPage.seoTitle || hostSeoPage.title,
+    eyeBrow: hostSeoPost?.title || hostSeoPage.seoTitle || hostSeoPage.title,
+    headline: hostSeoPost?.title || hostSeoPage.seoTitle || hostSeoPage.title,
+    subHeadline: hostSeoPost?.content.slice(0, 180) || hostSeoPage.seoDescription || hostSeoPage.content.slice(0, 180),
     bullets: [],
     stats: [],
     faq: [],
@@ -771,12 +777,27 @@ export default function App() {
             />
           )}
 
-          {hostSeoPage && (
+          {hostSeoPost && (
             <section className="px-4 pb-12 sm:px-6 lg:px-8">
               <article className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-900/60 p-6 text-zinc-200 sm:p-8">
-                <h2 className="mb-4 text-xl font-black text-white">{hostSeoPage.title}</h2>
-                <div className="whitespace-pre-line text-sm leading-7 text-zinc-300">{hostSeoPage.content}</div>
+                <h2 className="mb-4 text-xl font-black text-white">{hostSeoPost.title}</h2>
+                <div className="whitespace-pre-line text-sm leading-7 text-zinc-300">{hostSeoPost.content}</div>
               </article>
+            </section>
+          )}
+
+          {hostSeoPage && currentPath === '/' && getSeoLandingPosts(hostSeoPage).some((post) => post.id !== hostSeoPage.id) && (
+            <section className="px-4 pb-12 sm:px-6 lg:px-8">
+              <div className="mx-auto max-w-4xl border-t border-white/10 pt-6">
+                <h2 className="text-lg font-bold text-white">Artikel lainnya</h2>
+                <nav className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Post subdomain">
+                  {getSeoLandingPosts(hostSeoPage).filter((post) => post.id !== hostSeoPage.id).map((post) => (
+                    <a key={post.id} href={getSeoLandingPostPath(hostSeoPage, post)} className="rounded-lg border border-white/10 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-sky-300 hover:border-sky-400/40 hover:text-sky-200">
+                      {post.title}
+                    </a>
+                  ))}
+                </nav>
+              </div>
             </section>
           )}
 

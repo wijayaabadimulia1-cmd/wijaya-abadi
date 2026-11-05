@@ -23,8 +23,12 @@ interface OwnerAnalytics {
   totalVisits: number;
   siteCount: number;
   sites: Array<{ host: string; visits: number }>;
+  siteAdmins: Array<{ host: string; dataAvailable: boolean; admins: Array<{ username: string; role: string }> }>;
+  siteLeads: Array<{ id: string; host: string; customerName: string; motorName: string; status: string; createdAt: string }>;
+  siteLeadsTotal: number;
   dailyVisitors: Array<{ date: string; label: string; visits: number }>;
   topPages: Array<{ page: string; visits: number }>;
+  topPagesTotal: number;
   searchTerms: Array<{ keyword: string; searches: number; uniqueVisitors: number }>;
   googleSearchConsole?: {
     configured: boolean;
@@ -35,6 +39,7 @@ interface OwnerAnalytics {
     errors: string[];
   };
   whatsappClicks: Array<{ host: string; path: string; menu: string; clicks: number; uniqueVisitors: number }>;
+  searchTermsTotal: number;
   timeZone: string;
 }
 
@@ -66,6 +71,10 @@ export default function OwnerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [chartType, setChartType] = useState<ChartType>('bar');
   const [refreshVersion, setRefreshVersion] = useState(0);
+  const [showAllDays, setShowAllDays] = useState(false);
+  const [showAllPages, setShowAllPages] = useState(false);
+  const [showAllSearchTerms, setShowAllSearchTerms] = useState(false);
+  const [showAllLeads, setShowAllLeads] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('hwa-owner-dashboard-theme', isDarkMode ? 'dark' : 'light');
@@ -101,7 +110,11 @@ export default function OwnerDashboard() {
 
       setIsLoading(true);
       try {
-        const result = await api.getOwnerDashboardAnalytics(key, requestStartDate, requestEndDate);
+        const result = await api.getOwnerDashboardAnalytics(key, requestStartDate, requestEndDate, {
+          pages: showAllPages,
+          searchTerms: showAllSearchTerms,
+          leads: showAllLeads,
+        });
         if (!active) return;
         setAnalytics(result);
         setError('');
@@ -120,7 +133,7 @@ export default function OwnerDashboard() {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [key, range, startDate, endDate, refreshVersion]);
+  }, [key, range, startDate, endDate, refreshVersion, showAllPages, showAllSearchTerms, showAllLeads]);
 
   const selectRange = (nextRange: DateRange) => {
     const today = jakartaDateKey(new Date());
@@ -153,7 +166,8 @@ export default function OwnerDashboard() {
   };
 
   const maxDailyVisits = Math.max(1, ...(analytics?.dailyVisitors || []).map((item) => item.visits));
-  const visibleDays = (analytics?.dailyVisitors || []).slice(-30);
+  const allDays = analytics?.dailyVisitors || [];
+  const visibleDays = showAllDays ? allDays : allDays.slice(-30);
   const totalDomainVisits = (analytics?.sites || []).reduce((total, site) => total + site.visits, 0);
   const rangeLabel = range === 'all'
     ? 'Semua data'
@@ -180,6 +194,8 @@ export default function OwnerDashboard() {
   const navItems = [
     { label: 'Dashboard Analytics', href: '#overview', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Domain Dipantau', href: '#domains', icon: <Globe className="h-4 w-4" /> },
+    { label: 'Admin Owner', href: '#admin-access', icon: <Users className="h-4 w-4" /> },
+    { label: 'Prospek Masuk', href: '#prospects', icon: <Users className="h-4 w-4" /> },
     { label: 'URL Landing Pages', href: '#pages', icon: <Link2 className="h-4 w-4" /> },
   ];
 
@@ -344,13 +360,21 @@ export default function OwnerDashboard() {
                       <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white"><BarChart3 className="h-4 w-4 text-red-600" />Pergerakan Kunjungan Harian</h3>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Jumlah kunjungan harian dari website terpilih</p>
                     </div>
-                    <div className="flex w-fit rounded-xl bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800" role="group" aria-label="Jenis grafik">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {allDays.length > 30 && (
+                        <button type="button" aria-expanded={showAllDays} onClick={() => setShowAllDays((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                          {showAllDays ? 'Tampilkan 30 hari' : `Lihat semua data (${allDays.length} hari)`}
+                        </button>
+                      )}
+                      <div className="flex w-fit rounded-xl bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800" role="group" aria-label="Jenis grafik">
                       <button type="button" aria-pressed={chartType === 'bar'} onClick={() => setChartType('bar')} className={`rounded-lg px-3 py-1.5 transition ${chartType === 'bar' ? 'bg-white font-bold text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Bar</button>
                       <button type="button" aria-pressed={chartType === 'line'} onClick={() => setChartType('line')} className={`rounded-lg px-3 py-1.5 transition ${chartType === 'line' ? 'bg-white font-bold text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Garis</button>
+                      </div>
                     </div>
                   </div>
                   {visibleDays.length ? (
-                    <div className="relative">
+                    <div className="relative overflow-x-auto pb-2">
+                      <div className="min-w-full" style={{ minWidth: `max(100%, ${visibleDays.length * 42}px)` }}>
                       <div className="relative h-56 border-b border-slate-200 pb-2 dark:border-slate-700">
                         {chartType === 'bar' ? (
                           <div className="flex h-full items-end gap-1.5 sm:gap-3">
@@ -374,6 +398,7 @@ export default function OwnerDashboard() {
                       </div>
                       <div className="mt-2 flex gap-1.5 sm:gap-3">
                         {visibleDays.map((day) => <span key={day.date} className="min-w-0 flex-1 truncate text-center text-[9px] text-slate-500 sm:text-[10px]">{day.label}</span>)}
+                      </div>
                       </div>
                     </div>
                   ) : <p className="py-16 text-center text-xs text-slate-500">Belum ada data kunjungan pada periode ini.</p>}
@@ -409,13 +434,95 @@ export default function OwnerDashboard() {
                 </div>
               </section>
 
+              <section id="admin-access" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Admin Owner per Website</h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Kumpulan akun admin yang memakai setiap website terpilih.</p>
+                  </div>
+                  <span className="text-[11px] text-slate-400">{analytics?.siteAdmins?.length || 0} website</span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {(analytics?.siteAdmins || []).map((site) => (
+                    <div key={site.host} className="flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{site.host}</p>
+                        {site.admins.length ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {site.admins.map((admin) => (
+                              <span key={`${site.host}-${admin.username}`} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                <span className="font-semibold">{admin.username}</span><span className="text-slate-400">·</span><span>{admin.role}</span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : <p className="mt-1 text-xs text-slate-500">{site.dataAvailable ? 'Belum ada akun admin terdaftar.' : 'Data admin tidak tersedia untuk website ini.'}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {!analytics?.siteAdmins?.length && <p className="px-6 py-8 text-center text-xs text-slate-500">Informasi website belum tersedia.</p>}
+                </div>
+              </section>
+
+              <section id="prospects" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Daftar Peminat &amp; Prospek Masuk</h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Tersimpan secara dinamis setiap kali pengunjung mengklik &quot;Saya Tertarik&quot; atau &quot;Ajukan Kredit&quot;.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {(analytics?.siteLeadsTotal || 0) > 20 && <button type="button" aria-expanded={showAllLeads} onClick={() => setShowAllLeads((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">{showAllLeads ? 'Tampilkan ringkasan' : `Lihat semua data (${analytics?.siteLeadsTotal})`}</button>}
+                    <span className="shrink-0 text-[11px] text-slate-400">{analytics?.siteLeadsTotal || 0} prospek</span>
+                  </div>
+                </div>
+                {analytics?.siteLeads?.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] border-collapse text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                          <th className="px-5 py-3.5 sm:px-6">Website / Tanggal</th>
+                          <th className="px-5 py-3.5 sm:px-6">Nama Peminat</th>
+                          <th className="px-5 py-3.5 sm:px-6">Unit Diminati</th>
+                          <th className="px-5 py-3.5 sm:px-6">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {analytics.siteLeads.map((lead) => {
+                          const statusClass = lead.status === 'Selesai'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            : lead.status === 'Ditolak'
+                              ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300'
+                              : lead.status === 'Dihubungi'
+                                ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300'
+                                : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300';
+                          const createdAt = lead.createdAt ? new Date(lead.createdAt) : null;
+                          return (
+                            <tr key={`${lead.host}-${lead.id}`} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                              <td className="px-5 py-3.5 sm:px-6">
+                                <span className="block font-semibold text-slate-800 dark:text-slate-200">{lead.host}</span>
+                                <span className="mt-1 block text-[10px] text-slate-400">{createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString('id-ID') : '-'}</span>
+                              </td>
+                              <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200 sm:px-6">{lead.customerName}</td>
+                              <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 sm:px-6">{lead.motorName}</td>
+                              <td className="px-5 py-3.5 sm:px-6"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold ${statusClass}`}>{lead.status}</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada data peminat yang tersimpan di website terpilih.</p>}
+              </section>
+
               <section id="pages" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Halaman Paling Banyak Dikunjungi</h3>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Gabungan seluruh website pada periode terpilih ({analytics?.topPages.length || 0} halaman)</p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-400"><Users className="h-4 w-4" />Diperbarui {lastUpdated ? lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                    {(analytics?.topPagesTotal || 0) > 10 && <button type="button" aria-expanded={showAllPages} onClick={() => setShowAllPages((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">{showAllPages ? 'Tampilkan ringkasan' : `Lihat semua data (${analytics?.topPagesTotal})`}</button>}
+                    <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" />Diperbarui {lastUpdated ? lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                  </div>
                 </div>
                 {analytics?.topPages.length ? (
                   <div className="overflow-x-auto">
@@ -467,7 +574,10 @@ export default function OwnerDashboard() {
                     <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Search className="h-4 w-4 text-red-600" />Pencarian Katalog</h3>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Kata yang diketik di pencarian katalog website ({analytics?.searchTerms?.length || 0} kata kunci)</p>
                   </div>
-                  <div className="text-xs text-slate-400">Diurutkan berdasarkan frekuensi pencarian</div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                    {(analytics?.searchTermsTotal || 0) > 50 && <button type="button" aria-expanded={showAllSearchTerms} onClick={() => setShowAllSearchTerms((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">{showAllSearchTerms ? 'Tampilkan ringkasan' : `Lihat semua data (${analytics?.searchTermsTotal})`}</button>}
+                    <span>Diurutkan berdasarkan frekuensi pencarian</span>
+                  </div>
                 </div>
                 {analytics?.searchTerms?.length ? (
                   <div className="overflow-x-auto">

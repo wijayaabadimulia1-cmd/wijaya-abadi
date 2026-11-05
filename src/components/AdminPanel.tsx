@@ -14,6 +14,7 @@ import {
   Star,
   Users,
   Settings as SettingsIcon,
+  MessageCircle,
   MessageSquare,
   ArrowLeft,
   RotateCcw,
@@ -33,7 +34,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList, SeoLandingPage } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList, SeoLandingPage, SeoLandingPost } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, FIF_DP_PERCENTAGES, FIF_TENORS, getFIFPriceListModel, normalizeMotorOtrPrice } from '../services/fifPriceList';
 import {
@@ -54,12 +55,15 @@ import {
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
 import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
+import { getSeoLandingPosts, getSeoLandingPostPath, slugifySeoPost } from '../utils/seoPosts';
 import { CustomizationPanel } from './CustomizationPanel';
 
 interface AdminPanelProps {
   onBackToWebsite: () => void;
   onRefreshData: () => void;
 }
+
+type SeoPostEditor = SeoLandingPost & { subdomain: string };
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -142,7 +146,7 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -161,7 +165,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
   const isSeoPostAdmin = Boolean(settings?.seoPostHost && adminSession?.role !== 'Super Admin');
-  const [seoPageEditor, setSeoPageEditor] = useState<SeoLandingPage | null>(null);
+  const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
+  const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
   const [isCatalogOwner, setIsCatalogOwner] = useState(true);
   const [canManageCatalog, setCanManageCatalog] = useState(true);
@@ -217,6 +222,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       || Boolean(motor.is_bestseller) === (motorBestsellerFilter === 'bestseller');
     return matchesSearch && matchesCategory && matchesBestseller;
   });
+  const seoPostEntries = (settings?.seoPages || []).flatMap((page) => getSeoLandingPosts(page).map((post) => ({ page, post })));
   const hasMotorFilters = Boolean(normalizedMotorSearch)
     || motorCategoryFilter !== 'all'
     || motorBestsellerFilter !== 'all';
@@ -1183,70 +1189,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const handleSaveSeoPage = async () => {
     if (!settings || !seoPageEditor) return;
     const title = seoPageEditor.title.trim();
-    const subdomain = slugifySubdomain(seoPageEditor.subdomain || title);
+    const subdomain = slugifySubdomain(seoPageEditor.subdomain);
+    const slug = slugifySeoPost(seoPageEditor.slug || title);
     const content = seoPageEditor.content.trim();
-    if (!title || !content || !subdomain) {
-      alert('Judul, subdomain, dan isi post wajib diisi.');
+    if (!title || !content || !subdomain || !slug) {
+      alert('Subdomain SEO, judul, dan isi post wajib diisi.');
       return;
     }
-    const assignedAdmin = adminUsers.find((user) => user.id === seoPageEditor.adminUserId);
-    if (!assignedAdmin) {
-      alert('Pilih user admin penanggung jawab post.');
-      return;
-    }
-    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)) {
-      alert('Format subdomain tidak valid. Gunakan huruf kecil, angka, dan tanda hubung.');
-      return;
-    }
-    if (['www', 'admin', 'api', 'wijaya', 'kreditmotorhonda'].includes(subdomain)) {
-      alert('Subdomain tersebut sudah digunakan untuk layanan utama.');
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(slug)) {
+      alert('Slug post tidak valid.');
       return;
     }
 
     const currentPages = settings.seoPages || [];
-    if (currentPages.some((page) => page.subdomain === subdomain && page.id !== seoPageEditor.id)) {
-      alert('Subdomain tersebut sudah digunakan. Pilih subdomain lain.');
+    const subdomainPage = currentPages.find((page) => page.subdomain === subdomain);
+    if (!subdomainPage) {
+      alert('Buat atau pilih konfigurasi SEO subdomain terlebih dahulu.');
+      return;
+    }
+    const currentPosts = getSeoLandingPosts(subdomainPage);
+    if (currentPosts.some((post) => post.slug === slug && post.id !== seoPageEditor.id)) {
+      alert('Slug tersebut sudah digunakan pada subdomain ini. Pilih judul atau slug lain.');
       return;
     }
 
-    const now = new Date().toISOString();
-    const page: SeoLandingPage = {
-      ...seoPageEditor,
-      id: seoPageEditor.id || `seo-page-${Date.now()}`,
+    const post: SeoLandingPost = {
+      id: seoPageEditor.id || `seo-post-${Date.now()}`,
+      slug,
       title,
-      subdomain,
-      adminUserId: assignedAdmin.id,
       content,
-      seoTitle: seoPageEditor.seoTitle.trim() || title,
-      seoDescription: seoPageEditor.seoDescription.trim() || content.slice(0, 160),
-      seoKeywords: seoPageEditor.seoKeywords.trim(),
-      seoRobots: seoPageEditor.seoRobots || 'index, follow',
-      updated_at: now,
     };
-    const nextPages = seoPageEditor.id
-      ? currentPages.map((item) => item.id === page.id ? page : item)
-      : [{ ...page, updated_at: now }, ...currentPages];
+    const isLegacyRootPost = seoPageEditor.id === subdomainPage.id && Boolean(subdomainPage.content.trim());
+    const nextPage: SeoLandingPage = isLegacyRootPost
+      ? { ...subdomainPage, title, content }
+      : {
+          ...subdomainPage,
+          posts: currentPosts.filter((item) => item.id !== subdomainPage.id && item.id !== post.id).concat(post),
+        };
+    const nextPages = currentPages.map((item) => item.id === subdomainPage.id ? nextPage : item);
 
     setIsSavingSeoPage(true);
     try {
       const saved = await api.updateSettings({ seoPages: nextPages });
-      let updatedSettings = saved;
       setSettings(saved);
-      setSeoPageEditor({ ...page, sslStatus: page.sslStatus || 'provisioning' });
-      let sslResult: Awaited<ReturnType<typeof api.provisionSeoPageSsl>> | null = null;
-      if (page.sslStatus !== 'active') {
-        sslResult = await api.provisionSeoPageSsl(page.id);
-        updatedSettings = await api.getAdminSettings();
-      }
-      setSettings(updatedSettings);
-      onRefreshData();
-      if (sslResult && sslResult.status !== 'active') {
-        setSeoPageEditor({ ...page, sslStatus: sslResult.status, sslError: sslResult.message });
-        showToast(`Subdomain tersimpan, tetapi belum aktif: ${sslResult.message}`);
-        return;
-      }
       setSeoPageEditor(null);
-      showToast(sslResult?.message || `Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
+      showToast(`Post disimpan: ${subdomainPage.subdomain}${getSeoLandingPostPath(nextPage, post)}`);
+      onRefreshData();
     } catch (error: any) {
       alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
     } finally {
@@ -1254,14 +1242,98 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const handleSaveSeoSubdomain = async () => {
+    if (!settings || !seoSubdomainEditor) return;
+    const subdomain = slugifySubdomain(seoSubdomainEditor.subdomain);
+    const seoTitle = seoSubdomainEditor.seoTitle.trim();
+    const adminUser = adminUsers.find((user) => user.id === seoSubdomainEditor.adminUserId);
+    if (!subdomain || !seoTitle || !adminUser) {
+      alert('Subdomain, judul SEO, dan admin penanggung jawab wajib diisi.');
+      return;
+    }
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)
+      || ['www', 'admin', 'api', 'wijaya', 'kreditmotorhonda'].includes(subdomain)) {
+      alert('Format atau nama subdomain SEO tidak dapat digunakan.');
+      return;
+    }
+
+    const currentPages = settings.seoPages || [];
+    if (currentPages.some((page) => page.subdomain === subdomain && page.id !== seoSubdomainEditor.id)) {
+      alert('Subdomain tersebut sudah digunakan. Pilih subdomain lain.');
+      return;
+    }
+
+    const existingPage = currentPages.find((page) => page.id === seoSubdomainEditor.id);
+    const now = new Date().toISOString();
+    const page: SeoLandingPage = {
+      ...seoSubdomainEditor,
+      id: existingPage?.id || `seo-page-${Date.now()}`,
+      subdomain,
+      adminUserId: adminUser.id,
+      title: existingPage?.content.trim() ? existingPage.title : seoTitle,
+      content: existingPage?.content || '',
+      seoTitle,
+      seoDescription: seoSubdomainEditor.seoDescription.trim(),
+      seoKeywords: seoSubdomainEditor.seoKeywords.trim(),
+      seoRobots: seoSubdomainEditor.seoRobots || 'index, follow',
+      updated_at: now,
+    };
+    const nextPages = existingPage
+      ? currentPages.map((item) => item.id === page.id ? page : item)
+      : [page, ...currentPages];
+
+    try {
+      const saved = await api.updateSettings({ seoPages: nextPages });
+      let updatedSettings = saved;
+      setSettings(saved);
+      setSeoSubdomainEditor({ ...page, sslStatus: page.sslStatus || 'provisioning' });
+      let sslResult: Awaited<ReturnType<typeof api.provisionSeoPageSsl>> | null = null;
+      if (page.sslStatus !== 'active') {
+        sslResult = await api.provisionSeoPageSsl(page.id);
+        updatedSettings = await api.getAdminSettings();
+      }
+      setSettings(updatedSettings);
+      setSeoSubdomainEditor(null);
+      onRefreshData();
+      if (sslResult && sslResult.status !== 'active') {
+        setSeoSubdomainEditor({ ...page, sslStatus: sslResult.status, sslError: sslResult.message });
+        showToast(`Subdomain tersimpan, tetapi belum aktif: ${sslResult.message}`);
+        return;
+      }
+      setSeoPageEditor(null);
+      showToast(sslResult?.message || `Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
+    } catch (error: any) {
+      alert(`Gagal menyimpan SEO subdomain: ${error.message || 'Silakan coba lagi.'}`);
+    }
+  };
+
   const handleDeleteSeoPage = async (page: SeoLandingPage) => {
-    if (!settings || !window.confirm(`Hapus post ${page.subdomain}.kreditmotorhonda.tech?`)) return;
+    if (!settings || !window.confirm(`Hapus konfigurasi SEO subdomain ${page.subdomain}.kreditmotorhonda.tech beserta post-nya?`)) return;
     try {
       const nextPages = (settings.seoPages || []).filter((item) => item.id !== page.id);
       const saved = await api.updateSettings({ seoPages: nextPages });
       setSettings(saved);
+      if (seoSubdomainEditor?.id === page.id) setSeoSubdomainEditor(null);
       if (seoPageEditor?.id === page.id) setSeoPageEditor(null);
-      showToast('Post subdomain dihapus');
+      showToast('SEO subdomain dan post dihapus');
+      onRefreshData();
+    } catch (error: any) {
+      alert(`Gagal menghapus post: ${error.message || 'Silakan coba lagi.'}`);
+    }
+  };
+
+  const handleDeleteSeoPost = async (page: SeoLandingPage, post: SeoLandingPost) => {
+    if (!settings || !window.confirm(`Hapus post "${post.title}"? Tindakan ini tidak menyimpan histori versi.`)) return;
+    try {
+      const nextPages = (settings.seoPages || []).map((item) => item.id === page.id
+        ? post.id === page.id
+          ? { ...item, title: item.seoTitle || item.subdomain, content: '' }
+          : { ...item, posts: (item.posts || []).filter((savedPost) => savedPost.id !== post.id) }
+        : item);
+      const saved = await api.updateSettings({ seoPages: nextPages });
+      setSettings(saved);
+      if (seoPageEditor?.id === post.id) setSeoPageEditor(null);
+      showToast('Post dihapus. Konfigurasi SEO subdomain tetap tersimpan.');
       onRefreshData();
     } catch (error: any) {
       alert(`Gagal menghapus post: ${error.message || 'Silakan coba lagi.'}`);
@@ -1587,7 +1659,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'theme', label: 'Template View Website', icon: Palette },
               { id: 'seo', label: 'Dashboard SEO', icon: Search },
               ...(window.location.hostname === 'kreditmotorhonda.tech' && adminSession.role === 'Super Admin'
-                ? [{ id: 'seo-posts', label: 'Post Subdomain', icon: FileText }]
+                ? [
+                    { id: 'seo-subdomains', label: 'SEO Subdomain', icon: Search },
+                    { id: 'seo-posts', label: 'Post Subdomain', icon: FileText },
+                  ]
                 : []),
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
@@ -1605,8 +1680,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <button
                     onClick={() => {
                       setActiveTab(tab.id as any);
-                      if (tab.id === 'seo-posts') {
-                        window.setTimeout(() => document.getElementById('seo-subdomain-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                      if (tab.id === 'seo-subdomains' || tab.id === 'seo-posts') {
+                        const targetId = tab.id === 'seo-subdomains' ? 'seo-subdomain-manager' : 'seo-post-manager';
+                        window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
                       }
                     }}
                     aria-current={isActive ? 'page' : undefined}
@@ -2244,15 +2320,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 </td>
 
                                 <td className="py-3.5 px-4">
-                                  <a
-                                    href={waUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-emerald-400 hover:underline font-medium flex items-center gap-1"
-                                  >
-                                    <MessageSquare className="w-3 h-3" />
-                                    <span>Kirim WhatsApp ({lead.phone})</span>
-                                  </a>
+                                  <span className="font-medium text-zinc-300">{lead.phone}</span>
                                 </td>
 
                                 <td className="py-3.5 px-4 font-semibold text-red-400">
@@ -2289,10 +2357,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                       href={waUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg transition-colors"
-                                      title={`Kirim WhatsApp ke ${lead.customer_name}`}
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600/20 px-2.5 py-1.5 font-semibold text-emerald-400 transition-colors hover:bg-emerald-600/30"
+                                      title={`Balas langsung via WhatsApp ke ${lead.customer_name}`}
                                     >
-                                      <MessageSquare className="w-4 h-4" />
+                                      <MessageCircle className="w-4 h-4" />
+                                      <span>Balas langsung</span>
                                     </a>
                                     <button
                                       onClick={() => handleDeleteLead(lead.id)}
@@ -2933,9 +3002,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               </div>
             )}
 
-            {(activeTab === 'seo' || activeTab === 'seo-posts') && settings && (
+            {(['seo', 'seo-subdomains', 'seo-posts'].includes(activeTab)) && settings && (
               <form onSubmit={handleSaveSettings} className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className={`flex flex-wrap items-start justify-between gap-4 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                   <div>
                     <h2 className="text-lg font-bold text-white">Dashboard SEO</h2>
                     <p className="mt-1 text-xs text-zinc-400">Pantau kesiapan halaman utama dan kelola metadata pencarian.</p>
@@ -2979,7 +3048,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                   <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
                     <p className="text-xs text-zinc-400">SEO Score</p>
                     <p className="mt-2 text-2xl font-bold text-white">{seoScore}<span className="ml-1 text-sm font-medium text-zinc-500">/ 100</span></p>
@@ -3010,7 +3079,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                   <div className="space-y-5">
-                    <section id="seo-subdomain-manager" className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section id="seo-main-metadata" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <h3 className="text-sm font-bold text-white">Metadata halaman utama</h3>
                       <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                         Judul SEO
@@ -3051,7 +3120,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </div>
                     </section>
 
-                    <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section className={`rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <h3 className="mb-3 text-sm font-bold text-white">Pratinjau hasil pencarian</h3>
                       <div className="max-w-2xl rounded-lg border border-white/10 bg-zinc-950 p-4">
                         <p className="truncate text-xs text-emerald-400">{seoCanonicalUrl}</p>
@@ -3064,15 +3133,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </button>
                     </section>
 
-                    <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section id="seo-subdomain-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-sm font-bold text-white">Post sebagai subdomain</h3>
-                          <p className="mt-1 text-xs text-zinc-400">Kelola post dan metadata SEO per subdomain. Katalog motor tetap memakai API utama.</p>
+                          <h3 className="text-sm font-bold text-white">Pengaturan SEO Subdomain</h3>
+                          <p className="mt-1 text-xs text-zinc-400">Atur alamat subdomain, metadata pencarian, dan admin. Konten post dikelola terpisah.</p>
                         </div>
                         <button
                           type="button"
-                          onClick={() => setSeoPageEditor({
+                          onClick={() => setSeoSubdomainEditor({
                             id: '',
                             subdomain: '',
                             adminUserId: adminSession.id,
@@ -3085,120 +3154,125 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           })}
                           className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500"
                         >
-                          <Plus className="h-3.5 w-3.5" /> Buat post subdomain
+                          <Plus className="h-3.5 w-3.5" /> Tambah SEO subdomain
                         </button>
                       </div>
-
                       <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200">
                         Subdomain baru memerlukan wildcard DNS dan sertifikat HTTPS wildcard sebelum link dapat dibuka publik.
                       </div>
-
                       {settings.seoPages?.length ? (
                         <div className="divide-y divide-white/10 rounded-xl border border-white/10">
                           {settings.seoPages.map((page) => (
                             <div key={page.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-white">{page.title}</p>
+                                <p className="truncate text-sm font-semibold text-white">{page.seoTitle || page.title || page.subdomain}</p>
                                 {page.sslStatus === 'active' ? (
-                                  <a href={`https://${page.subdomain}.kreditmotorhonda.tech`} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-sky-300 hover:text-sky-200">
-                                    {page.subdomain}.kreditmotorhonda.tech
-                                  </a>
+                                  <a href={`https://${page.subdomain}.kreditmotorhonda.tech`} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-sky-300 hover:text-sky-200">{page.subdomain}.kreditmotorhonda.tech</a>
                                 ) : (
                                   <span className="mt-1 block break-all text-xs text-zinc-500">{page.subdomain}.kreditmotorhonda.tech</span>
                                 )}
                                 <p className="mt-1 text-[11px] text-zinc-500">Admin: {adminUsers.find((user) => user.id === page.adminUserId)?.username || 'Admin belum ditemukan'}</p>
-                                <p className={`mt-1 text-[11px] ${page.sslStatus === 'active' ? 'text-emerald-400' : 'text-amber-300'}`}>
-                                  SSL: {page.sslStatus === 'active' ? 'Aktif' : page.sslError || 'Menunggu DNS dan verifikasi ACME'}
-                                </p>
-                                <p className="mt-1 truncate text-[11px] text-zinc-500">SEO: {page.seoTitle || page.title}</p>
+                                <p className={`mt-1 text-[11px] ${page.sslStatus === 'active' ? 'text-emerald-400' : 'text-amber-300'}`}>SSL: {page.sslStatus === 'active' ? 'Aktif' : page.sslError || 'Menunggu DNS dan verifikasi ACME'}</p>
+                                <p className="mt-1 text-[11px] text-zinc-500">Post: {page.content.trim() ? 'Sudah dibuat' : 'Belum dibuat'}</p>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
                                 {page.sslStatus !== 'active' && (
-                                  <button type="button" onClick={() => void handleProvisionSeoPageSsl(page)} className="rounded-lg border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/10">
-                                    Coba SSL lagi
-                                  </button>
+                                  <button type="button" onClick={() => void handleProvisionSeoPageSsl(page)} className="rounded-lg border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/10">Coba SSL lagi</button>
                                 )}
-                                <button type="button" onClick={() => setSeoPageEditor({ ...page, adminUserId: page.adminUserId || adminSession.id })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">
-                                  Edit
-                                </button>
-                                <button type="button" onClick={() => void handleDeleteSeoPage(page)} className="rounded-lg border border-red-500/20 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">
-                                  Hapus
-                                </button>
+                                <button type="button" onClick={() => setSeoSubdomainEditor({ ...page, adminUserId: page.adminUserId || adminSession.id })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit SEO</button>
+                                <button type="button" onClick={() => void handleDeleteSeoPage(page)} className="rounded-lg border border-red-500/20 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Hapus</button>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada post subdomain.</p>
+                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada konfigurasi SEO subdomain.</p>
                       )}
+                      {seoSubdomainEditor && (
+                        <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <h4 className="text-sm font-bold text-white">{seoSubdomainEditor.id ? 'Edit SEO subdomain' : 'SEO subdomain baru'}</h4>
+                            <button type="button" onClick={() => setSeoSubdomainEditor(null)} aria-label="Tutup editor SEO subdomain" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"><X className="h-4 w-4" /></button>
+                          </div>
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Subdomain
+                            <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-zinc-900 focus-within:border-red-500">
+                              <input value={seoSubdomainEditor.subdomain} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, subdomain: slugifySubdomain(event.target.value) })} maxLength={63} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
+                              <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-500">.kreditmotorhonda.tech</span>
+                            </div>
+                            <span className="block break-all text-[10px] text-sky-300">https://{seoSubdomainEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
+                          </label>
+                          <label className="block max-w-xl space-y-1 text-xs font-medium text-zinc-300">
+                            Admin penanggung jawab SEO
+                            <select value={seoSubdomainEditor.adminUserId} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, adminUserId: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+                              {adminUsers.map((user) => <option key={user.id} value={user.id}>{user.username} · {user.role}</option>)}
+                            </select>
+                          </label>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="space-y-1 text-xs font-medium text-zinc-300">SEO title<input value={seoSubdomainEditor.seoTitle} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoTitle: event.target.value, ...(!seoSubdomainEditor.content.trim() ? { title: event.target.value } : {}) })} maxLength={70} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Judul yang tampil di Google" /></label>
+                            <label className="space-y-1 text-xs font-medium text-zinc-300">Kata kunci SEO<input value={seoSubdomainEditor.seoKeywords} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan dengan koma" /></label>
+                          </div>
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">SEO description<textarea value={seoSubdomainEditor.seoDescription} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoDescription: event.target.value })} rows={3} maxLength={200} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Ringkasan untuk hasil pencarian" /></label>
+                          <label className="block max-w-xs space-y-1 text-xs font-medium text-zinc-300">Robots<select value={seoSubdomainEditor.seoRobots || 'index, follow'} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoRobots: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"><option value="index, follow">Index, follow</option><option value="noindex, follow">Noindex, follow</option></select></label>
+                          <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
+                            <button type="button" onClick={() => setSeoSubdomainEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
+                            <button type="button" onClick={() => void handleSaveSeoSubdomain()} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500"><Save className="h-3.5 w-3.5" /> Simpan SEO subdomain</button>
+                          </div>
+                        </div>
+                      )}
+                    </section>
 
+                    <section id="seo-post-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-posts' ? '' : 'hidden'}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">Pembuatan Post</h3>
+                          <p className="mt-1 text-xs text-zinc-400">Buat atau edit konten post dan hubungkan ke subdomain SEO yang sudah tersedia.</p>
+                        </div>
+                        <button type="button" onClick={() => setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' })} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
+                          <Plus className="h-3.5 w-3.5" /> Buat post
+                        </button>
+                      </div>
+                      {seoPostEntries.length ? (
+                        <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                          {seoPostEntries.map(({ page, post }) => (
+                            <div key={`${page.id}-${post.id}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-white">{post.title}</p>
+                                <a href={`https://${page.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(page, post)}`} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-sky-300 hover:text-sky-200">{page.subdomain}.kreditmotorhonda.tech{getSeoLandingPostPath(page, post)}</a>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button type="button" onClick={() => void handleDeleteSeoPost(page, post)} className="rounded-lg border border-red-500/20 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Hapus post</button>
+                                <button type="button" onClick={() => setSeoPageEditor({ ...post, subdomain: page.subdomain })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit post</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">{settings.seoPages?.length ? 'Belum ada post. Buat post pertama dari sini.' : 'Buat konfigurasi SEO subdomain sebelum menambahkan post.'}</p>
+                      )}
                       {seoPageEditor && (
                         <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <h4 className="text-sm font-bold text-white">{seoPageEditor.id ? 'Edit post' : 'Post baru'}</h4>
-                            <button type="button" onClick={() => setSeoPageEditor(null)} aria-label="Tutup editor post" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white">
-                              <X className="h-4 w-4" />
-                            </button>
+                            <button type="button" onClick={() => setSeoPageEditor(null)} aria-label="Tutup editor post" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"><X className="h-4 w-4" /></button>
                           </div>
-
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <label className="space-y-1 text-xs font-medium text-zinc-300">
-                              Judul post
-                              <input value={seoPageEditor.title} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, title: event.target.value, ...(!seoPageEditor.id && !seoPageEditor.subdomain ? { subdomain: slugifySubdomain(event.target.value) } : {}) })} maxLength={120} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Promo Honda Vario Bandung" />
-                            </label>
-                            <label className="space-y-1 text-xs font-medium text-zinc-300">
-                              Subdomain
-                              <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-zinc-900 focus-within:border-red-500">
-                                <input value={seoPageEditor.subdomain} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, subdomain: slugifySubdomain(event.target.value) })} maxLength={63} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
-                                <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-500">.kreditmotorhonda.tech</span>
-                              </div>
-                              <span className="block break-all text-[10px] text-sky-300">https://{seoPageEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
-                            </label>
-                          </div>
-
-                          <label className="block max-w-xl space-y-1 text-xs font-medium text-zinc-300">
-                            Admin penanggung jawab post
-                            <select value={seoPageEditor.adminUserId} onChange={(event) => {
-                              setSeoPageEditor({ ...seoPageEditor, adminUserId: event.target.value });
-                            }} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
-                              {adminUsers.map((user) => <option key={user.id} value={user.id}>{user.username} · {user.role}</option>)}
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Subdomain SEO
+                            <select value={seoPageEditor.subdomain} disabled={Boolean(seoPageEditor.id)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, subdomain: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none disabled:opacity-70">
+                              <option value="" disabled>Pilih subdomain SEO</option>
+                              {(settings.seoPages || []).map((page) => <option key={page.id} value={page.subdomain}>{page.subdomain}.kreditmotorhonda.tech</option>)}
                             </select>
                           </label>
-
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">Judul post<input value={seoPageEditor.title} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, title: event.target.value })} maxLength={120} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Promo Honda Vario Bandung" /></label>
                           <label className="block space-y-1 text-xs font-medium text-zinc-300">
-                            Isi post
-                            <textarea value={seoPageEditor.content} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, content: event.target.value })} rows={6} maxLength={20000} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-relaxed text-white focus:border-red-500 focus:outline-none" placeholder="Tulis isi post. Gunakan baris baru untuk memisahkan paragraf." />
+                            Slug URL
+                            <input value={seoPageEditor.slug || slugifySeoPost(seoPageEditor.title)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, slug: slugifySeoPost(event.target.value) })} maxLength={63} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="judul-post" />
+                            <span className="block break-all text-[10px] text-sky-300">https://{seoPageEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech/{seoPageEditor.slug || slugifySeoPost(seoPageEditor.title) || 'slug'}/</span>
                           </label>
-
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <label className="space-y-1 text-xs font-medium text-zinc-300">
-                              SEO title
-                              <input value={seoPageEditor.seoTitle} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoTitle: event.target.value })} maxLength={70} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Judul yang tampil di Google" />
-                            </label>
-                            <label className="space-y-1 text-xs font-medium text-zinc-300">
-                              Kata kunci SEO
-                              <input value={seoPageEditor.seoKeywords} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan dengan koma" />
-                            </label>
-                          </div>
-
-                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
-                            SEO description
-                            <textarea value={seoPageEditor.seoDescription} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoDescription: event.target.value })} rows={3} maxLength={200} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Ringkasan untuk hasil pencarian" />
-                          </label>
-
-                          <label className="block max-w-xs space-y-1 text-xs font-medium text-zinc-300">
-                            Robots
-                            <select value={seoPageEditor.seoRobots || 'index, follow'} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoRobots: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
-                              <option value="index, follow">Index, follow</option>
-                              <option value="noindex, follow">Noindex, follow</option>
-                            </select>
-                          </label>
-
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">Isi post<textarea value={seoPageEditor.content} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, content: event.target.value })} rows={8} maxLength={20000} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-relaxed text-white focus:border-red-500 focus:outline-none" placeholder="Tulis isi post. Gunakan baris baru untuk memisahkan paragraf." /></label>
                           <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
                             <button type="button" onClick={() => setSeoPageEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
-                            <button type="button" onClick={() => void handleSaveSeoPage()} disabled={isSavingSeoPage} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50">
-                              <Save className="h-3.5 w-3.5" /> {isSavingSeoPage ? 'Menyimpan...' : 'Simpan & publikasikan'}
-                            </button>
+                            <button type="button" onClick={() => void handleSaveSeoPage()} disabled={isSavingSeoPage} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {isSavingSeoPage ? 'Menyimpan...' : 'Simpan post'}</button>
                           </div>
                         </div>
                       )}
@@ -3206,7 +3280,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
 
                   <aside className="space-y-4">
-                    <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section className={`rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <div className="flex items-center gap-4">
                         <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-1" style={{ background: `conic-gradient(#ef4444 ${seoScore * 3.6}deg, #27272a 0deg)` }}>
                           <div className="grid h-full w-full place-items-center rounded-full bg-zinc-950 text-xl font-black text-white">{seoScore}</div>
