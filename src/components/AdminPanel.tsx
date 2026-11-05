@@ -3395,7 +3395,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           ))}
                         </select>
                       </div>
-                      <button className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20">Tambah Admin</button>
+                      <button className="rounded-xl border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:border-emerald-800 hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">Tambah Admin</button>
                     </form>
                   )}
                 </div>
