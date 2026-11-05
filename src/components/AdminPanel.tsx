@@ -1403,6 +1403,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       showToast('Pos dan SEO subdomain berhasil disimpan dalam satu form.');
       onRefreshData();
     } catch (error: any) {
+      if (String(error?.message || '').includes('Sesi admin tidak valid')) {
+        localStorage.removeItem('hwa-admin-token');
+        setLoginError('Sesi admin berakhir setelah server diperbarui. Silakan login kembali; isi form tetap tersimpan.');
+        setAdminSession(null);
+        return;
+      }
       alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
     } finally {
       setIsSavingSeoPage(false);
