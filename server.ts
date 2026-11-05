@@ -565,6 +565,8 @@ function publicSeoPage(page: any) {
       slug: post.slug,
       title: post.title,
       content: post.content,
+      authorUsername: post.authorUsername,
+      authorRole: post.authorRole,
     })),
     seoTitle: page.seoTitle,
     seoDescription: page.seoDescription,

@@ -91,6 +91,8 @@ export interface SeoLandingPost {
   slug: string;
   title: string;
   content: string;
+  authorUsername?: string;
+  authorRole?: string;
   created_at?: string;
   updated_at?: string;
 }

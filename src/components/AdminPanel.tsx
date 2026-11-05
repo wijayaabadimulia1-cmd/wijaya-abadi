@@ -228,6 +228,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     || motorBestsellerFilter !== 'all';
   const [isImportingMotors, setIsImportingMotors] = useState(false);
   const motorCsvInputRef = useRef<HTMLInputElement>(null);
+  const hasDuplicateSeoSubdomain = Boolean(seoSubdomainEditor && settings?.seoPages?.some((page) => (
+    page.subdomain === slugifySubdomain(seoSubdomainEditor.subdomain)
+    && page.id !== seoSubdomainEditor.id
+  )));
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -1218,6 +1222,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       slug,
       title,
       content,
+      authorUsername: currentPosts.find((item) => item.id === seoPageEditor.id)?.authorUsername || (seoPageEditor.id ? 'Abadi' : adminSession.username),
+      authorRole: currentPosts.find((item) => item.id === seoPageEditor.id)?.authorRole || (seoPageEditor.id ? 'Super Admin' : adminSession.role),
     };
     const isLegacyRootPost = seoPageEditor.id === subdomainPage.id && Boolean(subdomainPage.content.trim());
     const nextPage: SeoLandingPage = isLegacyRootPost
@@ -1227,15 +1233,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           posts: currentPosts.filter((item) => item.id !== subdomainPage.id && item.id !== post.id).concat(post),
         };
     const nextPages = currentPages.map((item) => item.id === subdomainPage.id ? nextPage : item);
+    const postWindow = window.open('', '_blank');
+    if (postWindow) postWindow.opener = null;
 
     setIsSavingSeoPage(true);
     try {
       const saved = await api.updateSettings({ seoPages: nextPages });
       setSettings(saved);
       setSeoPageEditor(null);
-      showToast(`Post disimpan: ${subdomainPage.subdomain}${getSeoLandingPostPath(nextPage, post)}`);
+      const postUrl = `https://${subdomainPage.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(nextPage, post)}`;
+      if (postWindow) postWindow.location.href = postUrl;
+      else window.location.assign(postUrl);
       onRefreshData();
     } catch (error: any) {
+      postWindow?.close();
       alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
     } finally {
       setIsSavingSeoPage(false);
@@ -3201,6 +3212,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                               <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-500">.kreditmotorhonda.tech</span>
                             </div>
                             <span className="block break-all text-[10px] text-sky-300">https://{seoSubdomainEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
+                            {hasDuplicateSeoSubdomain && <span className="block text-[11px] font-semibold text-red-300">Website ini sudah memiliki SEO subdomain.</span>}
                           </label>
                           <label className="block max-w-xl space-y-1 text-xs font-medium text-zinc-300">
                             Admin penanggung jawab SEO
@@ -3216,7 +3228,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <label className="block max-w-xs space-y-1 text-xs font-medium text-zinc-300">Robots<select value={seoSubdomainEditor.seoRobots || 'index, follow'} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoRobots: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"><option value="index, follow">Index, follow</option><option value="noindex, follow">Noindex, follow</option></select></label>
                           <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
                             <button type="button" onClick={() => setSeoSubdomainEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
-                            <button type="button" onClick={() => void handleSaveSeoSubdomain()} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500"><Save className="h-3.5 w-3.5" /> Simpan SEO subdomain</button>
+                            <button type="button" onClick={() => void handleSaveSeoSubdomain()} disabled={hasDuplicateSeoSubdomain} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-300"><Save className="h-3.5 w-3.5" /> Simpan SEO subdomain</button>
                           </div>
                         </div>
                       )}
@@ -3238,6 +3250,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             <div key={`${page.id}-${post.id}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-white">{post.title}</p>
+                                <p className="mt-1 text-[11px] text-zinc-300">@{post.authorUsername || 'Abadi'} · {post.authorRole || 'Super Admin'}</p>
                                 <a href={`https://${page.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(page, post)}`} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-sky-300 hover:text-sky-200">{page.subdomain}.kreditmotorhonda.tech{getSeoLandingPostPath(page, post)}</a>
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
