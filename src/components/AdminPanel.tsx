@@ -1226,7 +1226,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     e.preventDefault();
     if (!settings) return;
     try {
-      const savedSettings = await api.updateSettings(settings);
+      const settingsToSave = Object.fromEntries(
+        Object.entries(settings).filter(([key]) => key !== 'seoPages' && key !== 'ownerDashboard'),
+      ) as Partial<DealerSettings>;
+      const savedSettings = await api.updateSettings(settingsToSave);
       setSettings(savedSettings);
       showToast('Pengaturan dealer berhasil disimpan ke database!');
       onRefreshData();
