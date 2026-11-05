@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-ubuntu-vps
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -44,6 +48,29 @@ jobs:
             echo "GSC_SITE_URLS contains unsupported characters." >&2
             exit 1
           fi
+          ssh "${VPS_USER}@${VPS_HOST}" 'bash -s' <<'CLEANUP'
+          set -euo pipefail
+          RELEASE_ROOT="/opt/wijaya-abadi/releases"
+          for release in "$RELEASE_ROOT"/*; do
+            [ -d "$release" ] || continue
+            [[ "$release" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]] || continue
+            [ -f "$release/dist/server.cjs" ] && continue
+            referenced=0
+            for service in kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+              if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
+                referenced=1
+                break
+              fi
+            done
+            if [ "$referenced" -eq 0 ]; then
+              echo "Removing incomplete deployment release: $release"
+              sudo rm -rf -- "$release"
+            fi
+          done
+          find /tmp -maxdepth 1 -type f -name 'wijaya-abadi-*.tar' -print -delete
+          df -h / /tmp /opt
+          df -i / /tmp /opt
+          CLEANUP
           if [ -n "$GSC_SERVICE_ACCOUNT_JSON" ]; then
             printf '%s' "$GSC_SERVICE_ACCOUNT_JSON" | ssh "${VPS_USER}@${VPS_HOST}" 'sudo install -d -m 700 /etc/wijaya-abadi && sudo tee /etc/wijaya-abadi/gsc-service-account.json >/dev/null && sudo chmod 600 /etc/wijaya-abadi/gsc-service-account.json'
           fi

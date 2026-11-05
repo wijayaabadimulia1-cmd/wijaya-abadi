@@ -59,6 +59,20 @@ cleanup() {
     sudo systemctl daemon-reload || true
     sudo systemctl restart "$SERVICE" || true
   fi
+  if [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ -d "$RELEASE_DIR" ]; then
+    local release_in_use=0
+    for service in "$SERVICE" "${SATELLITE_SERVICES[@]}"; do
+      if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$RELEASE_DIR/dist/server.cjs"; then
+        release_in_use=1
+        break
+      fi
+    done
+    if [ "$release_in_use" -eq 0 ]; then
+      sudo rm -rf -- "$RELEASE_DIR" || echo "Warning: could not remove failed release $RELEASE_DIR." >&2
+    else
+      echo "Preserving failed release still referenced by a service: $RELEASE_DIR" >&2
+    fi
+  fi
   if [ -n "$STAGING_PID" ]; then
     kill "$STAGING_PID" 2>/dev/null || true
     wait "$STAGING_PID" 2>/dev/null || true
