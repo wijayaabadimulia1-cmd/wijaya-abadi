@@ -1672,7 +1672,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               ...(window.location.hostname === 'kreditmotorhonda.tech' && adminSession.role === 'Super Admin'
                 ? [
                     { id: 'seo-subdomains', label: 'SEO Subdomain', icon: Search },
-                    { id: 'seo-posts', label: 'Post Subdomain', icon: FileText },
+                    { id: 'seo-posts', label: 'Buat Pos', icon: FileText },
                   ]
                 : []),
               { id: 'security', label: 'Admin & Histori', icon: Shield },
