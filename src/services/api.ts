@@ -193,9 +193,18 @@ export const api = {
       headers: adminHeaders(),
       body: JSON.stringify(data),
     });
-    const result = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(result.error || 'Gagal memperbarui pengaturan dealer');
-    return result;
+    const responseText = await res.text();
+    let result: Partial<DealerSettings> & { error?: string } = {};
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      if (res.ok) throw new Error(`Respons server tidak valid (HTTP ${res.status})`);
+    }
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type')?.split(';')[0] || 'unknown response type';
+      throw new Error(result.error || `Gagal memperbarui pengaturan dealer (HTTP ${res.status}, ${contentType})`);
+    }
+    return result as DealerSettings;
   },
 
   async provisionSeoPageSsl(id: string): Promise<{ status: 'pending' | 'active' | 'failed'; message: string; seoPages: DealerSettings['seoPages'] }> {
