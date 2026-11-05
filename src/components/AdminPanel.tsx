@@ -1233,20 +1233,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           posts: currentPosts.filter((item) => item.id !== subdomainPage.id && item.id !== post.id).concat(post),
         };
     const nextPages = currentPages.map((item) => item.id === subdomainPage.id ? nextPage : item);
-    const postWindow = window.open('', '_blank');
-    if (postWindow) postWindow.opener = null;
 
     setIsSavingSeoPage(true);
     try {
       const saved = await api.updateSettings({ seoPages: nextPages });
       setSettings(saved);
       setSeoPageEditor(null);
-      const postUrl = `https://${subdomainPage.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(nextPage, post)}`;
-      if (postWindow) postWindow.location.href = postUrl;
-      else window.location.assign(postUrl);
+      setActiveTab('seo-subdomains');
+      setSeoSubdomainEditor({
+        id: '',
+        subdomain: '',
+        adminUserId: adminSession.id,
+        title: '',
+        content: '',
+        seoTitle: '',
+        seoDescription: '',
+        seoKeywords: '',
+        seoRobots: 'index, follow',
+      });
+      window.setTimeout(() => document.getElementById('seo-subdomain-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      showToast('Post disimpan. Form Tambah SEO subdomain dibuka.');
       onRefreshData();
     } catch (error: any) {
-      postWindow?.close();
       alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
     } finally {
       setIsSavingSeoPage(false);
@@ -1691,6 +1699,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <button
                     onClick={() => {
                       setActiveTab(tab.id as any);
+                      if (tab.id === 'seo-posts') setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' });
                       if (tab.id === 'seo-subdomains' || tab.id === 'seo-posts') {
                         const targetId = tab.id === 'seo-subdomains' ? 'seo-subdomain-manager' : 'seo-post-manager';
                         window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
@@ -3240,11 +3249,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <h3 className="text-sm font-bold text-white">Pembuatan Post</h3>
                           <p className="mt-1 text-xs text-zinc-400">Buat atau edit konten post dan hubungkan ke subdomain SEO yang sudah tersedia.</p>
                         </div>
-                        <button type="button" onClick={() => setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' })} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
-                          <Plus className="h-3.5 w-3.5" /> Buat post
+                        <button type="button" onClick={() => setSeoPageEditor((current) => current && !current.id ? null : { id: '', slug: '', subdomain: '', title: '', content: '' })} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
+                          {seoPageEditor && !seoPageEditor.id ? <FileText className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                          {seoPageEditor && !seoPageEditor.id ? 'Lihat pos yang ada' : 'Buat pos baru'}
                         </button>
                       </div>
-                      {seoPostEntries.length ? (
+                      {seoPostEntries.length && !(seoPageEditor && !seoPageEditor.id) ? (
                         <div className="divide-y divide-white/10 rounded-xl border border-white/10">
                           {seoPostEntries.map(({ page, post }) => (
                             <div key={`${page.id}-${post.id}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -3260,9 +3270,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             </div>
                           ))}
                         </div>
-                      ) : (
+                      ) : !seoPageEditor ? (
                         <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">{settings.seoPages?.length ? 'Belum ada post. Buat post pertama dari sini.' : 'Buat konfigurasi SEO subdomain sebelum menambahkan post.'}</p>
-                      )}
+                      ) : null}
                       {seoPageEditor && (
                         <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
                           <div className="flex items-center justify-between gap-3">
