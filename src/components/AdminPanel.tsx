@@ -3432,7 +3432,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
                                 <button type="button" onClick={() => void handleDeleteSeoPost(page, post)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"><Trash2 className="h-3.5 w-3.5" />Hapus pos</button>
-                                <button type="button" onClick={() => setSeoPageEditor({ ...post, subdomain: page.subdomain, seoTitle: page.seoTitle, seoDescription: page.seoDescription, seoKeywords: page.seoKeywords, seoRobots: page.seoRobots, slugManuallyEdited: true })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit pos</button>
+                                <button type="button" onClick={() => {
+                                  setSeoPageEditor({ ...post, subdomain: page.subdomain, seoTitle: page.seoTitle, seoDescription: page.seoDescription, seoKeywords: page.seoKeywords, seoRobots: page.seoRobots, slugManuallyEdited: true });
+                                  setActiveTab('seo-posts');
+                                  window.setTimeout(() => document.getElementById('seo-post-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                                }} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit pos</button>
                               </div>
                             </div>
                           ))}
