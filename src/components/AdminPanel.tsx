@@ -1473,7 +1473,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           ...seoPageEditor,
           subdomain: page.subdomain,
           ...(!seoPageEditor.slugManuallyEdited
-            ? { slug: slugifySeoPost(seoPageEditor.title || page.subdomain) }
+            ? { slug: slugifySeoPost(seoPageEditor.title) }
             : {}),
         });
       }
@@ -3465,7 +3465,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                     ...seoPageEditor,
                                     subdomain: updatedSubdomain,
                                     ...(!seoPageEditor.slugManuallyEdited
-                                      ? { slug: slugifySeoPost(seoPageEditor.title || updatedSubdomain) }
+                                      ? { slug: slugifySeoPost(seoPageEditor.title) }
                                       : {}),
                                   });
                                 }} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
@@ -3511,7 +3511,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 ...seoPageEditor,
                                 title: updatedTitle,
                                 ...(!seoPageEditor.slugManuallyEdited
-                                  ? { slug: slugifySeoPost(updatedTitle || seoPageEditor.subdomain) }
+                                  ? { slug: slugifySeoPost(updatedTitle) }
                                   : {}),
                               });
                             }} maxLength={120} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Promo Honda Vario Bandung" />
@@ -3519,13 +3519,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                           <label className="block space-y-1 text-xs font-medium text-zinc-300">
                             Slug URL
-                            <input value={seoPageEditor.slug || slugifySeoPost(seoPageEditor.title || seoPageEditor.subdomain)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, slug: slugifySeoPost(event.target.value), slugManuallyEdited: true })} maxLength={63} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="judul-post" />
+                            <input value={seoPageEditor.slug || slugifySeoPost(seoPageEditor.title)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, slug: slugifySeoPost(event.target.value), slugManuallyEdited: true })} maxLength={63} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
                             <span className="block break-all text-[10px] text-sky-300">
                               {seoPageEditor.subdomain
-                                ? `https://${seoPageEditor.subdomain}.kreditmotorhonda.tech/${seoPageEditor.slug || slugifySeoPost(seoPageEditor.title || seoPageEditor.subdomain) || 'judul-post'}/`
+                                ? `https://${seoPageEditor.subdomain}.kreditmotorhonda.tech${seoPageEditor.slug || slugifySeoPost(seoPageEditor.title) ? `/${seoPageEditor.slug || slugifySeoPost(seoPageEditor.title)}/` : ''}`
                                 : 'Tentukan subdomain di atas untuk membuat URL pos otomatis.'}
                             </span>
-                            <span className="block text-[10px] text-zinc-500">Slug terisi dari subdomain, lalu mengikuti judul pos. Slug dapat diubah manual.</span>
+                            <span className="block text-[10px] text-zinc-500">Slug otomatis hanya mengikuti judul pos; kosong sampai judul diisi dan dapat diubah manual.</span>
                           </label>
 
                           <label className="block space-y-1 text-xs font-medium text-zinc-300">
