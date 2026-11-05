@@ -3191,7 +3191,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                   <button type="button" onClick={() => void handleProvisionSeoPageSsl(page)} className="rounded-lg border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/10">Coba SSL lagi</button>
                                 )}
                                 <button type="button" onClick={() => setSeoSubdomainEditor({ ...page, adminUserId: page.adminUserId || adminSession.id })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit SEO</button>
-                                <button type="button" onClick={() => void handleDeleteSeoPage(page)} className="rounded-lg border border-red-500/20 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Hapus</button>
+                                <button type="button" onClick={() => void handleDeleteSeoPage(page)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"><Trash2 className="h-3.5 w-3.5" />Hapus SEO</button>
                               </div>
                             </div>
                           ))}
