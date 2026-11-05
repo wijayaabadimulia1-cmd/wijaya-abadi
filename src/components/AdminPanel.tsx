@@ -3257,7 +3257,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                   <div className="space-y-5">
-                    <section id="seo-main-metadata" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' || activeTab === 'seo-posts' ? '' : 'hidden'}`}>
+                    <section id="seo-main-metadata" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <h3 className="text-sm font-bold text-white">Metadata halaman utama</h3>
                       <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                         Judul SEO
@@ -3404,8 +3404,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <section id="seo-post-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-posts' || activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-sm font-bold text-white">{activeTab === 'seo-posts' ? 'Buat Pos' : 'Pos tersimpan'}</h3>
-                          <p className="mt-1 text-xs text-zinc-400">{activeTab === 'seo-posts' ? 'Isi subdomain, SEO, dan konten pos dalam satu form lalu simpan sekaligus.' : 'Edit atau hapus pos pada subdomain yang sudah dibuat.'}</p>
+                          <h3 className="text-sm font-bold text-white">{activeTab === 'seo-posts' ? 'Tambah SEO Baru' : 'Pos tersimpan'}</h3>
+                          <p className="mt-1 text-xs text-zinc-400">{activeTab === 'seo-posts' ? 'Isi subdomain, metadata SEO, dan konten pos dalam satu form lalu simpan sekaligus.' : 'Edit atau hapus pos pada subdomain yang sudah dibuat.'}</p>
                         </div>
                       </div>
 
@@ -3432,15 +3432,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       {activeTab === 'seo-posts' && seoPageEditor && (
                         <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
                           <div className="flex items-center justify-between gap-3">
-                            <h4 className="text-sm font-bold text-white">{seoPageEditor.id ? 'Edit pos' : 'Form pos baru'}</h4>
+                            <h4 className="text-sm font-bold text-white">{seoPageEditor.id ? 'Edit pos' : 'SEO dan Pos Baru'}</h4>
                             <button type="button" onClick={() => setSeoPageEditor(null)} aria-label="Tutup editor post" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"><X className="h-4 w-4" /></button>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-3 rounded-lg border border-white/10 bg-zinc-900/70 p-3">
+                            <div>
+                              <p className="text-[11px] font-medium text-zinc-400">Domain utama tersedia</p>
+                              <p className="mt-1 text-sm font-semibold text-white">kreditmotorhonda.tech</p>
+                            </div>
                             <label className="block space-y-1 text-xs font-medium text-zinc-300">
-                              Subdomain SEO
-                              <input value={seoPageEditor.subdomain} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, subdomain: slugifySubdomain(event.target.value) })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="promo-vario" />
+                              Tentukan subdomain
+                              <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-zinc-950 focus-within:border-red-500">
+                                <input value={seoPageEditor.subdomain} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, subdomain: slugifySubdomain(event.target.value) })} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
+                                <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-400">.kreditmotorhonda.tech</span>
+                              </div>
+                              <span className="block break-all text-[10px] text-sky-300">Alamat subdomain: https://{seoPageEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
                             </label>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <label className="block space-y-1 text-xs font-medium text-zinc-300">
                               Judul SEO
                               <input value={seoPageEditor.seoTitle || ''} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoTitle: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Judul yang tampil di Google" />
