@@ -497,11 +497,17 @@ export default function App() {
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
   const isTokyoRacingEdition = settings.websiteTemplate === 'honda-tokyo-racing-edition';
-  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isTokyoRacingEdition;
-  const tokyoHeroContent = isTokyoRacingEdition ? {
+  const isNovemberEdition = settings.websiteTemplate === 'astra-honda-november-edition';
+  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isTokyoRacingEdition || isNovemberEdition;
+  const campaignHeroContent = isTokyoRacingEdition ? {
     badge: settings.heroBadge || 'TOKYO RACING & STREETWEAR CREDIT 2026',
     headline: settings.heroMainTitle || 'STREET RIDE.',
     highlight: settings.heroTitleHighlight || 'LOW DP. NO DRAMA.',
+    subtitle: settings.heroSubtitle,
+  } : isNovemberEdition ? {
+    badge: settings.heroBadge || 'PROMO NOVEMBER WARM RIDE EDITION 2026',
+    headline: settings.heroMainTitle || 'Nikmati Perjalanan Musim Hujan',
+    highlight: settings.heroTitleHighlight || 'Dengan Kredit Motor Honda',
     subtitle: settings.heroSubtitle,
   } : undefined;
   const customization = settings.customization || {};
@@ -982,7 +988,7 @@ export default function App() {
             motors={motors}
             promos={promos}
             priceList={fifPriceList}
-            contentOverride={tokyoHeroContent}
+            contentOverride={campaignHeroContent}
             onOpenSimulator={() => handleOpenSimulator()}
             onOpenInterest={handleOpenInterest}
           />

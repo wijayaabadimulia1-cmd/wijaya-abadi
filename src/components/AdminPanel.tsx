@@ -905,6 +905,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'showcase-wijaya-2', label: 'Showcase Wijaya 2', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Showcase Honda merah-putih dengan hero langit pegunungan, CTA tegas, dan katalog bersih.' },
     { value: 'astra-honda-red-white', label: 'Astra Honda Motor Red & White', accent: 'bg-gradient-to-r from-red-600 via-white to-red-600', description: 'Tema merah-putih Astra Honda yang mengikuti referensi, dengan katalog dan simulasi kredit dealer.' },
     { value: 'honda-tokyo-racing-edition', label: 'Honda Tokyo Racing Edition', accent: 'bg-gradient-to-r from-red-600 via-zinc-950 to-cyan-400', description: 'Gaya Tokyo Racing terang dengan pola Jepang, aksen merah-sian, katalog dealer, dan simulasi kredit.' },
+    { value: 'astra-honda-november-edition', label: 'Astra Honda November Edition', accent: 'bg-gradient-to-r from-red-600 via-white to-amber-500', description: 'Tema November dengan suasana hujan dan pegunungan berkabut, aksen merah Honda dan amber.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -975,8 +976,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const isShowcaseWijaya2 = template === 'showcase-wijaya-2';
     const isAstraHondaRedWhite = template === 'astra-honda-red-white';
     const isTokyoRacingEdition = template === 'honda-tokyo-racing-edition';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition;
+    const isNovemberEdition = template === 'astra-honda-november-edition';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition' || settings.websiteTemplate === 'astra-honda-november-edition';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition && !isNovemberEdition;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -1162,6 +1164,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 },
               },
             }
+        : isNovemberEdition
+          ? {
+              ...baseCustomization,
+              templatePaletteBackup: previousColorPalettes,
+              colorPalettes: {
+                ...(previousColorPalettes || {}),
+                light: {
+                  primaryColor: '#e60012',
+                  secondaryColor: '#0f172a',
+                  accentColor: '#d97706',
+                  backgroundColor: '#fafafa',
+                  panelColor: '#ffffff',
+                  cardColor: '#ffffff',
+                  elevatedColor: '#ffffff',
+                  borderColor: '#e2e8f0',
+                  textColor: '#0f172a',
+                  mutedColor: '#64748b',
+                  heroTextColor: '#0f172a',
+                  heroTitleHighlightColor: '#e60012',
+                },
+                dark: {
+                  primaryColor: '#ff3548',
+                  secondaryColor: '#e2e8f0',
+                  accentColor: '#fbbf24',
+                  backgroundColor: '#111827',
+                  panelColor: '#1e293b',
+                  cardColor: '#253247',
+                  elevatedColor: '#334155',
+                  borderColor: '#475569',
+                  textColor: '#f8fafc',
+                  mutedColor: '#cbd5e1',
+                  heroTextColor: '#f8fafc',
+                  heroTitleHighlightColor: '#ff4653',
+                },
+              },
+            }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -1197,6 +1235,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             heroTitleHighlight: 'LOW DP. NO DRAMA.',
             heroSubtitle: 'Nikmati cicilan kredit motor Honda resmi dengan proses mudah, berkas dibantu, dan pilihan pembayaran yang jelas.',
           }
+      : isNovemberEdition
+        ? {
+            heroBadge: 'PROMO NOVEMBER WARM RIDE EDITION 2026',
+            heroMainTitle: 'Nikmati Perjalanan Musim Hujan',
+            heroTitleHighlight: 'Dengan Kredit Motor Honda',
+            heroSubtitle: 'Sambut November dengan motor Honda baru, DP terjangkau, bonus perlengkapan musim hujan, dan proses pengajuan yang praktis.',
+          }
       : isShowcaseWijaya2
         ? {
             heroMainTitle: 'Saatnya Punya',
@@ -1211,7 +1256,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);

@@ -1,0 +1,305 @@
+.website-template-astra-honda-november-edition {
+  --site-bg: #ffffff;
+  --site-panel: #f1f5f9;
+  --site-card: #ffffff;
+  --site-text: #0f172a;
+  --site-muted: #64748b;
+  --site-accent: #e60012;
+  --site-accent-soft: rgba(230, 0, 18, 0.08);
+  --site-border: #e2e8f0;
+  --november-red: var(--custom-primary, #e60012);
+  --november-amber: var(--custom-accent, #d97706);
+  --november-ink: #0f172a;
+  --november-muted: #64748b;
+  --november-surface: #ffffff;
+  --november-mist: #f1f5f9;
+}
+
+.website-template-astra-honda-november-edition.site-mode-dark {
+  --site-bg: #111827;
+  --site-panel: #1e293b;
+  --site-card: #253247;
+  --site-text: #f8fafc;
+  --site-muted: #cbd5e1;
+  --site-accent: #ff3548;
+  --site-accent-soft: rgba(255, 53, 72, 0.12);
+  --site-border: #475569;
+  --november-ink: #f8fafc;
+  --november-muted: #cbd5e1;
+  --november-surface: #1e293b;
+  --november-mist: #111827;
+}
+
+.website-shell.website-template-astra-honda-november-edition,
+.website-shell.website-template-astra-honda-november-edition.site-mode-light,
+.website-shell.website-template-astra-honda-november-edition.site-mode-dark {
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-topbar {
+  background: var(--november-red);
+  color: #ffffff;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.12);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-topbar__item svg,
+.website-shell.website-template-astra-honda-november-edition .astra-honda-topbar__official svg {
+  color: #fcd34d;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-topbar__official {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.17);
+}
+
+.website-shell.website-template-astra-honda-november-edition .site-navbar {
+  border-bottom: 1px solid var(--site-border);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.website-shell.website-template-astra-honda-november-edition.site-mode-dark .site-navbar {
+  background: rgba(17, 24, 39, 0.94);
+  color: #f8fafc;
+}
+
+.website-shell.website-template-astra-honda-november-edition .site-navbar a,
+.website-shell.website-template-astra-honda-november-edition .site-navbar button {
+  border-radius: 0.85rem;
+}
+
+.website-shell.website-template-astra-honda-november-edition .site-navbar nav a:first-child {
+  border: 1px solid #ffccd0;
+  background: #fff0f1;
+  color: #e60012 !important;
+  padding: 9px 16px;
+}
+
+.website-shell.website-template-astra-honda-november-edition.site-mode-dark .site-navbar nav a:first-child {
+  border-color: rgba(255, 53, 72, 0.35);
+  background: rgba(255, 53, 72, 0.13);
+  color: #ff7280 !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition .site-navbar .site-accent-label {
+  border-color: #ffccd0;
+  background: #fff0f1;
+  color: #e60012;
+}
+
+.website-shell.website-template-astra-honda-november-edition .site-navbar .bg-emerald-600 {
+  background: #0f172a !important;
+  color: #ffffff;
+}
+
+.website-shell.website-template-astra-honda-november-edition .site-navbar-mobile-menu {
+  border-color: var(--site-border) !important;
+  background: var(--november-surface) !important;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.1);
+}
+
+.website-shell.website-template-astra-honda-november-edition #home.astra-honda-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #fafafa !important;
+  background-image:
+    radial-gradient(rgba(230, 0, 18, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 240, 241, 0.9) 0%, #ffffff 55%, #f1f5f9 100%) !important;
+  background-size: 24px 24px, 100% 100%;
+  color: #0f172a;
+}
+
+.website-shell.website-template-astra-honda-november-edition.site-mode-dark #home.astra-honda-hero {
+  background-color: #111827 !important;
+  background-image:
+    radial-gradient(rgba(255, 53, 72, 0.12) 1px, transparent 1px),
+    linear-gradient(180deg, #2b2029 0%, #111827 62%, #1e293b 100%) !important;
+  color: #f8fafc;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-hero__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-hero__badge {
+  border-color: #ffccd0;
+  color: var(--november-red);
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-hero__copy h1 {
+  color: var(--november-ink);
+  letter-spacing: 0;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-hero__copy h1 span {
+  color: var(--november-red);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-hero__description,
+.website-shell.website-template-astra-honda-november-edition .astra-honda-benefits small {
+  color: var(--november-muted);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-benefits > div {
+  min-height: 76px;
+  align-items: center;
+  border: 1px solid var(--site-border);
+  border-radius: 1rem;
+  background: var(--november-surface);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-benefits strong {
+  color: var(--november-ink);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-benefits__icon {
+  background: #fff0f1;
+  color: var(--november-red);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-benefits > div:first-child .astra-honda-benefits__icon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-button {
+  min-height: 48px;
+  border-radius: 0.85rem;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-button--primary {
+  background: var(--november-red);
+  box-shadow: 0 8px 24px rgba(230, 0, 18, 0.2);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-button--outline {
+  border-color: var(--november-red);
+  color: var(--november-red) !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition.site-mode-dark .astra-honda-button--outline {
+  border-color: #ff7280;
+  background: #1e293b;
+  color: #ff7280 !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured {
+  border-color: var(--november-red);
+  background: var(--november-surface);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured__ribbon {
+  background: var(--november-red);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured__image-wrap {
+  border-color: var(--site-border);
+  background: var(--november-mist);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured__details h2 {
+  color: var(--november-ink);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured__details p,
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured__price span {
+  color: var(--november-muted);
+}
+
+.website-shell.website-template-astra-honda-november-edition .astra-honda-featured__price {
+  border-color: var(--site-border);
+}
+
+.website-shell.website-template-astra-honda-november-edition #katalog,
+.website-shell.website-template-astra-honda-november-edition #promo,
+.website-shell.website-template-astra-honda-november-edition #manifesto,
+.website-shell.website-template-astra-honda-november-edition #testimoni,
+.website-shell.website-template-astra-honda-november-edition #simulasi,
+.website-shell.website-template-astra-honda-november-edition #kontak {
+  background-color: var(--site-bg-effective) !important;
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-november-edition #katalog,
+.website-shell.website-template-astra-honda-november-edition #manifesto,
+.website-shell.website-template-astra-honda-november-edition #kontak {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition #katalog h2,
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-product-title,
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-price-value {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-november-edition #katalog p,
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-product-description,
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-compare-button {
+  color: var(--site-muted-effective);
+}
+
+.website-shell.website-template-astra-honda-november-edition .catalog-card,
+.website-shell.website-template-astra-honda-november-edition .simulator-container {
+  border-color: var(--site-border) !important;
+  background: var(--site-card-effective);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-spec-tag,
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-cta-secondary {
+  border-color: var(--site-border);
+  background: var(--site-panel-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-astra-honda-november-edition #katalog .catalog-cta-primary,
+.website-shell.website-template-astra-honda-november-edition .bg-red-600,
+.website-shell.website-template-astra-honda-november-edition .hover\:bg-red-500:hover {
+  background-color: var(--november-red) !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition .text-red-400,
+.website-shell.website-template-astra-honda-november-edition .text-red-500,
+.website-shell.website-template-astra-honda-november-edition .text-red-600 {
+  color: var(--november-red) !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition .border-red-500,
+.website-shell.website-template-astra-honda-november-edition .border-red-600 {
+  border-color: var(--november-red) !important;
+}
+
+.website-shell.website-template-astra-honda-november-edition input[type='range'] {
+  accent-color: var(--november-red);
+}
+
+.website-shell.website-template-astra-honda-november-edition footer {
+  border-top: 3px solid var(--november-red);
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-astra-honda-november-edition .astra-honda-benefits > div {
+    min-height: 66px;
+    padding: 9px;
+  }
+
+  .website-shell.website-template-astra-honda-november-edition .astra-honda-hero__badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
