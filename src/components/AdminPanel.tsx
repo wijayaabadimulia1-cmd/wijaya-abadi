@@ -63,7 +63,7 @@ interface AdminPanelProps {
   onRefreshData: () => void;
 }
 
-type SeoPostEditor = SeoLandingPost & { subdomain: string };
+type SeoPostEditor = SeoLandingPost & { subdomain: string; slugManuallyEdited?: boolean };
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -1463,7 +1463,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       setSettings(updatedSettings);
       setSeoSubdomainEditor(null);
       if (continuePostCreation && seoPageEditor) {
-        setSeoPageEditor({ ...seoPageEditor, subdomain: page.subdomain });
+        setSeoPageEditor({
+          ...seoPageEditor,
+          subdomain: page.subdomain,
+          ...(!seoPageEditor.slugManuallyEdited
+            ? { slug: slugifySeoPost(seoPageEditor.title || page.subdomain) }
+            : {}),
+        });
       }
       onRefreshData();
       if (sslResult && sslResult.status !== 'active') {
@@ -3420,7 +3426,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
                                 <button type="button" onClick={() => void handleDeleteSeoPost(page, post)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"><Trash2 className="h-3.5 w-3.5" />Hapus pos</button>
-                                <button type="button" onClick={() => setSeoPageEditor({ ...post, subdomain: page.subdomain, seoTitle: page.seoTitle, seoDescription: page.seoDescription, seoKeywords: page.seoKeywords, seoRobots: page.seoRobots })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit pos</button>
+                                <button type="button" onClick={() => setSeoPageEditor({ ...post, subdomain: page.subdomain, seoTitle: page.seoTitle, seoDescription: page.seoDescription, seoKeywords: page.seoKeywords, seoRobots: page.seoRobots, slugManuallyEdited: true })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit pos</button>
                               </div>
                             </div>
                           ))}
@@ -3444,7 +3450,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             <label className="block space-y-1 text-xs font-medium text-zinc-300">
                               Tentukan subdomain
                               <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-zinc-950 focus-within:border-red-500">
-                                <input value={seoPageEditor.subdomain} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, subdomain: slugifySubdomain(event.target.value) })} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
+                                <input value={seoPageEditor.subdomain} onChange={(event) => {
+                                  const updatedSubdomain = slugifySubdomain(event.target.value);
+                                  setSeoPageEditor({
+                                    ...seoPageEditor,
+                                    subdomain: updatedSubdomain,
+                                    ...(!seoPageEditor.slugManuallyEdited
+                                      ? { slug: slugifySeoPost(seoPageEditor.title || updatedSubdomain) }
+                                      : {}),
+                                  });
+                                }} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
                                 <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-400">.kreditmotorhonda.tech</span>
                               </div>
                               <span className="block break-all text-[10px] text-sky-300">Alamat subdomain: https://{seoPageEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
@@ -3481,13 +3496,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                           <label className="block space-y-1 text-xs font-medium text-zinc-300">
                             Judul pos
-                            <input value={seoPageEditor.title} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, title: event.target.value })} maxLength={120} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Promo Honda Vario Bandung" />
+                            <input value={seoPageEditor.title} onChange={(event) => {
+                              const updatedTitle = event.target.value;
+                              setSeoPageEditor({
+                                ...seoPageEditor,
+                                title: updatedTitle,
+                                ...(!seoPageEditor.slugManuallyEdited
+                                  ? { slug: slugifySeoPost(updatedTitle || seoPageEditor.subdomain) }
+                                  : {}),
+                              });
+                            }} maxLength={120} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Promo Honda Vario Bandung" />
                           </label>
 
                           <label className="block space-y-1 text-xs font-medium text-zinc-300">
                             Slug URL
-                            <input value={seoPageEditor.slug || slugifySeoPost(seoPageEditor.title)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, slug: slugifySeoPost(event.target.value) })} maxLength={63} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="judul-post" />
-                            <span className="block break-all text-[10px] text-sky-300">https://{seoPageEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech/{seoPageEditor.slug || slugifySeoPost(seoPageEditor.title) || 'slug'}/</span>
+                            <input value={seoPageEditor.slug || slugifySeoPost(seoPageEditor.title || seoPageEditor.subdomain)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, slug: slugifySeoPost(event.target.value), slugManuallyEdited: true })} maxLength={63} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="judul-post" />
+                            <span className="block break-all text-[10px] text-sky-300">
+                              {seoPageEditor.subdomain
+                                ? `https://${seoPageEditor.subdomain}.kreditmotorhonda.tech/${seoPageEditor.slug || slugifySeoPost(seoPageEditor.title || seoPageEditor.subdomain) || 'judul-post'}/`
+                                : 'Tentukan subdomain di atas untuk membuat URL pos otomatis.'}
+                            </span>
+                            <span className="block text-[10px] text-zinc-500">Slug terisi dari subdomain, lalu mengikuti judul pos. Slug dapat diubah manual.</span>
                           </label>
 
                           <label className="block space-y-1 text-xs font-medium text-zinc-300">
