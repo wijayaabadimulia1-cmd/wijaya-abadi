@@ -167,6 +167,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const isSeoPostAdmin = Boolean(settings?.seoPostHost && adminSession?.role !== 'Super Admin');
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
+  const [lastSavedSeoPost, setLastSavedSeoPost] = useState<{ title: string; subdomain: string; slug: string } | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
   const [isCatalogOwner, setIsCatalogOwner] = useState(true);
   const [canManageCatalog, setCanManageCatalog] = useState(true);
@@ -1375,9 +1376,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     setIsSavingSeoPage(true);
     try {
       const saved = await api.updateSettings({ seoPages: nextPages });
+      const savedPostSummary = { title, subdomain, slug };
       setSettings(saved);
-      setSeoPageEditor(null);
-      setActiveTab('seo-subdomains');
+      setLastSavedSeoPost(savedPostSummary);
+      setActiveTab('seo-posts');
       setSeoSubdomainEditor({
         id: '',
         subdomain: '',
@@ -1389,8 +1391,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         seoKeywords: '',
         seoRobots: 'index, follow',
       });
-      window.setTimeout(() => document.getElementById('seo-subdomain-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-      showToast('Post disimpan. Form Tambah SEO subdomain dibuka.');
+      setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' });
+      window.setTimeout(() => document.getElementById('seo-post-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      showToast('Pos disimpan. Form subdomain dan pos baru siap digunakan.');
       onRefreshData();
     } catch (error: any) {
       alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
@@ -1846,6 +1849,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     onClick={() => {
                       setActiveTab(tab.id as any);
                       if (tab.id === 'seo-posts') {
+                        setLastSavedSeoPost(null);
                         setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '' });
                         setSeoSubdomainEditor({
                           id: '',
@@ -3402,18 +3406,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       )}
                     </section>
 
-                    <section id="seo-post-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-posts' ? '' : 'hidden'}`}>
+                    <section id="seo-post-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-posts' || activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-sm font-bold text-white">Pembuatan Post</h3>
-                          <p className="mt-1 text-xs text-zinc-400">Buat atau edit konten post dan hubungkan ke subdomain SEO yang sudah tersedia.</p>
+                          <h3 className="text-sm font-bold text-white">{activeTab === 'seo-posts' ? 'Buat Pos' : 'Pos tersimpan'}</h3>
+                          <p className="mt-1 text-xs text-zinc-400">{activeTab === 'seo-posts' ? 'Buat pos baru bersama subdomain dan metadata SEO dalam satu alur.' : 'Edit atau hapus pos pada subdomain yang sudah dibuat.'}</p>
                         </div>
-                        <button type="button" onClick={() => setSeoPageEditor((current) => current && !current.id ? null : { id: '', slug: '', subdomain: '', title: '', content: '' })} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
-                          {seoPageEditor && !seoPageEditor.id ? <FileText className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                          {seoPageEditor && !seoPageEditor.id ? 'Lihat pos yang ada' : 'Buat pos baru'}
-                        </button>
                       </div>
-                      {seoPostEntries.length && !(seoPageEditor && !seoPageEditor.id) ? (
+                      {activeTab === 'seo-subdomains' && seoPostEntries.length ? (
                         <div className="divide-y divide-white/10 rounded-xl border border-white/10">
                           {seoPostEntries.map(({ page, post }) => (
                             <div key={`${page.id}-${post.id}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -3429,10 +3429,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             </div>
                           ))}
                         </div>
-                      ) : !seoPageEditor ? (
-                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">{settings.seoPages?.length ? 'Belum ada post. Buat post pertama dari sini.' : 'Buat konfigurasi SEO subdomain sebelum menambahkan post.'}</p>
+                      ) : activeTab === 'seo-subdomains' ? (
+                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada pos tersimpan.</p>
                       ) : null}
-                      {seoPageEditor && (
+                      {activeTab === 'seo-posts' && seoPageEditor && (
                         <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <h4 className="text-sm font-bold text-white">{seoPageEditor.id ? 'Edit post' : 'Post baru'}</h4>
@@ -3455,6 +3455,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
                             <button type="button" onClick={() => setSeoPageEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
                             <button type="button" onClick={() => void handleSaveSeoPage()} disabled={isSavingSeoPage} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {isSavingSeoPage ? 'Menyimpan...' : 'Simpan post'}</button>
+                          </div>
+                        </div>
+                      )}
+                      {activeTab === 'seo-posts' && lastSavedSeoPost && (
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">Hasil pos</p>
+                              <p className="mt-1 text-sm font-semibold text-white">{lastSavedSeoPost.title}</p>
+                              <p className="mt-1 text-[11px] text-zinc-400">{lastSavedSeoPost.subdomain}.kreditmotorhonda.tech/{lastSavedSeoPost.slug}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab('seo-subdomains');
+                                setTimeout(() => document.getElementById('seo-post-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-500/20"
+                            >
+                              Lihat pos yang sudah dibuat
+                            </button>
                           </div>
                         </div>
                       )}
