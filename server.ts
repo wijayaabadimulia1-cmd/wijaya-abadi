@@ -1514,20 +1514,25 @@ async function startServer() {
   app.put('/api/settings', (req, res) => {
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const settingsUpdates = { ...(req.body || {}) };
     if (hostPage) {
       const session = (req as any).adminSession || getSession(req);
       if (!session || (session.role !== 'Super Admin' && session.id !== hostPage.adminUserId)) {
         return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
       }
     }
-    if (!hostPage && Object.prototype.hasOwnProperty.call(req.body || {}, 'seoPages')) {
+    if (!hostPage && Object.prototype.hasOwnProperty.call(settingsUpdates, 'seoPages')) {
       const session = (req as any).adminSession || getSession(req);
       if (req.hostname !== 'kreditmotorhonda.tech' || session?.role !== 'Super Admin') {
-        return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengelola post subdomain.' });
+        delete settingsUpdates.seoPages;
+        delete settingsUpdates.ownerDashboard;
+        if (Object.keys(settingsUpdates).length === 0) {
+          return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengelola post subdomain.' });
+        }
       }
     }
     let hasExternalImage = false;
-    mapImageReferences(req.body, (url) => {
+    mapImageReferences(settingsUpdates, (url) => {
       if (/^https?:\/\//i.test(url)) hasExternalImage = true;
       return url;
     });
@@ -1540,22 +1545,22 @@ async function startServer() {
       ];
       const siteSettings = { ...(hostPage.siteSettings || {}) };
       for (const field of siteSettingFields) {
-        if (Object.prototype.hasOwnProperty.call(req.body || {}, field)) siteSettings[field] = req.body[field];
+        if (Object.prototype.hasOwnProperty.call(settingsUpdates, field)) siteSettings[field] = settingsUpdates[field];
       }
       const nextPage = {
         ...hostPage,
         siteSettings,
-        ...(typeof req.body?.seoTitle === 'string' ? { seoTitle: req.body.seoTitle.trim() } : {}),
-        ...(typeof req.body?.seoDescription === 'string' ? { seoDescription: req.body.seoDescription.trim() } : {}),
-        ...(typeof req.body?.seoKeywords === 'string' ? { seoKeywords: req.body.seoKeywords.trim() } : {}),
-        ...(typeof req.body?.seoRobots === 'string' ? { seoRobots: req.body.seoRobots } : {}),
+        ...(typeof settingsUpdates.seoTitle === 'string' ? { seoTitle: settingsUpdates.seoTitle.trim() } : {}),
+        ...(typeof settingsUpdates.seoDescription === 'string' ? { seoDescription: settingsUpdates.seoDescription.trim() } : {}),
+        ...(typeof settingsUpdates.seoKeywords === 'string' ? { seoKeywords: settingsUpdates.seoKeywords.trim() } : {}),
+        ...(typeof settingsUpdates.seoRobots === 'string' ? { seoRobots: settingsUpdates.seoRobots } : {}),
         updated_at: new Date().toISOString(),
       };
       db.settings.seoPages = db.settings.seoPages.map((page: any) => page.id === hostPage.id ? nextPage : page);
       if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan pengaturan post.' });
       return res.json(publicSettings(getSettingsForSeoPage(db.settings, nextPage)));
     }
-    db.settings = { ...db.settings, ...req.body, updated_at: new Date().toISOString() };
+    db.settings = { ...db.settings, ...settingsUpdates, updated_at: new Date().toISOString() };
     writeDb(db);
     res.json(db.settings);
   });
