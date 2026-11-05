@@ -906,6 +906,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'astra-honda-red-white', label: 'Astra Honda Motor Red & White', accent: 'bg-gradient-to-r from-red-600 via-white to-red-600', description: 'Tema merah-putih Astra Honda yang mengikuti referensi, dengan katalog dan simulasi kredit dealer.' },
     { value: 'honda-tokyo-racing-edition', label: 'Honda Tokyo Racing Edition', accent: 'bg-gradient-to-r from-red-600 via-zinc-950 to-cyan-400', description: 'Gaya Tokyo Racing terang dengan pola Jepang, aksen merah-sian, katalog dealer, dan simulasi kredit.' },
     { value: 'astra-honda-november-edition', label: 'Astra Honda November Edition', accent: 'bg-gradient-to-r from-red-600 via-white to-amber-500', description: 'Tema November dengan suasana hujan dan pegunungan berkabut, aksen merah Honda dan amber.' },
+    { value: 'astra-honda-electric-flame-edition', label: 'Astra Honda Electric Flame Edition', accent: 'bg-gradient-to-r from-red-600 via-black to-orange-500', description: 'Aksen Honda merah menyala dengan glow, siluet sirkuit, dan gaya pegunungan misty.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -977,8 +978,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const isAstraHondaRedWhite = template === 'astra-honda-red-white';
     const isTokyoRacingEdition = template === 'honda-tokyo-racing-edition';
     const isNovemberEdition = template === 'astra-honda-november-edition';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition' || settings.websiteTemplate === 'astra-honda-november-edition';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition && !isNovemberEdition;
+    const isElectricFlameEdition = template === 'astra-honda-electric-flame-edition';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition' || settings.websiteTemplate === 'astra-honda-november-edition' || settings.websiteTemplate === 'astra-honda-electric-flame-edition';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition && !isNovemberEdition && !isElectricFlameEdition;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -1200,6 +1202,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 },
               },
             }
+        : isElectricFlameEdition
+          ? {
+              ...baseCustomization,
+              templatePaletteBackup: previousColorPalettes,
+              colorPalettes: {
+                ...(previousColorPalettes || {}),
+                light: {
+                  primaryColor: '#e60012',
+                  secondaryColor: '#0b0f17',
+                  accentColor: '#ff512f',
+                  backgroundColor: '#ffffff',
+                  panelColor: '#f8f9fa',
+                  cardColor: '#ffffff',
+                  elevatedColor: '#ffffff',
+                  borderColor: '#ffccd0',
+                  textColor: '#111827',
+                  mutedColor: '#6b7280',
+                  heroTextColor: '#111827',
+                  heroTitleHighlightColor: '#e60012',
+                },
+                dark: {
+                  primaryColor: '#ff3945',
+                  secondaryColor: '#f8fafc',
+                  accentColor: '#ff7043',
+                  backgroundColor: '#0b0f17',
+                  panelColor: '#131824',
+                  cardColor: '#1a2230',
+                  elevatedColor: '#252f40',
+                  borderColor: '#3d495b',
+                  textColor: '#f8fafc',
+                  mutedColor: '#cbd5e1',
+                  heroTextColor: '#f8fafc',
+                  heroTitleHighlightColor: '#ff4653',
+                },
+              },
+            }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -1242,6 +1280,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             heroTitleHighlight: 'Dengan Kredit Motor Honda',
             heroSubtitle: 'Sambut November dengan motor Honda baru, DP terjangkau, bonus perlengkapan musim hujan, dan proses pengajuan yang praktis.',
           }
+      : isElectricFlameEdition
+        ? {
+            heroBadge: 'PROMO SPESIAL HUJAN NOVEMBER 2026',
+            heroMainTitle: 'KREDIT MOTOR',
+            heroTitleHighlight: 'HONDA DP MURAH',
+            heroSubtitle: 'Nikmati pengajuan kredit motor Honda tanpa ribet. Berkas dibantu, proses cepat, dan DP dibayar saat unit tiba di rumah.',
+          }
       : isShowcaseWijaya2
         ? {
             heroMainTitle: 'Saatnya Punya',
@@ -1256,7 +1301,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);

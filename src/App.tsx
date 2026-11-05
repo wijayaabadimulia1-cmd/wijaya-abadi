@@ -498,7 +498,8 @@ export default function App() {
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
   const isTokyoRacingEdition = settings.websiteTemplate === 'honda-tokyo-racing-edition';
   const isNovemberEdition = settings.websiteTemplate === 'astra-honda-november-edition';
-  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isTokyoRacingEdition || isNovemberEdition;
+  const isElectricFlameEdition = settings.websiteTemplate === 'astra-honda-electric-flame-edition';
+  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition;
   const campaignHeroContent = isTokyoRacingEdition ? {
     badge: settings.heroBadge || 'TOKYO RACING & STREETWEAR CREDIT 2026',
     headline: settings.heroMainTitle || 'STREET RIDE.',
@@ -508,6 +509,11 @@ export default function App() {
     badge: settings.heroBadge || 'PROMO NOVEMBER WARM RIDE EDITION 2026',
     headline: settings.heroMainTitle || 'Nikmati Perjalanan Musim Hujan',
     highlight: settings.heroTitleHighlight || 'Dengan Kredit Motor Honda',
+    subtitle: settings.heroSubtitle,
+  } : isElectricFlameEdition ? {
+    badge: settings.heroBadge || 'PROMO SPESIAL HUJAN NOVEMBER 2026',
+    headline: settings.heroMainTitle || 'KREDIT MOTOR',
+    highlight: settings.heroTitleHighlight || 'HONDA DP MURAH',
     subtitle: settings.heroSubtitle,
   } : undefined;
   const customization = settings.customization || {};

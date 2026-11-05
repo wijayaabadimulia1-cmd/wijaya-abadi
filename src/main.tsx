@@ -7,6 +7,7 @@ import './themes/wijaya-meriah/theme.css';
 import './themes/astra-honda-red-white/theme.css';
 import './themes/honda-tokyo-racing-edition/theme.css';
 import './themes/astra-honda-november-edition/theme.css';
+import './themes/astra-honda-electric-flame-edition/theme.css';
 import './themes/showcase-wijaya-2/theme.css';
 import './themes/showcase-wijaya-2/appearance-fixes.css';
 import './themes/showcase-wijaya-2/visual-balance-fixes.css';
