@@ -2368,7 +2368,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                       href={waUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600/20 px-2.5 py-1.5 font-semibold text-emerald-400 transition-colors hover:bg-emerald-600/30"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-2.5 py-1.5 font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                                       title={`Balas langsung via WhatsApp ke ${lead.customer_name}`}
                                     >
                                       <MessageCircle className="w-4 h-4" />
