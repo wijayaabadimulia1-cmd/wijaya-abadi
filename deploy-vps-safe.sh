@@ -113,6 +113,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
+echo "Nginx upstreams for kreditmotorhonda.id:"
+sudo nginx -T 2>/dev/null | awk '
+  /^[[:space:]]*server[[:space:]]*\{/ { in_server = 1; found = 0; next }
+  in_server && /server_name[^;]*kreditmotorhonda[.]id/ { found = 1 }
+  found && /server_name|proxy_pass/ { print }
+' || true
+
 for host in "$DOMAIN" "www.${DOMAIN}"; do
   resolved_ips="$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)"
   if [ "$resolved_ips" != "$EXPECTED_VPS_IP" ]; then
@@ -468,13 +475,6 @@ done
 
 sudo node "$RELEASE_DIR/scripts/apply-website-theme.mjs" \
   "$DATA_DIR/db.json" "$ID_DATA_DIR/db.json" "$WIJAYA_DATA_DIR/db.json" "$SOLUSI_DATA_DIR/db.json"
-
-echo "Nginx upstreams for kreditmotorhonda.id:"
-sudo nginx -T 2>/dev/null | awk '
-  /^[[:space:]]*server[[:space:]]*\{/ { in_server = 1; found = 0; next }
-  in_server && /server_name[^;]*kreditmotorhonda[.]id/ { found = 1 }
-  found && /server_name|proxy_pass/ { print }
-' || true
 
 DEPLOY_SUCCEEDED=1
 CUTOVER_STARTED=0
