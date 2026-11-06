@@ -1,4 +1,4 @@
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite } from '../types';
 
 interface MotorSaveData extends Partial<Motor> {
   fifPriceListModel?: {
@@ -77,6 +77,33 @@ export const api = {
     const res = await fetch('/api/admin/users', { headers: adminHeaders() });
     if (!res.ok) throw new Error('Gagal mengambil daftar admin');
     return res.json();
+  },
+
+  async getSalesCounters(): Promise<SalesCounterSite[]> {
+    const res = await fetch('/api/admin/sales-counters', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => []);
+    if (!res.ok) throw new Error(result.error || 'Gagal mengambil daftar Sales Counter');
+    return result;
+  },
+
+  async createSalesCounter(data: { name: string; phone: string; username: string; password: string; subdomain: string; seoTitle?: string; seoDescription?: string; seoKeywords?: string }): Promise<SalesCounterSite> {
+    const res = await fetch('/api/admin/sales-counters', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal membuat website Sales Counter');
+    return result;
+  },
+
+  async deleteSalesCounter(id: string): Promise<void> {
+    const res = await fetch(`/api/admin/sales-counters/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menghapus Sales Counter');
   },
 
   async createAdminUser(data: { username: string; password: string; role?: string; assignedSeoPageId?: string }): Promise<AdminUser> {

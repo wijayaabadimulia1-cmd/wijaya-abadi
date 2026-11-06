@@ -72,6 +72,8 @@ export interface ManifestoItem {
 export interface SeoLandingPage {
   id: string;
   subdomain: string;
+  domainSuffix?: 'kreditmotorhonda.id' | 'kreditmotorhonda.tech' | 'solusikreditmotor.cloud';
+  siteType?: 'sales-counter';
   adminUserId: string;
   title: string;
   content: string;
@@ -82,6 +84,19 @@ export interface SeoLandingPage {
   seoKeywords: string;
   seoRobots: string;
   siteSettings?: Partial<SeoPostSiteSettings>;
+  sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
+  sslError?: string;
+  updated_at?: string;
+}
+
+export interface SalesCounterSite {
+  id: string;
+  subdomain: string;
+  domainSuffix: 'kreditmotorhonda.id' | 'kreditmotorhonda.tech' | 'solusikreditmotor.cloud';
+  name: string;
+  phone: string;
+  username: string;
+  adminUserId: string;
   sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
   sslError?: string;
   updated_at?: string;
@@ -249,6 +264,8 @@ export interface AuditLog {
 
 export interface LeadInterest {
   id: string;
+  salesCounterSiteId?: string;
+  host?: string;
   motor_id?: string;
   motor_name?: string;
   customer_name: string;

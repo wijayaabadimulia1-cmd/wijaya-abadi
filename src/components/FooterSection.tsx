@@ -18,6 +18,43 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (settings.websiteTemplate === 'wijaya-enerjik') {
+    return (
+      <footer id="kontak" className="wijaya-enerjik-footer">
+        <div className="wijaya-enerjik-footer__inner">
+          <a href="#home" className="wijaya-enerjik-footer__brand">
+            {settings.logo && <img src={settings.logo} alt="" />}
+            <span>
+              <strong>{settings.name || 'Honda Wijaya Abadi Mulia Motor'}</strong>
+              <small>Dealer Resmi Honda di Bandung</small>
+            </span>
+          </a>
+          <div>
+            <h2>Menu Cepat</h2>
+            <a href="#home">Beranda</a>
+            <a href="#katalog">Motor</a>
+            <a href="#promo">Promo</a>
+          </div>
+          <div>
+            <h2>Layanan</h2>
+            <a href="#simulasi">Simulasi Kredit</a>
+            <a href="#testimoni">Artikel & Tips</a>
+            <a href="#kontak">Kontak</a>
+          </div>
+          <div>
+            <h2>Hubungi Kami</h2>
+            <a href={`tel:+${cleanPhone}`}><Phone aria-hidden="true" /> {settings.phone}</a>
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer"><MapPin aria-hidden="true" /> {settings.address}</a>
+            <span><Clock aria-hidden="true" /> {settings.workingHours}</span>
+          </div>
+        </div>
+        <div className="wijaya-enerjik-footer__bottom">
+          © {new Date().getFullYear()} Wijaya Abadi Mulia. All rights reserved.
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer id="kontak" className="bg-black border-t border-white/10 pt-20 pb-12 relative text-zinc-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

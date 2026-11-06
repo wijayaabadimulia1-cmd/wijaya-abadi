@@ -34,7 +34,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList, SeoLandingPage, SeoLandingPost } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite, SeoLandingPage, SeoLandingPost } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, FIF_DP_PERCENTAGES, FIF_TENORS, getFIFPriceListModel, normalizeMotorOtrPrice } from '../services/fifPriceList';
 import {
@@ -152,6 +152,11 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
   };
 }
 
+const getSalesCounterDomainSuffix = (hostname: string) => {
+  const normalized = hostname.toLocaleLowerCase('en-US').replace(/^www\./, '');
+  return ['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud'].find((domain) => domain === normalized);
+};
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
   const isSolusiSite = window.location.hostname.toLowerCase().endsWith('solusikreditmotor.cloud');
   const adminBrand = isSolusiSite
@@ -176,6 +181,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
   const isSeoPostAdmin = Boolean(settings?.seoPostHost && adminSession?.role !== 'Super Admin');
+  const isSalesCounterWebsite = Boolean(settings?.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
+  const isSalesCounterAdmin = isSeoPostAdmin && isSalesCounterWebsite;
+  const salesCounterDomainSuffix = getSalesCounterDomainSuffix(window.location.hostname) || 'kreditmotorhonda.id';
+  const canManageSalesCounters = adminSession?.role === 'Super Admin' && Boolean(getSalesCounterDomainSuffix(window.location.hostname));
+  const [salesCounters, setSalesCounters] = useState<SalesCounterSite[]>([]);
+  const [salesCounterForm, setSalesCounterForm] = useState({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
+  const [isSavingSalesCounter, setIsSavingSalesCounter] = useState(false);
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
@@ -270,8 +282,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   }, [settings]);
 
   useEffect(() => {
-    if (isSeoPostAdmin && !['promos', 'settings', 'theme'].includes(activeTab)) setActiveTab('theme');
-  }, [activeTab, isSeoPostAdmin]);
+    if (!isSeoPostAdmin) return;
+    const allowedTabs = isSalesCounterAdmin
+      ? ['sales-counter', 'leads', 'promos', 'settings', 'theme']
+      : ['promos', 'settings', 'theme'];
+    if (!allowedTabs.includes(activeTab)) setActiveTab(isSalesCounterAdmin ? 'sales-counter' : 'theme');
+  }, [activeTab, isSalesCounterAdmin, isSeoPostAdmin]);
 
   const toggleAdminTheme = () => {
     setAdminTheme((mode) => mode === 'dark' ? 'light' : 'dark');
@@ -283,11 +299,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const settingsRes = await api.getAdminSettings();
       if (settingsRes.seoPostHost) {
         setSettings(settingsRes);
-        setMotors([]);
-        setPromos(await api.getPromos().catch(() => []));
+        const isSalesSite = settingsRes.seoPages?.some((page) => page.siteType === 'sales-counter');
+        const [motorsRes, promosRes, leadsRes, priceListRes] = await Promise.all([
+          isSalesSite ? api.getMotors().catch(() => []) : Promise.resolve([]),
+          api.getPromos().catch(() => []),
+          isSalesSite ? api.getInterests().catch(() => []) : Promise.resolve([]),
+          isSalesSite ? api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST) : Promise.resolve(DEFAULT_FIF_PRICE_LIST),
+        ]);
+        setMotors(motorsRes.map((motor) => normalizeMotorOtrPrice(motor, priceListRes)));
+        setPromos(promosRes);
         setTestimonials([]);
-        setLeads([]);
-        setFifPriceList(DEFAULT_FIF_PRICE_LIST);
+        setLeads(leadsRes);
+        setFifPriceList(priceListRes);
         return;
       }
 
@@ -333,6 +356,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     loadAllData();
     api.getAdminUsers().then(setAdminUsers).catch(() => undefined);
     api.getAuditLogs().then(setAuditLogs).catch(() => undefined);
+    if (adminSession.role === 'Super Admin' && getSalesCounterDomainSuffix(window.location.hostname)) {
+      api.getSalesCounters().then(setSalesCounters).catch(() => setSalesCounters([]));
+    }
   }, [adminSession]);
 
   useEffect(() => {
@@ -390,6 +416,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       showToast('Admin baru berhasil dibuat');
     } catch (error: any) {
       alert(error.message || 'Gagal membuat admin');
+    }
+  };
+
+  const handleCreateSalesCounter = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSavingSalesCounter(true);
+    try {
+      const created = await api.createSalesCounter({
+        ...salesCounterForm,
+        subdomain: salesCounterForm.subdomain.trim().toLocaleLowerCase('id-ID'),
+      });
+      setSalesCounters((current) => [created, ...current.filter((counter) => counter.id !== created.id)]);
+      setSalesCounterForm({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
+      showToast(`Sales Counter ${created.subdomain}.${created.domainSuffix} berhasil dibuat`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal membuat Sales Counter');
+    } finally {
+      setIsSavingSalesCounter(false);
+    }
+  };
+
+  const handleDeleteSalesCounter = async (counter: SalesCounterSite) => {
+    const hostname = `${counter.subdomain}.${counter.domainSuffix}`;
+    if (!window.confirm(`Hapus Sales Counter ${hostname}? Akun admin akan dinonaktifkan dan alamat lama akan menampilkan 404.`)) return;
+    try {
+      await api.deleteSalesCounter(counter.id);
+      setSalesCounters((current) => current.filter((item) => item.id !== counter.id));
+      showToast(`Sales Counter ${hostname} dihapus`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal menghapus Sales Counter');
     }
   };
 
@@ -1283,10 +1339,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         }
       : isWijayaEnerjik
         ? {
-            heroBadge: 'WIJAYA ENERJIK | HONDA BANDUNG',
-            heroMainTitle: 'Gerak Lebih Berani',
-            heroTitleHighlight: 'Dengan Honda Impianmu',
-            heroSubtitle: 'Temukan motor Honda terbaru, cek promo dan simulasi kredit, lalu konsultasi langsung dengan tim sales Wijaya Abadi.',
+            heroBadge: 'HONDA MOTORCYCLE',
+            heroMainTitle: 'Satu Klik Dapat',
+            heroTitleHighlight: 'Sepeda Motor Impian!',
+            heroSubtitle: 'Bersama Honda Wijaya Abadi, wujudkan impian Anda memiliki motor Honda dengan mudah dan cepat.',
           }
       : isHondaWijaya
         ? {
@@ -1556,7 +1612,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
-  const handleProvisionSeoPageSsl = async (page: SeoLandingPage) => {
+  const handleProvisionSeoPageSsl = async (page: Pick<SeoLandingPage, 'id'>) => {
     try {
       const result = await api.provisionSeoPageSsl(page.id);
       const saved = await api.getAdminSettings();
@@ -1939,6 +1995,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <h2 className="text-lg font-bold text-white">Sales Counter</h2>
                   <p className="mt-1 text-xs text-zinc-400">Ringkasan prospek dan tindak lanjut berdasarkan data masuk.</p>
                 </div>
+
+                {canManageSalesCounters && (
+                  <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Website Sales Counter</h3>
+                      <p className="mt-1 text-xs text-zinc-400">Buat subdomain dan akun admin untuk masing-masing sales counter.</p>
+                    </div>
+                    <form onSubmit={handleCreateSalesCounter} className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <input required value={salesCounterForm.name} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, name: event.target.value })} placeholder="Nama sales counter" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="tel" value={salesCounterForm.phone} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, phone: event.target.value })} placeholder="Nomor WhatsApp (62...)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <div className="flex min-w-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-950 focus-within:border-red-500">
+                        <input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={63} value={salesCounterForm.subdomain} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, subdomain: event.target.value.toLocaleLowerCase('id-ID').replace(/[^a-z0-9-]/g, '') })} placeholder="Subdomain" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none" />
+                        <span className="flex items-center border-l border-white/10 px-2 text-[10px] text-zinc-500">.{salesCounterDomainSuffix}</span>
+                      </div>
+                      <input required value={salesCounterForm.username} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, username: event.target.value })} placeholder="Username admin" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="password" minLength={8} value={salesCounterForm.password} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, password: event.target.value })} placeholder="Password admin (min. 8 karakter)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input value={salesCounterForm.seoTitle} maxLength={70} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoTitle: event.target.value })} placeholder="Judul SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
+                      <textarea value={salesCounterForm.seoDescription} maxLength={160} rows={2} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoDescription: event.target.value })} placeholder="Deskripsi SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
+                      <input value={salesCounterForm.seoKeywords} maxLength={300} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoKeywords: event.target.value })} placeholder="Kata kunci SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
+                      <p className="text-[11px] text-zinc-500 xl:col-span-3">Buat satu A record untuk tiap subdomain, tanpa wildcard, ke IP VPS yang sama dengan domain utama. SSL otomatis dicoba setelah DNS tersedia; halaman mulai diindeks setelah SSL aktif.</p>
+                      <button type="submit" disabled={isSavingSalesCounter} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-60">
+                        <Plus className="h-4 w-4" />
+                        {isSavingSalesCounter ? 'Membuat website...' : 'Tambah Sales Counter'}
+                      </button>
+                    </form>
+
+                    <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                      {salesCounters.length ? salesCounters.map((counter) => (
+                        <div key={counter.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white">{counter.name}</p>
+                            <p className="mt-1 break-all text-[11px] text-zinc-400">{counter.subdomain}.{counter.domainSuffix} · {counter.phone}</p>
+                            <p className="mt-1 text-[10px] text-zinc-500">Admin: {counter.username}</p>
+                            {counter.sslStatus !== 'active' && counter.sslError && (
+                              <p className="mt-2 max-w-2xl break-words text-[11px] text-amber-300">{counter.sslError}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-[10px] font-semibold ${counter.sslStatus === 'active' ? 'text-emerald-300' : counter.sslStatus === 'failed' ? 'text-rose-300' : 'text-amber-300'}`}>
+                              SSL: {counter.sslStatus || 'pending'}
+                            </span>
+                            {counter.sslStatus !== 'active' && (
+                              <button type="button" onClick={() => void handleProvisionSeoPageSsl(counter)} className="text-[11px] font-semibold text-amber-200 hover:text-amber-100">Coba SSL</button>
+                            )}
+                            <a href={`https://${counter.subdomain}.${counter.domainSuffix}/admin`} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-sky-300 hover:text-sky-200">Buka Admin</a>
+                            <button type="button" onClick={() => void handleDeleteSalesCounter(counter)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-300 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" />Hapus</button>
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="px-4 py-5 text-center text-xs text-zinc-500">Belum ada website Sales Counter.</p>
+                      )}
+                    </div>
+                  </section>
+                )}
 
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                   {[

@@ -27,16 +27,27 @@ export const Navbar: React.FC<NavbarProps> = ({
     'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.'
   )}`;
   const anchorPrefix = window.location.pathname.replace(/\/+$/, '') === '/promo' ? '/' : '';
+  const isWijayaEnerjik = settings.websiteTemplate === 'wijaya-enerjik';
 
-  const navLinks = [
-    { label: 'Beranda', href: `${anchorPrefix}#home` },
-    { label: 'Katalog Motor', href: `${anchorPrefix}#katalog` },
-    { label: 'Promo', href: `${anchorPrefix}#promo` },
-    { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
-    { label: 'Nilai Kami', href: `${anchorPrefix}#manifesto` },
-    { label: 'Testimoni', href: `${anchorPrefix}#testimoni` },
-    { label: 'Kontak', href: `${anchorPrefix}#kontak` },
-  ];
+  const navLinks = isWijayaEnerjik
+    ? [
+        { label: 'Beranda', href: `${anchorPrefix}#home` },
+        { label: 'Motor', href: `${anchorPrefix}#katalog` },
+        { label: 'Promo', href: `${anchorPrefix}#promo` },
+        { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
+        { label: 'Artikel', href: `${anchorPrefix}#testimoni` },
+        { label: 'Tentang Kami', href: `${anchorPrefix}#manifesto` },
+        { label: 'Kontak', href: `${anchorPrefix}#kontak` },
+      ]
+    : [
+        { label: 'Beranda', href: `${anchorPrefix}#home` },
+        { label: 'Katalog Motor', href: `${anchorPrefix}#katalog` },
+        { label: 'Promo', href: `${anchorPrefix}#promo` },
+        { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
+        { label: 'Nilai Kami', href: `${anchorPrefix}#manifesto` },
+        { label: 'Testimoni', href: `${anchorPrefix}#testimoni` },
+        { label: 'Kontak', href: `${anchorPrefix}#kontak` },
+      ];
 
   return (
     <header
@@ -130,7 +141,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-semibold rounded-xl transition-colors"
             >
               <MessageSquare className="w-4 h-4 text-emerald-400" />
-              <span>WhatsApp Sales</span>
+                <span>{isWijayaEnerjik ? 'Chat Sales' : 'WhatsApp Sales'}</span>
             </a>
 
           </div>

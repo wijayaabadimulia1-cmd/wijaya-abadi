@@ -502,10 +502,10 @@ export default function App() {
   const isElectricFlameEdition = settings.websiteTemplate === 'astra-honda-electric-flame-edition';
   const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isWijayaEnerjik || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition;
   const campaignHeroContent = isWijayaEnerjik ? {
-    badge: settings.heroBadge || 'WIJAYA ENERJIK | HONDA BANDUNG',
-    headline: settings.heroMainTitle || 'Gerak Lebih Berani',
-    highlight: settings.heroTitleHighlight || 'Dengan Honda Impianmu',
-    subtitle: settings.heroSubtitle || 'Temukan motor Honda terbaru, cek promo dan simulasi kredit, lalu konsultasi langsung dengan tim sales Wijaya Abadi.',
+    badge: settings.heroBadge || 'HONDA MOTORCYCLE',
+    headline: settings.heroMainTitle || 'Satu Klik Dapat',
+    highlight: settings.heroTitleHighlight || 'Sepeda Motor Impian!',
+    subtitle: settings.heroSubtitle || 'Bersama Honda Wijaya Abadi, wujudkan impian Anda memiliki motor Honda dengan mudah dan cepat.',
   } : isTokyoRacingEdition ? {
     badge: settings.heroBadge || 'TOKYO RACING & STREETWEAR CREDIT 2026',
     headline: settings.heroMainTitle || 'STREET RIDE.',
@@ -1011,6 +1011,53 @@ export default function App() {
             onOpenSimulator={() => handleOpenSimulator()}
             onOpenInterest={() => handleOpenInterest()}
           />
+        )}
+
+        {settings.websiteTemplate === 'wijaya-enerjik' && (
+          <>
+            <section className="wijaya-enerjik-showcase" aria-label="Pilihan motor Honda">
+              <div className="wijaya-enerjik-showcase__inner">
+                <div className="wijaya-enerjik-showcase__intro">
+                  <span>Katalog Motor Honda</span>
+                  <h2>Pilihan Motor Honda <strong>Untuk Anda</strong></h2>
+                  <p>Dapatkan berbagai pilihan motor Honda dengan desain modern dan performa unggul.</p>
+                  <a href="#katalog">Lihat Semua Motor <ArrowRight aria-hidden="true" /></a>
+                </div>
+                {motors.slice(0, 5).map((motor) => (
+                  <a key={motor.id} href="#katalog" className="wijaya-enerjik-showcase__motor">
+                    <span className="wijaya-enerjik-showcase__image">
+                      {motor.image && <img src={motor.image} alt={motor.name} loading="lazy" />}
+                    </span>
+                    <strong>{motor.name}</strong>
+                    <small>{motor.category}</small>
+                    <span className="wijaya-enerjik-showcase__detail">Lihat Detail <ArrowRight aria-hidden="true" /></span>
+                  </a>
+                ))}
+              </div>
+            </section>
+
+            {promos[0] && (
+              <a
+                href="#promo"
+                className="wijaya-enerjik-promo-banner"
+                style={promos[0].images?.[0] ? { '--enerjik-promo-image': `url("${promos[0].images[0].replace(/"/g, '')}")` } as React.CSSProperties : undefined}
+              >
+                <span className="wijaya-enerjik-promo-banner__copy">
+                  <small>{promos[0].badge || 'PROMO HONDA'}</small>
+                  <strong>{promos[0].discountValue || promos[0].title}</strong>
+                  <span>{promos[0].title} · Periode promo berlangsung terbatas</span>
+                </span>
+                <span className="wijaya-enerjik-promo-banner__button">Lihat Promo <ArrowRight aria-hidden="true" /></span>
+              </a>
+            )}
+
+            <nav className="wijaya-enerjik-quick-links" aria-label="Layanan Honda Wijaya Abadi">
+              <a href="#simulasi"><Calculator aria-hidden="true" /><span><strong>Simulasi Kredit Honda</strong><small>Hitung angsuran sesuai kebutuhan</small><em>Coba Sekarang <ArrowRight aria-hidden="true" /></em></span></a>
+              <a href="#testimoni"><Sparkles aria-hidden="true" /><span><strong>Artikel & Tips</strong><small>Tips perawatan dan promo terbaru</small><em>Baca Artikel <ArrowRight aria-hidden="true" /></em></span></a>
+              <a href="#kontak"><MapPin aria-hidden="true" /><span><strong>Lokasi Dealer</strong><small>Temukan dealer terdekat di Bandung</small><em>Lihat Lokasi <ArrowRight aria-hidden="true" /></em></span></a>
+              <a className="wijaya-enerjik-quick-links__contact" href={floatingWaUrl} target="_blank" rel="noopener noreferrer"><Phone aria-hidden="true" /><span><strong>Butuh Bantuan?</strong><small>Chat Sales Kami Sekarang</small><em>{settings.phone} <ArrowRight aria-hidden="true" /></em></span></a>
+            </nav>
+          </>
         )}
 
         {currentPath === '/' && hostname === 'kreditmotorhonda.tech' && settings.seoPages?.some((page) => page.sslStatus === 'active') ? (
