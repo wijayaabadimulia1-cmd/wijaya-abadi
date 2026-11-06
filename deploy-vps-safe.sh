@@ -373,7 +373,8 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
   if [ -e "$dropin_file" ]; then
     if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$dropin_file" \
-      || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file"; then
+      || { ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file" \
+        && ! grep -Eq '^ExecStart=/usr/bin/env PORT=(3001|3002|3003) CATALOG_API_URL=(http://127\.0\.0\.1:3000|https://kreditmotorhonda\.tech) CATALOG_OWNER_DATA_FILE=[^[:space:]]+ /usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file"; }; then
       fail "$dropin_file is not a recognized managed catalog release; review it before deployment."
     fi
     SATELLITE_DROPIN_EXISTED[$index]=1
