@@ -56,7 +56,7 @@ jobs:
             [[ "$release" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]] || continue
             [ -f "$release/dist/server.cjs" ] && continue
             referenced=0
-            for service in kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+            for service in kreditmotorhonda-tech.service kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
               if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
                 referenced=1
                 break
@@ -72,7 +72,7 @@ jobs:
           for release in "${releases[@]}"; do
             [ -f "$release/dist/server.cjs" ] || continue
             referenced=0
-            for service in kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+            for service in kreditmotorhonda-tech.service kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
               if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
                 referenced=1
                 break

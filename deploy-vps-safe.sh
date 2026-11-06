@@ -3,7 +3,8 @@ set -euo pipefail
 
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
-SERVICE="kreditmotorhonda-id.service"
+SERVICE="kreditmotorhonda-tech.service"
+LEGACY_MAIN_SERVICE="kreditmotorhonda-id.service"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMIT="${DEPLOY_COMMIT:-$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)}"
@@ -12,14 +13,16 @@ RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
 BACKUP_DIR="/var/backups/honda-wijaya-abadi"
 DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/deploy.conf"
-SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
-SATELLITE_PORTS=(3001 3002)
+SERVICE_UNIT_FILE="/etc/systemd/system/${SERVICE}"
+SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service" "$LEGACY_MAIN_SERVICE")
+SATELLITE_PORTS=(3001 3002 3003)
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zz-catalog-release.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zz-catalog-release.conf"
+  "/etc/systemd/system/${LEGACY_MAIN_SERVICE}.d/zz-catalog-release.conf"
 )
-SATELLITE_DROPIN_EXISTED=(0 0)
-SATELLITE_DROPIN_BACKUPS=("" "")
+SATELLITE_DROPIN_EXISTED=(0 0 0)
+SATELLITE_DROPIN_BACKUPS=("" "" "")
 STAGING_DIR=""
 STAGING_PID=""
 PREVIOUS_DROPIN_EXISTS=0
@@ -27,6 +30,7 @@ PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
 SATELLITE_UPDATES_STARTED=0
+SERVICE_UNIT_CREATED=0
 
 fail() {
   echo "$*" >&2
@@ -51,13 +55,37 @@ cleanup() {
   fi
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Deployment health check failed; restoring the previous systemd service." >&2
+    if [ "$SERVICE_UNIT_CREATED" -eq 1 ]; then
+      sudo systemctl disable --now "$SERVICE" || true
+      if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
+        sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
+      else
+        sudo rm -f "$DROPIN_FILE"
+      fi
+      sudo rm -f "$SERVICE_UNIT_FILE"
+    else
+      if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
+        sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
+      else
+        sudo rm -f "$DROPIN_FILE"
+      fi
+      sudo systemctl daemon-reload || true
+      if [ "$SERVICE_ENV_SOURCE" = "$SERVICE" ]; then
+        sudo systemctl restart "$SERVICE" || true
+      else
+        sudo systemctl stop "$SERVICE" || true
+      fi
+    fi
+    sudo systemctl daemon-reload || true
+  elif [ "$SERVICE_UNIT_CREATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    sudo systemctl disable --now "$SERVICE" || true
     if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
       sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
     else
       sudo rm -f "$DROPIN_FILE"
     fi
+    sudo rm -f "$SERVICE_UNIT_FILE"
     sudo systemctl daemon-reload || true
-    sudo systemctl restart "$SERVICE" || true
   fi
   if [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ -d "$RELEASE_DIR" ]; then
     local release_in_use=0
@@ -91,8 +119,13 @@ for host in "$DOMAIN" "www.${DOMAIN}"; do
   fi
 done
 
+SERVICE_ENV_SOURCE="$SERVICE"
 if ! systemctl is-active --quiet "$SERVICE"; then
-  fail "$SERVICE is not active; refusing to replace an unknown production state."
+  if systemctl is-active --quiet "$LEGACY_MAIN_SERVICE"; then
+    SERVICE_ENV_SOURCE="$LEGACY_MAIN_SERVICE"
+  else
+    fail "$SERVICE and $LEGACY_MAIN_SERVICE are not active; refusing to replace an unknown production state."
+  fi
 fi
 if [ -e "$DROPIN_FILE" ]; then
   if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$DROPIN_FILE" \
@@ -102,17 +135,17 @@ if [ -e "$DROPIN_FILE" ]; then
   PREVIOUS_DROPIN_EXISTS=1
 fi
 
-SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value)"
-SERVICE_USER="$(systemctl show "$SERVICE" --property=User --value)"
-SERVICE_GROUP="$(systemctl show "$SERVICE" --property=Group --value)"
+SERVICE_ENV="$(systemctl show "$SERVICE_ENV_SOURCE" --property=Environment --value)"
+SERVICE_USER="$(systemctl show "$SERVICE_ENV_SOURCE" --property=User --value)"
+SERVICE_GROUP="$(systemctl show "$SERVICE_ENV_SOURCE" --property=Group --value)"
 SERVICE_USER="${SERVICE_USER:-root}"
 SERVICE_GROUP="${SERVICE_GROUP:-$(id -gn "$SERVICE_USER")}"
 DATA_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*DATA_DIR=\([^ ]*\).*/\1/p')"
 UPLOADS_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*UPLOADS_DIR=\([^ ]*\).*/\1/p')"
-ENV_FILE="$(systemctl show "$SERVICE" --property=EnvironmentFiles --value | sed -n 's/^\([^ ]*\).*/\1/p')"
+ENV_FILE="$(systemctl show "$SERVICE_ENV_SOURCE" --property=EnvironmentFiles --value | sed -n 's/^\([^ ]*\).*/\1/p')"
 
 if [ -z "$DATA_DIR" ] || [ -z "$UPLOADS_DIR" ] || [ -z "$ENV_FILE" ]; then
-  fail "Could not determine the live DATA_DIR, UPLOADS_DIR, and EnvironmentFile from $SERVICE."
+  fail "Could not determine the live DATA_DIR, UPLOADS_DIR, and EnvironmentFile from $SERVICE_ENV_SOURCE."
 fi
 if [ ! -s "$DATA_DIR/db.json" ] || [ ! -d "$UPLOADS_DIR" ] || [ ! -f "$ENV_FILE" ]; then
   fail "Live catalog, uploads, or environment file is missing; refusing deployment."
@@ -152,6 +185,9 @@ SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_
 for service in "${SATELLITE_SERVICES[@]}"; do
   if ! systemctl is-active --quiet "$service"; then
     fail "$service is not active; refusing to replace an unknown production state."
+  fi
+  if [ "$service" = "$LEGACY_MAIN_SERVICE" ] && [ "$SERVICE_ENV_SOURCE" = "$LEGACY_MAIN_SERVICE" ]; then
+    continue
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
   if [ "$catalog_api_url" != "http://127.0.0.1:3000" ]; then
@@ -251,6 +287,14 @@ if [ -f "$GSC_CREDENTIALS_FILE" ]; then
 fi
 
 sudo install -d -m 755 "$DROPIN_DIR"
+if [ ! -e "$SERVICE_UNIT_FILE" ]; then
+  SOURCE_UNIT_FILE="$(systemctl show "$SERVICE_ENV_SOURCE" --property=FragmentPath --value)"
+  if [ ! -f "$SOURCE_UNIT_FILE" ]; then
+    fail "Could not find the unit file for $SERVICE_ENV_SOURCE to create $SERVICE."
+  fi
+  sudo install -m 644 "$SOURCE_UNIT_FILE" "$SERVICE_UNIT_FILE"
+  SERVICE_UNIT_CREATED=1
+fi
 sudo tee "$DROPIN_FILE" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
@@ -272,6 +316,7 @@ EOF
 
 CUTOVER_STARTED=1
 sudo systemctl daemon-reload
+sudo systemctl enable "$SERVICE"
 sudo systemctl restart "$SERVICE"
 
 if ! systemctl show "$SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
@@ -330,9 +375,11 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
+Environment=PORT=${SATELLITE_PORTS[$index]}
+Environment=CATALOG_API_URL=http://127.0.0.1:3000
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
-ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
+ExecStart=/usr/bin/env PORT=${SATELLITE_PORTS[$index]} CATALOG_API_URL=http://127.0.0.1:3000 CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json /usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 done
 sudo systemctl daemon-reload

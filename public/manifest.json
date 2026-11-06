@@ -25,14 +25,14 @@
   ],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "32x32",
-      "type": "image/x-icon"
+      "src": "/favicon-honda.jpg?v=20261106",
+      "sizes": "512x512",
+      "type": "image/jpeg"
     },
     {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
+      "src": "/favicon-honda.jpg?v=20261106",
+      "sizes": "512x512",
+      "type": "image/jpeg",
       "purpose": "any"
     }
   ],
@@ -54,8 +54,9 @@
       "url": "/?scroll=simulasi",
       "icons": [
         {
-          "src": "/favicon.ico",
-          "sizes": "192x192"
+          "src": "/favicon-honda.jpg?v=20261106",
+          "sizes": "512x512",
+          "type": "image/jpeg"
         }
       ]
     },
@@ -66,8 +67,9 @@
       "url": "/?scroll=katalog",
       "icons": [
         {
-          "src": "/favicon.ico",
-          "sizes": "192x192"
+          "src": "/favicon-honda.jpg?v=20261106",
+          "sizes": "512x512",
+          "type": "image/jpeg"
         }
       ]
     }
