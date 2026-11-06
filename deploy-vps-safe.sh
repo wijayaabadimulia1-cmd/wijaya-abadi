@@ -129,7 +129,7 @@ if ! systemctl is-active --quiet "$SERVICE"; then
 fi
 if [ -e "$DROPIN_FILE" ]; then
   if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$DROPIN_FILE" \
-    || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
+    || ! grep -Eq '^ExecStart=/usr/bin/env -u CATALOG_API_URL PORT=3000 /usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
     fail "$DROPIN_FILE is not a recognized managed deployment; review it before deploying."
   fi
   PREVIOUS_DROPIN_EXISTS=1
@@ -303,6 +303,7 @@ EnvironmentFile=$ENV_FILE
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
+Environment=CATALOG_API_URL=
 Environment=APP_URL=https://$DOMAIN
 Environment=DATA_DIR=$DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
@@ -311,7 +312,7 @@ Environment=GSC_SITE_URLS=$GSC_SITE_URLS
 Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
 Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
 ExecStart=
-ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
+ExecStart=/usr/bin/env -u CATALOG_API_URL PORT=3000 /usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 
 CUTOVER_STARTED=1
