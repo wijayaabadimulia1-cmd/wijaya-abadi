@@ -297,7 +297,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <div className="hwa-auto-hide-scrollbar flex items-center gap-2 overflow-x-auto pb-2">
             {categories.map((cat) => {
               const isActive = activeCategory === cat;
               return (

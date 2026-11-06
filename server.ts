@@ -2762,8 +2762,10 @@ async function startServer() {
 
   app.get('/api/admin/sales-counters', requireSalesCounterAdmin, (req, res) => {
     const db = readDb();
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
     const pages = Array.isArray(db.settings?.seoPages)
-      ? db.settings.seoPages.filter((page: any) => page.siteType === 'sales-counter')
+      ? db.settings.seoPages.filter((page: any) => page.siteType === 'sales-counter'
+        && (page.domainSuffix || domainSuffix) === domainSuffix)
       : [];
     const users = ensureAdminUsers(db);
     res.json(pages.map((page: any) => {
@@ -2771,7 +2773,7 @@ async function startServer() {
       return {
         id: page.id,
         subdomain: page.subdomain,
-        domainSuffix: page.domainSuffix || getSalesCounterRootDomain(req.hostname) || 'kreditmotorhonda.id',
+        domainSuffix,
         name: page.siteSettings?.name || page.title || page.subdomain,
         phone: page.siteSettings?.phone || '',
         username: user?.username || '',

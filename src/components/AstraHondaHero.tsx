@@ -4,6 +4,7 @@ import type { DealerSettings, FIFPriceList, Motor, Promo } from '../types';
 import { getMotorOtrPrice } from '../services/fifPriceList';
 import { formatRupiah } from '../services/api';
 import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, normalizeFeaturedMotorRotationInterval } from '../constants';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface AstraHondaHeroProps {
   settings: DealerSettings;
@@ -125,8 +126,7 @@ export function AstraHondaHero({
     return () => window.clearInterval(timerId);
   }, [heroSlides.length, isWijayaEnerjik]);
 
-  const phoneDigits = String(settings.phone || '6282129358899').replace(/\D/g, '');
-  const contactUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent('Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.')}`;
+  const contactUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.');
 
   if (isWijayaEnerjik) {
     return (

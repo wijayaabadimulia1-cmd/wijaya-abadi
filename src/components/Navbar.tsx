@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Phone, MessageSquare, Scale, Menu, X, Bike, Sparkles, Sun, Moon } from 'lucide-react';
 import { DealerSettings, Motor } from '../types';
 import { responsiveUploadImageUrl } from '../utils/images';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface NavbarProps {
   settings: DealerSettings;
@@ -22,10 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.'
-  )}`;
+  const whatsappUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.');
   const anchorPrefix = window.location.pathname.replace(/\/+$/, '') === '/promo' ? '/' : '';
   const isWijayaEnerjik = settings.websiteTemplate === 'wijaya-enerjik';
 

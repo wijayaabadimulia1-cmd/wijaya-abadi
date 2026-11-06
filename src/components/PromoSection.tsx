@@ -3,6 +3,7 @@ import { Tag, Sparkles, ArrowRight, MessageSquare, CheckCircle, Gift, X } from '
 import { Promo, DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION } from '../catalogAnimation';
 import { MAX_PROMO_IMAGES } from '../constants';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface PromoImageCarouselProps {
   images: string[];
@@ -135,9 +136,7 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, sh
             {visiblePromos.map((promo, idx) => {
               const promoImages = (promo.images || []).slice(0, MAX_PROMO_IMAGES);
               const promoTemplate = promo.promoTemplate || 'classic';
-              const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                `Halo Honda Wijaya Abadi, saya ingin klaim penawaran "${promo.title} - ${promo.description}". Mohon informasi syarat dan ketentuannya.`
-              )}`;
+              const waUrl = createWhatsAppUrl(settings.phone, `Halo Honda Wijaya Abadi, saya ingin klaim penawaran "${promo.title} - ${promo.description}". Mohon informasi syarat dan ketentuannya.`);
 
               return (
                 <article

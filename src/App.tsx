@@ -16,7 +16,7 @@ import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
 import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES, WIJAYA_ENERJIK_COLOR_PALETTES } from './constants';
-import { trackWhatsAppClick } from './utils/whatsapp';
+import { createWhatsAppUrl, trackWhatsAppClick } from './utils/whatsapp';
 import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './utils/seoPosts';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel: panel }) => ({ default: panel })));
@@ -494,7 +494,6 @@ export default function App() {
     setIsInterestOpen(true);
   };
 
-  const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
   const isWijayaEnerjik = settings.websiteTemplate === 'wijaya-enerjik';
   const isTokyoRacingEdition = settings.websiteTemplate === 'honda-tokyo-racing-edition';
@@ -741,9 +740,9 @@ export default function App() {
   const gradientMotionClass = settings.websiteTemplate === 'mulia-cerah' && customization.themeBackgroundAnimation !== false
     ? 'mulia-gradient-motion'
     : '';
-  const floatingWaUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+  const floatingWaUrl = createWhatsAppUrl(settings.phone,
     'Halo Sales Honda Wijaya Abadi, saya ingin bertanya tentang stok motor dan promo terbaru.'
-  )}`;
+  );
   const meriahCategoryPreviews = Array.from(new Map(
     motors
       .filter((motor) => motor.category && motor.image)

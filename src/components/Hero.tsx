@@ -5,6 +5,7 @@ import { DealerSettings } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED, normalizeCatalogAnimationSpeed } from '../catalogAnimation';
 import { getHeroFontStack, loadHeroFont } from '../heroFonts';
 import { responsiveUploadImageSrcSet, responsiveUploadImageUrl } from '../utils/images';
+import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface HeroProps {
   settings: DealerSettings;
@@ -24,10 +25,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   const animation = settings.heroAnimation || DEFAULT_CATALOG_ANIMATION;
   const animationSpeed = normalizeCatalogAnimationSpeed(settings.heroAnimationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED);
   const [activeSlide, setActiveSlide] = useState(0);
-  const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    'Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.'
-  )}`;
+  const whatsappUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.');
 
   useEffect(() => {
     setActiveSlide(0);
