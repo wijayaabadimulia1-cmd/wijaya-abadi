@@ -402,6 +402,30 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
   sudo systemctl restart "$service"
+  if [ "$service" = "$LEGACY_MAIN_SERVICE" ]; then
+    owner_ready=0
+    for attempt in $(seq 1 10); do
+      if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3000/api/health; then
+        owner_ready=1
+        break
+      fi
+      sleep 1
+    done
+    if [ "$owner_ready" -ne 1 ]; then
+      echo "Catalog owner health check failed after restarting $service; restarting $SERVICE."
+      sudo systemctl restart "$SERVICE"
+      for attempt in $(seq 1 30); do
+        if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3000/api/health; then
+          owner_ready=1
+          break
+        fi
+        sleep 1
+      done
+      if [ "$owner_ready" -ne 1 ]; then
+        fail "$SERVICE did not recover after restarting $service."
+      fi
+    fi
+  fi
   if ! systemctl is-active --quiet "$service" \
     || ! systemctl show "$service" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
     fail "$service did not start the new catalog release."
