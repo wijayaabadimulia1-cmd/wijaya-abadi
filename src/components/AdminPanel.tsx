@@ -259,7 +259,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   }, [settings]);
 
   useEffect(() => {
-    if (isSeoPostAdmin && !['settings', 'theme', 'seo'].includes(activeTab)) setActiveTab('theme');
+    if (isSeoPostAdmin && !['promos', 'settings', 'theme'].includes(activeTab)) setActiveTab('theme');
   }, [activeTab, isSeoPostAdmin]);
 
   const toggleAdminTheme = () => {
@@ -273,7 +273,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       if (settingsRes.seoPostHost) {
         setSettings(settingsRes);
         setMotors([]);
-        setPromos([]);
+        setPromos(await api.getPromos().catch(() => []));
         setTestimonials([]);
         setLeads([]);
         setFifPriceList(DEFAULT_FIF_PRICE_LIST);
@@ -1855,7 +1855,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].filter((tab) => isSeoPostAdmin
-              ? ['settings', 'theme', 'seo'].includes(tab.id)
+              ? ['promos', 'settings', 'theme'].includes(tab.id)
               : canManageCatalog || !['motors', 'credit'].includes(tab.id)).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;

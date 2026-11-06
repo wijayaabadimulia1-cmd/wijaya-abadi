@@ -137,7 +137,8 @@ function escapeHtmlAttribute(value: string) {
   })[character] || character);
 }
 
-function createPublicInitialData(db: any) {
+function createPublicInitialData(db: any, hostname?: string) {
+  const hostPage = hostname ? getSeoPageForHost(db.settings || {}, hostname) : undefined;
   const testimonials = (Array.isArray(db.testimonials) ? db.testimonials : [])
     .filter((item: any) => item.approved !== false)
     .map((item: any) => ({
@@ -153,15 +154,17 @@ function createPublicInitialData(db: any) {
 
   return {
     motors: Array.isArray(db.motors) ? db.motors : [],
-    promos: Array.isArray(db.promos) ? db.promos : [],
+    promos: hostPage
+      ? Array.isArray(hostPage.promos) ? hostPage.promos : []
+      : Array.isArray(db.promos) ? db.promos : [],
     testimonials,
     manifesto: Array.isArray(db.manifesto) ? db.manifesto : [],
     fifPriceList: currentFifPriceList(db),
   };
 }
 
-async function createSsrInitialData(db: any) {
-  if (!CATALOG_API_URL) return createPublicInitialData(readCatalogDb());
+async function createSsrInitialData(db: any, hostname?: string) {
+  if (!CATALOG_API_URL) return createPublicInitialData(readCatalogDb(), hostname);
 
   const catalogApiUrl = `http://127.0.0.1:${PORT}`;
   const options = { cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
@@ -178,10 +181,10 @@ async function createSsrInitialData(db: any) {
 
     const catalogDb = { ...db, motors };
     if (priceListResponse.ok) catalogDb.fifPriceList = await priceListResponse.json();
-    return createPublicInitialData(catalogDb);
+    return createPublicInitialData(catalogDb, hostname);
   } catch (error) {
     console.error('Shared catalog SSR fetch failed:', error);
-    return createPublicInitialData(readCatalogDb());
+    return createPublicInitialData(readCatalogDb(), hostname);
   }
 }
 
@@ -565,8 +568,6 @@ function publicSeoPage(page: any) {
       slug: post.slug,
       title: post.title,
       content: post.content,
-      authorUsername: post.authorUsername,
-      authorRole: post.authorRole,
     })),
     seoTitle: page.seoTitle,
     seoDescription: page.seoDescription,
@@ -1379,8 +1380,9 @@ async function startServer() {
         return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
       }
       const allowedPostWrite = req.method === 'PUT' && req.path === '/settings'
-        || req.method === 'POST' && (req.path === '/admin/logout' || req.path === '/upload');
-      if (!allowedPostWrite) return res.status(403).json({ error: 'Admin post hanya dapat mengubah pengaturan situs post ini.' });
+        || req.method === 'POST' && (req.path === '/admin/logout' || req.path === '/upload')
+        || ['POST', 'PUT', 'DELETE'].includes(req.method) && /^\/promos(?:\/[^/]+)?$/.test(req.path);
+      if (!allowedPostWrite) return res.status(403).json({ error: 'Admin post hanya dapat mengubah promo dan pengaturan situs post ini.' });
       (req as any).adminSession = session;
       return next();
     }
@@ -1519,6 +1521,12 @@ async function startServer() {
       const session = (req as any).adminSession || getSession(req);
       if (!session || (session.role !== 'Super Admin' && session.id !== hostPage.adminUserId)) {
         return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
+      }
+      if (session.role !== 'Super Admin') {
+        delete settingsUpdates.seoTitle;
+        delete settingsUpdates.seoDescription;
+        delete settingsUpdates.seoKeywords;
+        delete settingsUpdates.seoRobots;
       }
     }
     if (!hostPage && Object.prototype.hasOwnProperty.call(settingsUpdates, 'seoPages')) {
@@ -1838,11 +1846,13 @@ async function startServer() {
   // Promos
   app.get('/api/promos', (req, res) => {
     const db = readDb();
-    res.json(db.promos || []);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    res.json(hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : db.promos || []);
   });
 
   app.post('/api/promos', (req, res) => {
     const db = readDb();
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const images = Array.isArray(req.body.images)
       ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
       : [];
@@ -1864,17 +1874,20 @@ async function startServer() {
       promoTemplate: req.body.promoTemplate || 'classic',
       created_at: new Date().toISOString()
     };
-    db.promos = [newPromo, ...(db.promos || [])];
+    if (hostPage) hostPage.promos = [newPromo, ...(Array.isArray(hostPage.promos) ? hostPage.promos : [])];
+    else db.promos = [newPromo, ...(db.promos || [])];
     writeDb(db);
     res.status(201).json(newPromo);
   });
 
   app.put('/api/promos/:id', (req, res) => {
     const db = readDb();
-    const index = (db.promos || []).findIndex((p: any) => p.id === req.params.id);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const promos = hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : (db.promos || []);
+    const index = promos.findIndex((p: any) => p.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Promo not found' });
     const images = req.body.images === undefined
-      ? db.promos[index].images || []
+      ? promos[index].images || []
       : Array.isArray(req.body.images)
         ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
         : [];
@@ -1884,14 +1897,18 @@ async function startServer() {
     if (images.length > MAX_PROMO_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
     }
-    db.promos[index] = { ...db.promos[index], ...req.body, images };
+    promos[index] = { ...promos[index], ...req.body, images };
+    if (hostPage) hostPage.promos = promos;
+    else db.promos = promos;
     writeDb(db);
-    res.json(db.promos[index]);
+    res.json(promos[index]);
   });
 
   app.delete('/api/promos/:id', (req, res) => {
     const db = readDb();
-    db.promos = (db.promos || []).filter((p: any) => p.id !== req.params.id);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    if (hostPage) hostPage.promos = (Array.isArray(hostPage.promos) ? hostPage.promos : []).filter((p: any) => p.id !== req.params.id);
+    else db.promos = (db.promos || []).filter((p: any) => p.id !== req.params.id);
     writeDb(db);
     res.json({ success: true });
   });
@@ -2857,7 +2874,7 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
-        const initialData = await createSsrInitialData(db);
+        const initialData = await createSsrInitialData(db, req.hostname);
         res.set('Cache-Control', 'no-cache');
         res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, initialData, req.hostname));
       } catch (error) {
@@ -2883,7 +2900,7 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
         const db = readDb();
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db), req.hostname));
+        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
       } catch (error) {
         next(error);
       }
@@ -2912,7 +2929,7 @@ async function startServer() {
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       const db = readDb();
       res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db), req.hostname));
+      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
     });
   }
 

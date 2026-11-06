@@ -802,7 +802,6 @@ export default function App() {
             <section className="px-4 pb-12 sm:px-6 lg:px-8">
               <article className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-900/60 p-6 text-zinc-200 sm:p-8">
                 <h2 className="mb-4 text-xl font-black text-white">{hostSeoPost.title}</h2>
-                <p className="mb-4 text-xs font-semibold text-zinc-400">@{hostSeoPost.authorUsername || 'Abadi'} · {hostSeoPost.authorRole || 'Super Admin'}</p>
                 <div className="whitespace-pre-line text-sm leading-7 text-zinc-300">{hostSeoPost.content}</div>
               </article>
             </section>

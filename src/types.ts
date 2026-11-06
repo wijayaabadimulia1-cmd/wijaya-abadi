@@ -76,6 +76,7 @@ export interface SeoLandingPage {
   title: string;
   content: string;
   posts?: SeoLandingPost[];
+  promos?: Promo[];
   seoTitle: string;
   seoDescription: string;
   seoKeywords: string;
