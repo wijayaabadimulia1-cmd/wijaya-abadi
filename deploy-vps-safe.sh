@@ -38,6 +38,28 @@ fail() {
   exit 1
 }
 
+get_listener_pid() {
+  local port="$1"
+  sudo ss -ltnp "sport = :${port}" 2>/dev/null \
+    | sed -n 's/.*pid=\([0-9][0-9]*\),.*/\1/p' \
+    | head -n 1
+}
+
+is_orphaned_managed_node_listener() {
+  local pid="$1"
+  local executable
+  local working_directory
+  local parent_pid
+
+  executable="$(sudo readlink -f "/proc/${pid}/exe" 2>/dev/null || true)"
+  working_directory="$(sudo readlink -f "/proc/${pid}/cwd" 2>/dev/null || true)"
+  parent_pid="$(sudo ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')"
+
+  [ "$executable" = "/usr/bin/node" ] \
+    && [ "$parent_pid" = "1" ] \
+    && [[ "$working_directory" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]]
+}
+
 cleanup() {
   local result=$?
   if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
@@ -210,8 +232,18 @@ SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_
 ID_DATA_DIR="$(get_service_environment_value "$LEGACY_MAIN_SERVICE" DATA_DIR)"
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
-  if ! systemctl is-active --quiet "$service"; then
-    fail "$service is not active; refusing to replace an unknown production state."
+  active_state="$(systemctl show "$service" --property=ActiveState --value)"
+  if [ "$active_state" != "active" ]; then
+    if [ "$service" = "$LEGACY_MAIN_SERVICE" ]; then
+      listener_pid="$(get_listener_pid "${SATELLITE_PORTS[$index]}")"
+      if [ -n "$listener_pid" ] && is_orphaned_managed_node_listener "$listener_pid"; then
+        echo "$service is $active_state; verified orphaned managed Node listener on port ${SATELLITE_PORTS[$index]} will be replaced at cutover."
+      else
+        fail "$service is $active_state and its port listener is not a recognized managed Node release."
+      fi
+    else
+      fail "$service is not active; refusing to replace an unknown production state."
+    fi
   fi
   if [ "$service" = "$LEGACY_MAIN_SERVICE" ] && [ "$SERVICE_ENV_SOURCE" = "$LEGACY_MAIN_SERVICE" ]; then
     continue
@@ -426,6 +458,27 @@ sudo systemctl daemon-reload
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
+  if [ "$service" = "$LEGACY_MAIN_SERVICE" ] \
+    && [ "$(systemctl show "$service" --property=ActiveState --value)" != "active" ]; then
+    listener_pid="$(get_listener_pid "$port")"
+    if [ -z "$listener_pid" ] || ! is_orphaned_managed_node_listener "$listener_pid"; then
+      fail "$service no longer has the verified orphaned Node listener on port $port."
+    fi
+    echo "Stopping verified orphaned Node process $listener_pid on port $port from a managed release."
+    sudo kill -TERM "$listener_pid"
+    listener_stopped=0
+    for attempt in $(seq 1 30); do
+      if [ -z "$(get_listener_pid "$port")" ]; then
+        listener_stopped=1
+        break
+      fi
+      sleep 1
+    done
+    if [ "$listener_stopped" -ne 1 ]; then
+      fail "Verified orphaned process $listener_pid did not release port $port."
+    fi
+    sudo systemctl reset-failed "$service"
+  fi
   sudo systemctl restart "$service"
   if [ "$service" = "$LEGACY_MAIN_SERVICE" ]; then
     owner_ready=0
