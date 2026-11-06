@@ -126,7 +126,16 @@ sudo systemctl show "$LEGACY_MAIN_SERVICE" --property=Environment --value \
   | tr ' ' '\n' \
   | grep -E '^(DATA_DIR|CATALOG_API_URL|CATALOG_OWNER_DATA_FILE|APP_URL|PORT)=' || true
 echo "Listener on port 3003:"
-sudo ss -ltnp 'sport = :3003' || true
+listener_info="$(sudo ss -ltnp 'sport = :3003' || true)"
+printf '%s\n' "$listener_info"
+listener_pid="$(printf '%s\n' "$listener_info" | sed -n 's/.*pid=\([0-9][0-9]*\),.*/\1/p' | head -n 1)"
+if [ -n "$listener_pid" ]; then
+  sudo ps -o pid=,ppid=,user=,etime=,comm= -p "$listener_pid" || true
+  printf 'Listener executable: '
+  sudo readlink -f "/proc/${listener_pid}/exe" || true
+  printf 'Listener working directory: '
+  sudo readlink -f "/proc/${listener_pid}/cwd" || true
+fi
 
 for host in "$DOMAIN" "www.${DOMAIN}"; do
   resolved_ips="$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)"
