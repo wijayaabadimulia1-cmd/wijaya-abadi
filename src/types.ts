@@ -97,6 +97,10 @@ export interface SalesCounterSite {
   phone: string;
   username: string;
   adminUserId: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoRobots?: string;
   sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
   sslError?: string;
   updated_at?: string;
@@ -273,6 +277,7 @@ export interface LeadInterest {
   payment_method?: 'Cash' | 'Kredit';
   dp_estimate?: string;
   note?: string;
+  source?: 'form' | 'whatsapp-click';
   status: 'Baru' | 'Dihubungi' | 'Selesai' | 'Ditolak';
   created_at: string;
 }

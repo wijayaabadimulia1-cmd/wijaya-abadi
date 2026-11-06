@@ -186,6 +186,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const salesCounterDomainSuffix = getSalesCounterDomainSuffix(window.location.hostname) || 'kreditmotorhonda.id';
   const canManageSalesCounters = adminSession?.role === 'Super Admin' && Boolean(getSalesCounterDomainSuffix(window.location.hostname));
   const [salesCounters, setSalesCounters] = useState<SalesCounterSite[]>([]);
+  const [editingSalesCounterSeoId, setEditingSalesCounterSeoId] = useState<string | null>(null);
+  const [salesCounterSeoForm, setSalesCounterSeoForm] = useState({ seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
+  const [isSavingSalesCounterSeo, setIsSavingSalesCounterSeo] = useState(false);
   const [salesCounterForm, setSalesCounterForm] = useState({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
   const [isSavingSalesCounter, setIsSavingSalesCounter] = useState(false);
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
@@ -446,6 +449,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       showToast(`Sales Counter ${hostname} dihapus`);
     } catch (error: any) {
       alert(error.message || 'Gagal menghapus Sales Counter');
+    }
+  };
+
+  const handleEditSalesCounterSeo = (counter: SalesCounterSite) => {
+    setEditingSalesCounterSeoId(counter.id);
+    setSalesCounterSeoForm({
+      seoTitle: counter.seoTitle || '',
+      seoDescription: counter.seoDescription || '',
+      seoKeywords: counter.seoKeywords || '',
+      seoRobots: counter.seoRobots || 'index, follow',
+    });
+  };
+
+  const handleSaveSalesCounterSeo = async () => {
+    if (!editingSalesCounterSeoId) return;
+    if (!salesCounterSeoForm.seoTitle.trim() || !salesCounterSeoForm.seoDescription.trim()) {
+      alert('Judul dan deskripsi SEO wajib diisi.');
+      return;
+    }
+    setIsSavingSalesCounterSeo(true);
+    try {
+      const saved = await api.updateSalesCounterSeo(editingSalesCounterSeoId, salesCounterSeoForm);
+      setSalesCounters((current) => current.map((counter) => counter.id === saved.id ? { ...counter, ...saved } : counter));
+      setEditingSalesCounterSeoId(null);
+      showToast('SEO Sales Counter berhasil diperbarui');
+    } catch (error: any) {
+      alert(error.message || 'Gagal menyimpan SEO Sales Counter');
+    } finally {
+      setIsSavingSalesCounterSeo(false);
     }
   };
 
@@ -2102,19 +2134,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 <td className="px-4 py-3.5 font-semibold text-white">
                                   {lead.customer_name}
                                   <div className="mt-1 text-[10px] font-normal text-zinc-500">
+                                    {lead.source === 'whatsapp-click' ? 'Klik WhatsApp · ' : ''}
                                     {new Date(lead.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3.5 text-zinc-300">{lead.motor_name || 'Belum dipilih'}</td>
                                 <td className="px-4 py-3.5">
-                                  <a
-                                    href={createWhatsAppUrl(lead.phone, `Halo Kak ${lead.customer_name}, kami dari dealer Honda Wijaya Abadi. Kami siap membantu kebutuhan motor Anda.`)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-medium text-emerald-400 hover:underline"
-                                  >
-                                    {lead.phone}
-                                  </a>
+                                  {lead.phone ? (
+                                    <a
+                                      href={createWhatsAppUrl(lead.phone, `Halo Kak ${lead.customer_name}, kami dari dealer Honda Wijaya Abadi. Kami siap membantu kebutuhan motor Anda.`)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-medium text-emerald-400 hover:underline"
+                                    >
+                                      {lead.phone}
+                                    </a>
+                                  ) : lead.source === 'whatsapp-click' ? 'Nomor belum tersedia' : '-'}
                                 </td>
                                 <td className="px-4 py-3.5">
                                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
@@ -2722,16 +2757,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {leads.map((lead) => {
-                            const waUrl = createWhatsAppUrl(
+                            const waUrl = lead.phone ? createWhatsAppUrl(
                               lead.phone,
                               `Halo Kak ${lead.customer_name}, kami dari dealer resmi Honda Wijaya Abadi. Terkait pemesanan motor ${lead.motor_name}, ada yang ingin ditanyakan mengenai promo dan sistem kredit.`
-                            );
+                            ) : undefined;
 
                             return (
                               <tr key={lead.id} className="hover:bg-white/[0.02]">
                                 <td className="py-3.5 px-4 font-bold text-white">
                                   {lead.customer_name}
                                   <div className="text-[10px] text-zinc-500 font-normal">
+                                    {lead.source === 'whatsapp-click' ? 'Klik WhatsApp · ' : ''}
                                     {new Date(lead.created_at).toLocaleDateString('id-ID', {
                                       day: 'numeric',
                                       month: 'short',
@@ -2742,7 +2778,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 </td>
 
                                 <td className="py-3.5 px-4">
-                                  <span className="font-medium text-zinc-300">{lead.phone}</span>
+                                  <span className="font-medium text-zinc-300">{lead.phone || (lead.source === 'whatsapp-click' ? 'Nomor belum tersedia' : '-')}</span>
                                 </td>
 
                                 <td className="py-3.5 px-4 font-semibold text-red-400">
@@ -2775,16 +2811,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                                 <td className="py-3.5 px-4 text-right">
                                   <div className="flex items-center justify-end gap-2">
-                                    <a
-                                      href={waUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-2.5 py-1.5 font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                                      title={`Balas langsung via WhatsApp ke ${lead.customer_name}`}
-                                    >
-                                      <MessageCircle className="w-4 h-4" />
-                                      <span>Balas langsung</span>
-                                    </a>
+                                    {waUrl && (
+                                      <a
+                                        href={waUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-2.5 py-1.5 font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                                        title={`Balas langsung via WhatsApp ke ${lead.customer_name}`}
+                                      >
+                                        <MessageCircle className="w-4 h-4" />
+                                        <span>Balas langsung</span>
+                                      </a>
+                                    )}
                                     <button
                                       onClick={() => handleDeleteLead(lead.id)}
                                       className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
@@ -3554,6 +3592,90 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         Simpan metadata SEO
                       </button>
                     </section>
+
+                    {activeTab === 'seo' && canManageSalesCounters && (
+                      <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">SEO Sales Counter</h3>
+                          <p className="mt-1 text-xs text-zinc-400">Edit metadata counter pada domain {salesCounterDomainSuffix}.</p>
+                        </div>
+                        {salesCounters.length ? (
+                          <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                            {salesCounters.map((counter) => (
+                              <div key={counter.id} className="p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-white">{counter.name}</p>
+                                    <p className="mt-1 break-all text-[11px] text-zinc-400">{counter.subdomain}.{counter.domainSuffix}</p>
+                                    <p className="mt-1 truncate text-[11px] text-zinc-500">{counter.seoTitle || 'Judul SEO belum diatur'}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditSalesCounterSeo(counter)}
+                                    className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+                                  >
+                                    Edit SEO
+                                  </button>
+                                </div>
+                                {editingSalesCounterSeoId === counter.id && (
+                                  <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Judul SEO
+                                      <input
+                                        value={salesCounterSeoForm.seoTitle}
+                                        maxLength={70}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoTitle: event.target.value })}
+                                        className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      />
+                                    </label>
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Deskripsi SEO
+                                      <textarea
+                                        value={salesCounterSeoForm.seoDescription}
+                                        maxLength={160}
+                                        rows={3}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoDescription: event.target.value })}
+                                        className="w-full resize-y rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      />
+                                    </label>
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Kata kunci
+                                      <input
+                                        value={salesCounterSeoForm.seoKeywords}
+                                        maxLength={300}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoKeywords: event.target.value })}
+                                        className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      />
+                                    </label>
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Robots
+                                      <select
+                                        value={salesCounterSeoForm.seoRobots}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoRobots: event.target.value })}
+                                        className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      >
+                                        <option value="index, follow">Index, follow</option>
+                                        <option value="noindex, follow">Noindex, follow</option>
+                                        <option value="index, nofollow">Index, nofollow</option>
+                                        <option value="noindex, nofollow">Noindex, nofollow</option>
+                                      </select>
+                                    </label>
+                                    <div className="flex justify-end gap-2">
+                                      <button type="button" onClick={() => setEditingSalesCounterSeoId(null)} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Batal</button>
+                                      <button type="button" onClick={() => void handleSaveSalesCounterSeo()} disabled={isSavingSalesCounterSeo} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50">
+                                        <Save className="h-3.5 w-3.5" />{isSavingSalesCounterSeo ? 'Menyimpan...' : 'Simpan SEO'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada Sales Counter pada domain ini.</p>
+                        )}
+                      </section>
+                    )}
 
                     <section id="seo-subdomain-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">

@@ -113,6 +113,7 @@ export default function App() {
   const hostSeoPage: SeoLandingPage | undefined = subdomain && !['www', 'wijaya'].includes(subdomain)
     ? settings.seoPages?.find((page) => page.subdomain === subdomain)
     : undefined;
+  const isSalesCounterSite = Boolean(settings.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
   const hostSeoPost = hostSeoPage ? findSeoLandingPost(hostSeoPage, currentPath) : undefined;
 
   // Fetch initial data from dynamic database
@@ -326,12 +327,12 @@ export default function App() {
       const heading = section?.querySelector<HTMLElement>('h1, h2, h3')?.innerText.trim();
       const area = section?.getAttribute('aria-label') || heading || section?.tagName;
       const label = link.getAttribute('aria-label') || link.title || link.innerText.trim() || 'WhatsApp';
-      trackWhatsAppClick(area ? `${area} / ${label}` : label);
+      trackWhatsAppClick(area ? `${area} / ${label}` : label, isSalesCounterSite);
     };
 
     document.addEventListener('click', handleWhatsAppClick, true);
     return () => document.removeEventListener('click', handleWhatsAppClick, true);
-  }, [isAdminRoute]);
+  }, [isAdminRoute, isSalesCounterSite]);
 
   useEffect(() => {
     localStorage.setItem('hwa-color-mode', colorMode);

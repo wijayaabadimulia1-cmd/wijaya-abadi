@@ -24,7 +24,7 @@ export function createWhatsAppUrl(phone: string | undefined, message?: string) {
   return `https://wa.me/${number}${messageWithWebsite ? `?text=${encodeURIComponent(messageWithWebsite)}` : ''}`;
 }
 
-export function trackWhatsAppClick(menu: string) {
+export function trackWhatsAppClick(menu: string, registerSalesCounterLead = false) {
   if (typeof window === 'undefined') return;
 
   try {
@@ -39,7 +39,7 @@ export function trackWhatsAppClick(menu: string) {
     const eventId = typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : `click_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    void api.trackWhatsAppClick(sessionId, window.location.pathname, menu.slice(0, 120), eventId).catch(() => undefined);
+    void api.trackWhatsAppClick(sessionId, window.location.pathname, menu.slice(0, 120), eventId, registerSalesCounterLead).catch(() => undefined);
   } catch {
     // Keep WhatsApp navigation working when browser storage is unavailable.
   }

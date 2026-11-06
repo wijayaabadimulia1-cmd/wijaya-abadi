@@ -106,6 +106,17 @@ export const api = {
     if (!res.ok) throw new Error(result.error || 'Gagal menghapus Sales Counter');
   },
 
+  async updateSalesCounterSeo(id: string, data: Pick<SalesCounterSite, 'seoTitle' | 'seoDescription' | 'seoKeywords' | 'seoRobots'>): Promise<Pick<SalesCounterSite, 'id' | 'seoTitle' | 'seoDescription' | 'seoKeywords' | 'seoRobots' | 'updated_at'>> {
+    const res = await fetch(`/api/admin/sales-counters/${encodeURIComponent(id)}/seo`, {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menyimpan SEO Sales Counter');
+    return result;
+  },
+
   async createAdminUser(data: { username: string; password: string; role?: string; assignedSeoPageId?: string }): Promise<AdminUser> {
     const res = await fetch('/api/admin/users', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(data) });
     const result = await res.json();
@@ -430,11 +441,11 @@ export const api = {
     if (!res.ok) throw new Error('Gagal menyimpan kata kunci pencarian');
   },
 
-  async trackWhatsAppClick(sessionId: string, path: string, menu: string, eventId: string): Promise<void> {
+  async trackWhatsAppClick(sessionId: string, path: string, menu: string, eventId: string, registerSalesCounterLead = false): Promise<void> {
     const res = await fetch('/api/analytics/whatsapp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, path, menu, eventId }),
+      body: JSON.stringify({ sessionId, path, menu, eventId, registerSalesCounterLead }),
       keepalive: true,
     });
     if (!res.ok) throw new Error('Gagal menyimpan klik WhatsApp');

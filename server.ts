@@ -2263,12 +2263,14 @@ async function startServer() {
     const eventId = String(req.body?.eventId || '');
     const pagePath = String(req.body?.path || '/');
     const menu = String(req.body?.menu || '').trim().replace(/[\u0000-\u001f]/g, ' ');
+    const registerSalesCounterLead = req.body?.registerSalesCounterLead === true;
     const host = normalizeAnalyticsHost(req.hostname);
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId)
       || (eventId && !/^[a-zA-Z0-9_-]{8,100}$/.test(eventId))
       || !pagePath.startsWith('/') || pagePath.length > 200
       || pagePath.startsWith('/admin') || pagePath.startsWith('/owner-dashboard')
-      || !menu || menu.length > 120) {
+      || !menu || menu.length > 120
+      || (registerSalesCounterLead && !eventId)) {
       return res.status(400).json({ error: 'Data klik WhatsApp tidak valid.' });
     }
 
@@ -2287,6 +2289,23 @@ async function startServer() {
       path: pagePath,
       menu,
     });
+    const hostPage = registerSalesCounterLead ? getSeoPageForHost(db.settings || {}, req.hostname) : undefined;
+    if (hostPage?.siteType === 'sales-counter') {
+      const createdAt = new Date().toISOString();
+      const lead = {
+        id: `lead-whatsapp-${eventId}`,
+        salesCounterSiteId: hostPage.id,
+        host,
+        motor_name: 'Kontak WhatsApp',
+        customer_name: 'Peminat via WhatsApp',
+        phone: '',
+        note: `Menghubungi nomor Sales Counter dari: ${menu}. Nama dan nomor pengunjung belum tersedia.`,
+        source: 'whatsapp-click',
+        status: 'Baru',
+        created_at: createdAt,
+      };
+      db.interests = [lead, ...(Array.isArray(db.interests) ? db.interests : [])];
+    }
     if (db.whatsappLogs.length > 20_000) db.whatsappLogs.splice(0, db.whatsappLogs.length - 20_000);
     if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan klik WhatsApp.' });
     return res.status(201).json({ recorded: true });
@@ -2776,6 +2795,10 @@ async function startServer() {
         domainSuffix,
         name: page.siteSettings?.name || page.title || page.subdomain,
         phone: page.siteSettings?.phone || '',
+        seoTitle: page.seoTitle || '',
+        seoDescription: page.seoDescription || '',
+        seoKeywords: page.seoKeywords || '',
+        seoRobots: page.seoRobots || 'index, follow',
         username: user?.username || '',
         adminUserId: page.adminUserId,
         sslStatus: page.sslStatus || 'pending',
@@ -2783,6 +2806,38 @@ async function startServer() {
         updated_at: page.updated_at,
       };
     }));
+  });
+
+  app.put('/api/admin/sales-counters/:id/seo', requireSalesCounterAdmin, (req, res) => {
+    const db = readDb();
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const page = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
+      .find((item: any) => item.id === req.params.id
+        && item.siteType === 'sales-counter'
+        && (item.domainSuffix || domainSuffix) === domainSuffix);
+    if (!page) return res.status(404).json({ error: 'Sales Counter tidak ditemukan pada domain ini.' });
+
+    page.seoTitle = String(req.body?.seoTitle || '').trim().slice(0, 70);
+    page.seoDescription = String(req.body?.seoDescription || '').trim().slice(0, 160);
+    page.seoKeywords = String(req.body?.seoKeywords || '').trim().slice(0, 300);
+    page.seoRobots = ['index, follow', 'noindex, follow', 'index, nofollow', 'noindex, nofollow']
+      .includes(req.body?.seoRobots) ? req.body.seoRobots : 'index, follow';
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: (req as any).adminSession.username,
+      action: 'UPDATE_SALES_COUNTER_SEO',
+      resource: page.id,
+      details: `Memperbarui SEO ${page.subdomain}.${domainSuffix}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'SEO Sales Counter gagal disimpan.' });
+    return res.json({
+      id: page.id,
+      seoTitle: page.seoTitle,
+      seoDescription: page.seoDescription,
+      seoKeywords: page.seoKeywords,
+      seoRobots: page.seoRobots,
+      updated_at: page.updated_at,
+    });
   });
 
   app.post('/api/admin/sales-counters', requireSalesCounterAdmin, async (req, res) => {
