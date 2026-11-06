@@ -15,7 +15,7 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
-import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from './constants';
+import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES, WIJAYA_ENERJIK_COLOR_PALETTES } from './constants';
 import { trackWhatsAppClick } from './utils/whatsapp';
 import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './utils/seoPosts';
 
@@ -63,7 +63,7 @@ export default function App() {
     catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
     featuredMotorRotationInterval: DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL,
     ...initialSettings,
-    websiteTemplate: initialSettings?.websiteTemplate || 'honda-wijaya',
+    websiteTemplate: initialSettings?.websiteTemplate || 'wijaya-enerjik',
     customization: {
       primaryColor: '#e60012',
       accentColor: '#ff2638',
@@ -496,11 +496,17 @@ export default function App() {
 
   const cleanPhone = settings.phone ? settings.phone.replace(/[^0-9]/g, '') : '6282129358899';
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
+  const isWijayaEnerjik = settings.websiteTemplate === 'wijaya-enerjik';
   const isTokyoRacingEdition = settings.websiteTemplate === 'honda-tokyo-racing-edition';
   const isNovemberEdition = settings.websiteTemplate === 'astra-honda-november-edition';
   const isElectricFlameEdition = settings.websiteTemplate === 'astra-honda-electric-flame-edition';
-  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition;
-  const campaignHeroContent = isTokyoRacingEdition ? {
+  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isWijayaEnerjik || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition;
+  const campaignHeroContent = isWijayaEnerjik ? {
+    badge: settings.heroBadge || 'WIJAYA ENERJIK | HONDA BANDUNG',
+    headline: settings.heroMainTitle || 'Gerak Lebih Berani',
+    highlight: settings.heroTitleHighlight || 'Dengan Honda Impianmu',
+    subtitle: settings.heroSubtitle || 'Temukan motor Honda terbaru, cek promo dan simulasi kredit, lalu konsultasi langsung dengan tim sales Wijaya Abadi.',
+  } : isTokyoRacingEdition ? {
     badge: settings.heroBadge || 'TOKYO RACING & STREETWEAR CREDIT 2026',
     headline: settings.heroMainTitle || 'STREET RIDE.',
     highlight: settings.heroTitleHighlight || 'LOW DP. NO DRAMA.',
@@ -519,7 +525,9 @@ export default function App() {
   const customization = settings.customization || {};
   const templatePalette = settings.websiteTemplate === 'honda-wijaya'
     ? HONDA_WIJAYA_COLOR_PALETTES[colorMode]
-    : {};
+    : isWijayaEnerjik
+      ? WIJAYA_ENERJIK_COLOR_PALETTES[colorMode]
+      : {};
   const activePalette = { ...customization, ...templatePalette, ...customization.colorPalettes?.[colorMode] };
   const landingPages = {
     '/dealer-honda-bandung': {

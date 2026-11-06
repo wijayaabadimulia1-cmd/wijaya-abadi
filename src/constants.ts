@@ -51,3 +51,34 @@ export const HONDA_WIJAYA_COLOR_PALETTES: Record<ThemeMode, ThemeColorPalette> =
 		heroTitleHighlightColor: '#ff3548',
 	},
 };
+
+export const WIJAYA_ENERJIK_COLOR_PALETTES: Record<ThemeMode, ThemeColorPalette> = {
+	light: {
+		primaryColor: '#d71920',
+		secondaryColor: '#15191f',
+		accentColor: '#ed2939',
+		backgroundColor: '#f3f5f7',
+		panelColor: '#ffffff',
+		cardColor: '#ffffff',
+		elevatedColor: '#ffffff',
+		borderColor: '#dfe3e8',
+		textColor: '#181c21',
+		mutedColor: '#5b6570',
+		heroTextColor: '#15191f',
+		heroTitleHighlightColor: '#d71920',
+	},
+	dark: {
+		primaryColor: '#ff3445',
+		secondaryColor: '#f4f6f8',
+		accentColor: '#ff5966',
+		backgroundColor: '#111418',
+		panelColor: '#191d23',
+		cardColor: '#20252d',
+		elevatedColor: '#292f38',
+		borderColor: '#3a424c',
+		textColor: '#f5f6f8',
+		mutedColor: '#bec5cd',
+		heroTextColor: '#ffffff',
+		heroTitleHighlightColor: '#ff4656',
+	},
+};

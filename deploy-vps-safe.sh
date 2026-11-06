@@ -182,6 +182,7 @@ get_service_environment_value() {
 
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
 SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
+ID_DATA_DIR="$(get_service_environment_value "$LEGACY_MAIN_SERVICE" DATA_DIR)"
 for service in "${SATELLITE_SERVICES[@]}"; do
   if ! systemctl is-active --quiet "$service"; then
     fail "$service is not active; refusing to replace an unknown production state."
@@ -196,10 +197,13 @@ for service in "${SATELLITE_SERVICES[@]}"; do
 done
 OWNER_ANALYTICS_WIJAYA_DB_FILE="${OWNER_ANALYTICS_WIJAYA_DB_FILE:-${WIJAYA_DATA_DIR}/db.json}"
 OWNER_ANALYTICS_SOLUSI_DB_FILE="${OWNER_ANALYTICS_SOLUSI_DB_FILE:-${SOLUSI_DATA_DIR}/db.json}"
-if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
+if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] || [ -z "$ID_DATA_DIR" ] \
   || [ ! -s "$OWNER_ANALYTICS_WIJAYA_DB_FILE" ] \
-  || [ ! -s "$OWNER_ANALYTICS_SOLUSI_DB_FILE" ]; then
-  fail "Could not verify the Wijaya and Solusi site databases for owner analytics."
+  || [ ! -s "$OWNER_ANALYTICS_SOLUSI_DB_FILE" ] \
+  || [ ! -s "$WIJAYA_DATA_DIR/db.json" ] \
+  || [ ! -s "$SOLUSI_DATA_DIR/db.json" ] \
+  || [ ! -s "$ID_DATA_DIR/db.json" ]; then
+  fail "Could not verify all app database files for the site theme rollout."
 fi
 
 EXPECTED_MOTORS="$(node -e 'const db = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (!Array.isArray(db.motors)) process.exit(2); console.log(db.motors.length)' "$DATA_DIR/db.json")"
@@ -268,7 +272,13 @@ STAGING_PID=""
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_FILE="${BACKUP_DIR}/catalog-uploads-${STAMP}.tar.gz"
 sudo install -d -m 700 "$BACKUP_DIR"
-sudo tar -czf "$BACKUP_FILE" -C "$DATA_DIR" db.json -C "$UPLOADS_DIR" .
+SITE_DB_BACKUP_DIR="$STAGING_DIR/site-database-backups"
+mkdir -p "$SITE_DB_BACKUP_DIR"
+sudo cp -p "$DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/tech-db.json"
+sudo cp -p "$ID_DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/id-db.json"
+sudo cp -p "$WIJAYA_DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/wijaya-db.json"
+sudo cp -p "$SOLUSI_DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/solusi-db.json"
+sudo tar -czf "$BACKUP_FILE" -C "$DATA_DIR" db.json -C "$SITE_DB_BACKUP_DIR" . -C "$UPLOADS_DIR" .
 sudo chmod 600 "$BACKUP_FILE"
 if ! sudo tar -tzf "$BACKUP_FILE" | grep -Fx 'db.json' > /dev/null; then
   fail "Catalog backup verification failed: $BACKUP_FILE"
@@ -409,7 +419,17 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   if ! satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"; then
     echo "Recent shared-catalog proxy errors for $service:" >&2
     sudo journalctl -u "$service" --since "5 minutes ago" --no-pager | grep -F 'Shared catalog proxy error:' | tail -n 10 >&2 || true
-    systemctl show "$service" --property=PrivateNetwork,IPAddressAllow,IPAddressDeny,RestrictAddressFamilies
+    systemctl show "$service" --property=MainPID,ExecStart,Environment,NetworkNamespacePath,PrivateNetwork,IPAddressAllow,IPAddressDeny,RestrictAddressFamilies,StandardOutput,StandardError \
+      | sed -E 's/(CATALOG_SERVICE_TOKEN=)[^ ]+/\1[redacted]/g' >&2
+    systemctl show "$service" --property=Environment --value | tr ' ' '\n' | grep -E '^(PORT|CATALOG_API_URL)=' >&2 || true
+    service_pid="$(systemctl show "$service" --property=MainPID --value)"
+    if command -v nsenter >/dev/null 2>&1 && [ "$service_pid" -gt 0 ]; then
+      if sudo nsenter --target "$service_pid" --net curl --silent --show-error --fail --max-time 5 http://127.0.0.1:3000/api/health >/dev/null; then
+        echo "$service network namespace can reach the main catalog health endpoint." >&2
+      else
+        echo "$service network namespace cannot reach the main catalog health endpoint." >&2
+      fi
+    fi
     fail "$service could not read the shared catalog on port ${port}."
   fi
   if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
@@ -417,6 +437,9 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   fi
   echo "${service} catalog verified: ${satellite_motors} motors"
 done
+
+sudo node "$RELEASE_DIR/scripts/apply-website-theme.mjs" \
+  "$DATA_DIR/db.json" "$ID_DATA_DIR/db.json" "$WIJAYA_DATA_DIR/db.json" "$SOLUSI_DATA_DIR/db.json"
 
 DEPLOY_SUCCEEDED=1
 CUTOVER_STARTED=0

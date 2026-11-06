@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import OwnerDashboard from './components/OwnerDashboard.tsx';
 import './index.css';
+import './themes/wijaya-enerjik/theme.css';
 import './themes/wijaya-meriah/theme.css';
 import './themes/astra-honda-red-white/theme.css';
 import './themes/honda-tokyo-racing-edition/theme.css';

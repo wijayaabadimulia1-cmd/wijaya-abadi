@@ -45,7 +45,7 @@ import {
   MIN_FEATURED_MOTOR_ROTATION_INTERVAL,
   normalizeFeaturedMotorRotationInterval,
 } from '../constants';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from '../constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES, WIJAYA_ENERJIK_COLOR_PALETTES } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
   DEFAULT_CATALOG_ANIMATION,
@@ -63,7 +63,14 @@ interface AdminPanelProps {
   onRefreshData: () => void;
 }
 
-type SeoPostEditor = SeoLandingPost & { subdomain: string; slugManuallyEdited?: boolean };
+type SeoPostEditor = SeoLandingPost & {
+  subdomain: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoRobots?: string;
+  slugManuallyEdited?: boolean;
+};
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -146,7 +153,7 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -900,6 +907,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'urban', label: 'Urban', accent: 'bg-gradient-to-r from-slate-700 to-zinc-900', description: 'Modern urban untuk tampilan dealer yang lebih fresh dan stylish.' },
     { value: 'mulia-cerah', label: 'Mulia Cerah', accent: 'bg-gradient-to-r from-blue-600 to-cyan-400', description: 'Tema otomotif modern dengan palette biru-cyan yang konsisten di mode terang dan gelap.' },
     { value: 'honda-wijaya', label: 'Honda Wijaya', accent: 'bg-red-600', description: 'Showroom Honda dengan tampilan merah-putih yang tegas dan elegan.' },
+    { value: 'wijaya-enerjik', label: 'Wijaya Enerjik', accent: 'bg-gradient-to-r from-red-600 via-zinc-950 to-white', description: 'Showroom Honda sporty dengan hero produk besar, aksen balap merah-hitam, katalog tegas, promo dan simulasi kredit.' },
     { value: 'wijaya-cool', label: 'Wijaya Cool', accent: 'bg-gradient-to-r from-emerald-600 to-sky-400', description: 'Nuansa sejuk pegunungan Bandung, kabut lembut, cahaya berkilau, dan daun jatuh.' },
     { value: 'wijaya-meriah', label: 'Wijaya Meriah', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Tema Honda yang cerah dan dinamis dengan aksen merah, putih, charcoal, dan langit biru.' },
     { value: 'showcase-wijaya-2', label: 'Showcase Wijaya 2', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Showcase Honda merah-putih dengan hero langit pegunungan, CTA tegas, dan katalog bersih.' },
@@ -973,14 +981,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
     const isMuliaCerah = template === 'mulia-cerah';
     const isHondaWijaya = template === 'honda-wijaya';
+    const isWijayaEnerjik = template === 'wijaya-enerjik';
     const isWijayaMeriah = template === 'wijaya-meriah';
     const isShowcaseWijaya2 = template === 'showcase-wijaya-2';
     const isAstraHondaRedWhite = template === 'astra-honda-red-white';
     const isTokyoRacingEdition = template === 'honda-tokyo-racing-edition';
     const isNovemberEdition = template === 'astra-honda-november-edition';
     const isElectricFlameEdition = template === 'astra-honda-electric-flame-edition';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition' || settings.websiteTemplate === 'astra-honda-november-edition' || settings.websiteTemplate === 'astra-honda-electric-flame-edition';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition && !isNovemberEdition && !isElectricFlameEdition;
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-enerjik' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition' || settings.websiteTemplate === 'astra-honda-november-edition' || settings.websiteTemplate === 'astra-honda-electric-flame-edition';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaEnerjik && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition && !isNovemberEdition && !isElectricFlameEdition;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -1238,6 +1247,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 },
               },
             }
+      : isWijayaEnerjik
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              ...WIJAYA_ENERJIK_COLOR_PALETTES,
+            },
+          }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -1259,6 +1277,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           heroTitleHighlight: 'Sepeda Motor Impian',
           heroSubtitle: 'Melayani pembelian cash dan kredit. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit yang mudah.',
         }
+      : isWijayaEnerjik
+        ? {
+            heroBadge: 'WIJAYA ENERJIK | HONDA BANDUNG',
+            heroMainTitle: 'Gerak Lebih Berani',
+            heroTitleHighlight: 'Dengan Honda Impianmu',
+            heroSubtitle: 'Temukan motor Honda terbaru, cek promo dan simulasi kredit, lalu konsultasi langsung dengan tim sales Wijaya Abadi.',
+          }
       : isHondaWijaya
         ? {
             heroTitle: 'Dealer Resmi Sepeda Motor Honda Bandung',
@@ -1301,7 +1326,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaEnerjik || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);
@@ -1840,6 +1865,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'dashboard', label: 'Ringkasan', icon: TrendingUp },
               { id: 'motors', label: `Motor (${motors.length})`, icon: Bike },
               { id: 'leads', label: `Peminat (${leads.length})`, icon: MessageSquare },
+              { id: 'sales-counter', label: 'Sales Counter', icon: Users },
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
@@ -1903,6 +1929,98 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           </div>
         ) : (
           <>
+            {activeTab === 'sales-counter' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Sales Counter</h2>
+                  <p className="mt-1 text-xs text-zinc-400">Ringkasan prospek dan tindak lanjut berdasarkan data masuk.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    { label: 'Lead Baru', status: 'Baru', icon: MessageSquare, color: 'text-sky-400' },
+                    { label: 'Follow Up', status: 'Dihubungi', icon: RotateCcw, color: 'text-amber-400' },
+                    { label: 'Selesai', status: 'Selesai', icon: CheckCircle, color: 'text-emerald-400' },
+                    { label: 'Ditolak', status: 'Ditolak', icon: X, color: 'text-rose-400' },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const count = leads.filter((lead) => lead.status === item.status).length;
+                    return (
+                      <div key={item.status} className="rounded-2xl border border-white/10 bg-zinc-900/60 p-4 sm:p-5">
+                        <div className="flex items-center justify-between gap-2 text-zinc-400">
+                          <span className="text-[11px] font-semibold uppercase">{item.label}</span>
+                          <Icon className={`h-4 w-4 ${item.color}`} />
+                        </div>
+                        <div className="mt-2 text-2xl font-black text-white">{count}</div>
+                        <p className="mt-1 text-[11px] text-zinc-500">Prospek tersimpan</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <section className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50">
+                  <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sm:px-5">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Prospek Terbaru</h3>
+                      <p className="mt-1 text-[11px] text-zinc-500">Menampilkan maksimal 8 data terbaru.</p>
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-400">{leads.length} total</span>
+                  </div>
+                  {leads.length === 0 ? (
+                    <div className="px-4 py-12 text-center text-sm text-zinc-400">Belum ada prospek yang tersimpan.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left text-xs">
+                        <thead className="bg-zinc-950/60 text-[10px] uppercase tracking-wide text-zinc-500">
+                          <tr>
+                            <th className="px-4 py-3 font-semibold">Pelanggan</th>
+                            <th className="px-4 py-3 font-semibold">Motor</th>
+                            <th className="px-4 py-3 font-semibold">WhatsApp</th>
+                            <th className="px-4 py-3 font-semibold">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {[...leads]
+                            .sort((first, second) => Date.parse(second.created_at) - Date.parse(first.created_at))
+                            .slice(0, 8)
+                            .map((lead) => (
+                              <tr key={lead.id} className="hover:bg-white/[0.02]">
+                                <td className="px-4 py-3.5 font-semibold text-white">
+                                  {lead.customer_name}
+                                  <div className="mt-1 text-[10px] font-normal text-zinc-500">
+                                    {new Date(lead.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3.5 text-zinc-300">{lead.motor_name || 'Belum dipilih'}</td>
+                                <td className="px-4 py-3.5">
+                                  <a
+                                    href={createWhatsAppUrl(lead.phone, `Halo Kak ${lead.customer_name}, kami dari dealer Honda Wijaya Abadi. Kami siap membantu kebutuhan motor Anda.`)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-emerald-400 hover:underline"
+                                  >
+                                    {lead.phone}
+                                  </a>
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                                    lead.status === 'Baru' ? 'bg-sky-500/10 text-sky-300' :
+                                    lead.status === 'Dihubungi' ? 'bg-amber-500/10 text-amber-300' :
+                                    lead.status === 'Selesai' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'
+                                  }`}>
+                                    {lead.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
+
             {/* TAB 1: DASHBOARD */}
             {activeTab === 'dashboard' && (
               <div className="space-y-8 animate-in fade-in duration-300">
