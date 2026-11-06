@@ -16,6 +16,7 @@ DROPIN_FILE="${DROPIN_DIR}/deploy.conf"
 SERVICE_UNIT_FILE="/etc/systemd/system/${SERVICE}"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service" "$LEGACY_MAIN_SERVICE")
 SATELLITE_PORTS=(3001 3002 3003)
+SATELLITE_CATALOG_API_URLS=("http://127.0.0.1:3000" "http://127.0.0.1:3000" "https://${DOMAIN}")
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zz-catalog-release.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zz-catalog-release.conf"
@@ -183,7 +184,8 @@ get_service_environment_value() {
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
 SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
 ID_DATA_DIR="$(get_service_environment_value "$LEGACY_MAIN_SERVICE" DATA_DIR)"
-for service in "${SATELLITE_SERVICES[@]}"; do
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  service="${SATELLITE_SERVICES[$index]}"
   if ! systemctl is-active --quiet "$service"; then
     fail "$service is not active; refusing to replace an unknown production state."
   fi
@@ -191,7 +193,8 @@ for service in "${SATELLITE_SERVICES[@]}"; do
     continue
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
-  if [ "$catalog_api_url" != "http://127.0.0.1:3000" ]; then
+  expected_catalog_api_url="${SATELLITE_CATALOG_API_URLS[$index]}"
+  if [ "$catalog_api_url" != "http://127.0.0.1:3000" ] && [ "$catalog_api_url" != "$expected_catalog_api_url" ]; then
     fail "$service is not configured to use the main catalog API; refusing deployment."
   fi
 done
@@ -387,10 +390,10 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
 [Service]
 WorkingDirectory=$RELEASE_DIR
 Environment=PORT=${SATELLITE_PORTS[$index]}
-Environment=CATALOG_API_URL=http://127.0.0.1:3000
+Environment=CATALOG_API_URL=${SATELLITE_CATALOG_API_URLS[$index]}
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
-ExecStart=/usr/bin/env PORT=${SATELLITE_PORTS[$index]} CATALOG_API_URL=http://127.0.0.1:3000 CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json /usr/bin/node $RELEASE_DIR/dist/server.cjs
+ExecStart=/usr/bin/env PORT=${SATELLITE_PORTS[$index]} CATALOG_API_URL=${SATELLITE_CATALOG_API_URLS[$index]} CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json /usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 done
 sudo systemctl daemon-reload
