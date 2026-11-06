@@ -119,6 +119,10 @@ sudo nginx -T 2>/dev/null | awk '
   in_server && /server_name[^;]*kreditmotorhonda[.]id/ { found = 1 }
   found && /server_name|proxy_pass/ { print }
 ' || true
+echo "kreditmotorhonda-id.service state:"
+sudo systemctl show "$LEGACY_MAIN_SERVICE" --property=LoadState,ActiveState,SubState,FragmentPath,ExecStart --value || true
+echo "Listener on port 3003:"
+sudo ss -ltnp 'sport = :3003' || true
 
 for host in "$DOMAIN" "www.${DOMAIN}"; do
   resolved_ips="$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)"
