@@ -405,7 +405,12 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     fail "$service did not become healthy on port ${port}."
   fi
 
-  satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+  if ! satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"; then
+    echo "Recent shared-catalog proxy errors for $service:" >&2
+    sudo journalctl -u "$service" --since "5 minutes ago" --no-pager | grep -F 'Shared catalog proxy error:' | tail -n 10 >&2 || true
+    systemctl show "$service" --property=PrivateNetwork,IPAddressAllow,IPAddressDeny,RestrictAddressFamilies
+    fail "$service could not read the shared catalog on port ${port}."
+  fi
   if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
     fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
   fi
