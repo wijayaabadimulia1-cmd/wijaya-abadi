@@ -117,10 +117,14 @@ echo "Nginx upstreams for kreditmotorhonda.id:"
 sudo nginx -T 2>/dev/null | awk '
   /^[[:space:]]*server[[:space:]]*\{/ { in_server = 1; found = 0; next }
   in_server && /server_name[^;]*kreditmotorhonda[.]id/ { found = 1 }
-  found && /server_name|proxy_pass/ { print }
+  found && /server_name|listen|location|root[[:space:]]|alias[[:space:]]|proxy_pass|proxy_cache|add_header|expires|try_files/ { print }
 ' || true
 echo "kreditmotorhonda-id.service state:"
 sudo systemctl show "$LEGACY_MAIN_SERVICE" --property=LoadState,ActiveState,SubState,FragmentPath,ExecStart --value || true
+echo "kreditmotorhonda-id.service data environment:"
+sudo systemctl show "$LEGACY_MAIN_SERVICE" --property=Environment --value \
+  | tr ' ' '\n' \
+  | grep -E '^(DATA_DIR|CATALOG_API_URL|CATALOG_OWNER_DATA_FILE|APP_URL|PORT)=' || true
 echo "Listener on port 3003:"
 sudo ss -ltnp 'sport = :3003' || true
 
