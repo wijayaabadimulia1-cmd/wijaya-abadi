@@ -153,6 +153,10 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
+  const isSolusiSite = window.location.hostname.toLowerCase().endsWith('solusikreditmotor.cloud');
+  const adminBrand = isSolusiSite
+    ? { loginLabel: 'Solusi Kredit Motor Honda', panelTitle: 'Panel CMS Solusi Kredit Motor Honda' }
+    : { loginLabel: 'Honda Wijaya Abadi', panelTitle: 'Panel CMS Honda Wijaya Abadi Motor' };
   const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -600,7 +604,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         </button>
         <form onSubmit={handleAdminLogin} className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900/80 p-7 shadow-2xl">
           <div className="mb-7">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-400">Honda Wijaya Abadi</p>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-400">{adminBrand.loginLabel}</p>
             <h1 className="mt-2 text-2xl font-black text-white">Login Admin Panel</h1>
             <p className="mt-2 text-sm text-zinc-400">Masuk untuk mengelola website dan melihat histori perubahan.</p>
           </div>
@@ -1849,7 +1853,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
-              <span>Panel CMS Honda Wijaya Abadi Motor</span>
+              <span>{adminBrand.panelTitle}</span>
               <span className="bg-red-600/30 text-red-400 text-xs px-2.5 py-0.5 rounded-full border border-red-500/40">
                 Database CRUD
               </span>
