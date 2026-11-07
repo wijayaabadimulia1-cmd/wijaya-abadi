@@ -33,6 +33,13 @@ const sites = [
     dataDir: path.join(persistentRoot, 'sites', 'solusi', 'data'),
     catalogOwner: false,
   },
+  {
+    name: 'kreditmotorhonda-id',
+    port: 3003,
+    appUrl: 'https://kreditmotorhonda.id',
+    dataDir: path.join(persistentRoot, 'sites', 'kreditmotorhonda-id', 'data'),
+    catalogOwner: false,
+  },
 ];
 
 module.exports = {

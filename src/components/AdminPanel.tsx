@@ -63,7 +63,14 @@ interface AdminPanelProps {
   onRefreshData: () => void;
 }
 
-type SeoPostEditor = SeoLandingPost & { subdomain: string; slugManuallyEdited?: boolean };
+type SeoPostEditor = SeoLandingPost & {
+  subdomain: string;
+  slugManuallyEdited?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoRobots?: string;
+};
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -164,7 +171,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [promos, setPromos] = useState<Promo[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
-  const isSeoPostAdmin = Boolean(settings?.seoPostHost && adminSession?.role !== 'Super Admin');
+  const isSuperAdmin = adminSession?.role === 'Super Admin';
+  const isSeoPostAdmin = Boolean(settings?.seoPostHost && !isSuperAdmin);
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
@@ -325,14 +333,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   }, [adminSession]);
 
   useEffect(() => {
-    if (adminSession?.role !== 'Super Admin' || window.location.hostname !== 'kreditmotorhonda.tech') return;
+    if (!isSuperAdmin) return;
     api.getOwnerDashboardConfig()
       .then((config) => {
         setOwnerDashboardHosts(config.selectedHosts);
         setOwnerDashboardUrl(config.dashboardUrl);
       })
       .catch(() => undefined);
-  }, [adminSession]);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (!adminSession || activeTab !== 'seo') return;
@@ -1845,7 +1853,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
               { id: 'theme', label: 'Template View Website', icon: Palette },
               { id: 'seo', label: 'Dashboard SEO', icon: Search },
-              ...(window.location.hostname === 'kreditmotorhonda.tech' && adminSession.role === 'Super Admin'
+              ...(isSuperAdmin
                 ? [
                     { id: 'seo-subdomains', label: 'SEO Subdomain', icon: Search },
                     { id: 'seo-posts', label: 'Buat Pos', icon: FileText },
@@ -1854,9 +1862,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
-            ].filter((tab) => isSeoPostAdmin
-              ? ['promos', 'settings', 'theme'].includes(tab.id)
-              : canManageCatalog || !['motors', 'credit'].includes(tab.id)).map((tab) => {
+            ].filter((tab) => {
+              if (isSuperAdmin) return true;
+              if (isSeoPostAdmin) return ['promos', 'settings', 'theme'].includes(tab.id);
+              return canManageCatalog || !['motors', 'credit'].includes(tab.id);
+            }).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -3624,7 +3634,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <button className="rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500">Simpan Perubahan Akun</button>
                   </form>
 
-                  {adminSession.role === 'Super Admin' && (
+                  {isSuperAdmin && (
                     <form onSubmit={handleCreateAdmin} className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4">
                       <h3 className="font-bold text-white">Buat Admin Baru</h3>
                       <input required value={securityForm.username} onChange={(event) => setSecurityForm({ ...securityForm, username: event.target.value })} placeholder="Username admin baru" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
@@ -3652,7 +3662,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6">
-                  {adminSession.role === 'Super Admin' && window.location.hostname === 'kreditmotorhonda.tech' && (
+                  {isSuperAdmin && (
                     <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 sm:p-5">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
@@ -3716,7 +3726,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                               <div className="text-sm font-bold text-white">{user.username}</div>
                               <div className="text-[11px] text-zinc-400">{user.role}</div>
                             </div>
-                            {adminSession.role === 'Super Admin' && user.id !== adminSession.id && (
+                            {isSuperAdmin && user.id !== adminSession.id && (
                               <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); setAdminUsers((prev) => prev.filter((item) => item.id !== user.id)); showToast(`Admin ${user.username} berhasil dihapus`); }} className="text-[10px] text-red-400 hover:text-red-300">Hapus</button>
                             )}
                           </div>
@@ -3726,7 +3736,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                               {assignedPage ? `Admin Pos: ${assignedPage.subdomain}.kreditmotorhonda.tech` : 'Belum ditugaskan ke admin pos'}
                             </div>
 
-                            {adminSession.role === 'Super Admin' && (
+                            {isSuperAdmin && (
                               <select
                                 value={assignedPage?.id || ''}
                                 onChange={async (event) => {

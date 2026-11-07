@@ -20,6 +20,13 @@ SATELLITE_DROPIN_FILES=(
 )
 SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
+ID_SERVICE="kreditmotorhonda-id.service"
+ID_UNIT_FILE="/etc/systemd/system/${ID_SERVICE}"
+ID_DATA_DIR="/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data"
+ID_SERVICE_UPDATED=0
+ID_SERVICE_WAS_ACTIVE=0
+ID_SERVICE_WAS_ENABLED=0
+ID_UNIT_BACKUP=""
 STAGING_DIR=""
 STAGING_PID=""
 PREVIOUS_DROPIN_EXISTS=0
@@ -35,6 +42,28 @@ fail() {
 
 cleanup() {
   local result=$?
+  if [ "$ID_SERVICE_UPDATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    echo "Kreditmotorhonda.id deployment failed; restoring its previous service." >&2
+    if [ -n "$ID_UNIT_BACKUP" ] && [ -f "$ID_UNIT_BACKUP" ]; then
+      sudo install -m 644 "$ID_UNIT_BACKUP" "$ID_UNIT_FILE"
+      if [ "$ID_SERVICE_WAS_ENABLED" -eq 1 ]; then
+        sudo systemctl enable "$ID_SERVICE" || true
+      else
+        sudo systemctl disable "$ID_SERVICE" || true
+      fi
+      sudo systemctl daemon-reload || true
+      if [ "$ID_SERVICE_WAS_ACTIVE" -eq 1 ]; then
+        sudo systemctl restart "$ID_SERVICE" || true
+      else
+        sudo systemctl stop "$ID_SERVICE" || true
+      fi
+    else
+      sudo systemctl stop "$ID_SERVICE" || true
+      sudo systemctl disable "$ID_SERVICE" || true
+      sudo rm -f "$ID_UNIT_FILE"
+      sudo systemctl daemon-reload || true
+    fi
+  fi
   if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Satellite catalog deployment failed; restoring previous service releases." >&2
     for index in "${!SATELLITE_SERVICES[@]}"; do
@@ -182,6 +211,10 @@ fi
 cd "$RELEASE_DIR"
 npm ci
 npm run build
+
+sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 755 "$ID_DATA_DIR"
+sudo -u "$SERVICE_USER" env DATA_DIR="$DATA_DIR" ID_SITE_DATA_DIR="$ID_DATA_DIR" \
+  node "$RELEASE_DIR/scripts/provision-kreditmotorhonda-id.mjs"
 
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
 STAGING_PORT="$(node -e 'const net = require("node:net"); const server = net.createServer(); server.listen(0, "127.0.0.1", () => { console.log(server.address().port); server.close(); });')"
@@ -364,6 +397,67 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   fi
   echo "${service} catalog verified: ${satellite_motors} motors"
 done
+
+if [ -f "$ID_UNIT_FILE" ]; then
+  ID_UNIT_BACKUP="$STAGING_DIR/kreditmotorhonda-id.service.previous"
+  sudo cp "$ID_UNIT_FILE" "$ID_UNIT_BACKUP"
+  if systemctl is-active --quiet "$ID_SERVICE"; then ID_SERVICE_WAS_ACTIVE=1; fi
+  if systemctl is-enabled --quiet "$ID_SERVICE"; then ID_SERVICE_WAS_ENABLED=1; fi
+fi
+ID_SERVICE_UPDATED=1
+sudo tee "$ID_UNIT_FILE" >/dev/null <<EOF
+[Unit]
+Description=Honda Wijaya Abadi kreditmotorhonda.id site
+After=network.target kreditmotorhonda-id.service
+
+[Service]
+Type=simple
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
+WorkingDirectory=$RELEASE_DIR
+EnvironmentFile=
+EnvironmentFile=$ENV_FILE
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3003
+Environment=APP_URL=https://kreditmotorhonda.id
+Environment=DATA_DIR=$ID_DATA_DIR
+Environment=UPLOADS_DIR=$UPLOADS_DIR
+Environment=CATALOG_API_URL=http://127.0.0.1:3000
+Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
+Environment=CATALOG_ADMIN_URL=https://kreditmotorhonda.tech/admin
+ExecStart=
+ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable "$ID_SERVICE"
+sudo systemctl restart "$ID_SERVICE"
+if ! systemctl is-active --quiet "$ID_SERVICE" \
+  || ! systemctl show "$ID_SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+  fail "$ID_SERVICE did not start the new release."
+fi
+
+id_site_ready=0
+for attempt in $(seq 1 30); do
+  if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3003/api/health; then
+    id_site_ready=1
+    break
+  fi
+  sleep 1
+done
+if [ "$id_site_ready" -ne 1 ]; then
+  fail "$ID_SERVICE did not become healthy on port 3003."
+fi
+id_site_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:3003/api/motors | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+if [ "$id_site_motors" != "$EXPECTED_MOTORS" ]; then
+  fail "$ID_SERVICE catalog proxy returned $id_site_motors motors; expected $EXPECTED_MOTORS."
+fi
+echo "$ID_SERVICE catalog verified: $id_site_motors motors"
 
 DEPLOY_SUCCEEDED=1
 CUTOVER_STARTED=0

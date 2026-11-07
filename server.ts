@@ -373,9 +373,9 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
 
 function getSiteOrigin(settings: any = {}) {
   try {
-    return new URL(String(settings.seoCanonicalUrl || 'https://www.solusikreditmotor.cloud/')).origin;
+    return new URL(String(settings.seoCanonicalUrl || process.env.APP_URL || 'https://www.solusikreditmotor.cloud/')).origin;
   } catch {
-    return 'https://www.solusikreditmotor.cloud';
+    return String(process.env.APP_URL || 'https://www.solusikreditmotor.cloud').replace(/\/$/, '');
   }
 }
 
@@ -1247,6 +1247,8 @@ async function startServer() {
     'https://kreditmotorhonda.tech',
     'https://wijaya.kreditmotorhonda.tech',
     'https://solusikreditmotor.cloud',
+    'https://kreditmotorhonda.id',
+    'https://www.kreditmotorhonda.id',
   ]);
 
   app.use((req, res, next) => {
@@ -1471,7 +1473,7 @@ async function startServer() {
     const page = getSeoPageForHost(settings, req.hostname);
     if (page) return res.json(publicSettings(getSettingsForSeoPage(settings, page)));
     const session = getSession(req);
-    if (req.hostname === 'kreditmotorhonda.tech' && session?.role === 'Super Admin') return res.json(settings);
+    if (session?.role === 'Super Admin') return res.json(settings);
     return res.json(publicSettings(settings));
   });
 
@@ -1531,11 +1533,11 @@ async function startServer() {
     }
     if (!hostPage && Object.prototype.hasOwnProperty.call(settingsUpdates, 'seoPages')) {
       const session = (req as any).adminSession || getSession(req);
-      if (req.hostname !== 'kreditmotorhonda.tech' || session?.role !== 'Super Admin') {
+      if (session?.role !== 'Super Admin') {
         delete settingsUpdates.seoPages;
         delete settingsUpdates.ownerDashboard;
         if (Object.keys(settingsUpdates).length === 0) {
-          return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengelola post subdomain.' });
+          return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengelola post subdomain.' });
         }
       }
     }
@@ -2139,8 +2141,8 @@ async function startServer() {
 
   app.get('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
     const session = (req as any).adminSession;
-    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    if (session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengatur dashboard owner.' });
     }
     const db = readDb();
     const config = db.settings?.ownerDashboard || {};
@@ -2153,8 +2155,8 @@ async function startServer() {
 
   app.put('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
     const session = (req as any).adminSession;
-    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    if (session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengatur dashboard owner.' });
     }
 
     const db = readDb();
@@ -2560,8 +2562,8 @@ async function startServer() {
 
   app.post('/api/admin/seo-pages/:id/provision-ssl', requireAdmin, async (req, res) => {
     const session = (req as any).adminSession;
-    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengaktifkan SSL post.' });
+    if (session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengaktifkan SSL post.' });
     }
 
     const db = readDb();

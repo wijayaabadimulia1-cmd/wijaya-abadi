@@ -173,6 +173,12 @@ Ganti nilai contoh dengan konfigurasi production. Repo harus dapat di-clone dan 
 
 Setelah itu, setiap push ke branch `main` akan otomatis deploy ke VPS.
 
+## 12. Kreditmotorhonda.id (DNS ditunda)
+
+Deploy aman menyiapkan service `kreditmotorhonda-id` pada port lokal `3003`, database sendiri di `/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data`, dan proxy katalog motor/price list ke katalog pusat `.tech`. Pengaturan dealer, promo, testimoni, dan data situs tetap lokal. Database awal menyalin pengaturan dealer dari situs utama, tetapi tidak menyalin akun admin, promo, atau data transaksi.
+
+Domain masih dalam proses transfer, jadi deploy tidak mengubah DNS, memasang vhost Nginx, atau meminta sertifikat SSL untuk `.id`. Setelah transfer selesai, arahkan apex dan `www` ke IP VPS yang sama, tinjau konfigurasi HTTP yang disiapkan di `deploy/nginx/kreditmotorhonda.id`, aktifkan vhost, lalu terbitkan sertifikat sebelum mengalihkan HTTP ke HTTPS.
+
 ## 12. Cek status aplikasi
 
 ```bash
