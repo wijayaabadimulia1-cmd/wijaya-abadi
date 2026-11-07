@@ -183,6 +183,10 @@ get_service_environment_value() {
 
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
 SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
+ID_SOURCE_DATA_DIR=""
+if systemctl is-active --quiet "$ID_SERVICE"; then
+  ID_SOURCE_DATA_DIR="$(get_service_environment_value "$ID_SERVICE" DATA_DIR)"
+fi
 for service in "${SATELLITE_SERVICES[@]}"; do
   if ! systemctl is-active --quiet "$service"; then
     fail "$service is not active; refusing to replace an unknown production state."
@@ -218,8 +222,12 @@ npm ci
 npm run build
 
 sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 755 "$ID_DATA_DIR"
-sudo -u "$SERVICE_USER" env DATA_DIR="$DATA_DIR" ID_SITE_DATA_DIR="$ID_DATA_DIR" \
-  node "$RELEASE_DIR/scripts/provision-kreditmotorhonda-id.mjs"
+if [ ! -s "$ID_DATA_DIR/db.json" ]; then
+  if [ -z "$ID_SOURCE_DATA_DIR" ] || [ ! -s "$ID_SOURCE_DATA_DIR/db.json" ]; then
+    fail "No existing kreditmotorhonda.id database is available to initialize $ID_DATA_DIR; refusing deployment."
+  fi
+  sudo install -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 640 "$ID_SOURCE_DATA_DIR/db.json" "$ID_DATA_DIR/db.json"
+fi
 
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
 STAGING_PORT="$(node -e 'const net = require("node:net"); const server = net.createServer(); server.listen(0, "127.0.0.1", () => { console.log(server.address().port); server.close(); });')"
