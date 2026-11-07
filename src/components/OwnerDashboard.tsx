@@ -56,6 +56,23 @@ function daysBefore(dateKey: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function Sparkline({ values, label, color }: { values: number[]; label: string; color: string }) {
+  if (!values.length) return null;
+
+  const maximum = Math.max(1, ...values);
+  const points = values.map((value, index) => {
+    const x = values.length === 1 ? 50 : (index / (values.length - 1)) * 100;
+    const y = 30 - (value / maximum) * 24;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg className="owner-sparkline" viewBox="0 0 100 36" role="img" aria-label={label}>
+      <polyline points={points} fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
 const domainColors = ['#dc2626', '#334155', '#f59e0b', '#0891b2', '#059669', '#7c3aed'];
 
 export default function OwnerDashboard() {
@@ -169,6 +186,9 @@ export default function OwnerDashboard() {
   const allDays = analytics?.dailyVisitors || [];
   const visibleDays = showAllDays ? allDays : allDays.slice(-30);
   const totalDomainVisits = (analytics?.sites || []).reduce((total, site) => total + site.visits, 0);
+  const visitSparkline = (analytics?.dailyVisitors || []).slice(-8).map((day) => day.visits);
+  const domainSparkline = (analytics?.sites || []).slice(0, 8).map((site) => site.visits);
+  const pageSparkline = (analytics?.topPages || []).slice(0, 8).map((page) => page.visits);
   const rangeLabel = range === 'all'
     ? 'Semua data'
     : range === 'custom'
@@ -200,7 +220,7 @@ export default function OwnerDashboard() {
   ];
 
   return (
-    <div className={isDarkMode ? 'dark' : ''}>
+    <div className={`owner-dashboard-ui ${isDarkMode ? 'dark' : ''}`}>
       <main className="min-h-screen bg-slate-50 text-slate-800 transition-colors dark:bg-slate-950 dark:text-slate-100">
         <button
           type="button"
@@ -250,7 +270,7 @@ export default function OwnerDashboard() {
             </div>
           </aside>
 
-          <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+          <div className="owner-dashboard-main flex min-w-0 flex-1 flex-col md:ml-64">
             <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90 sm:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <button type="button" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden" onClick={() => setIsSidebarOpen(true)} aria-label="Buka menu">
@@ -273,36 +293,40 @@ export default function OwnerDashboard() {
               </div>
             </header>
 
-            <div className="space-y-6 p-4 sm:p-8">
-              <section id="overview" className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Performa Traffic Website</h2>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">Pantau seluruh domain dan landing page dalam satu dashboard.</p>
-                </div>
-                <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />{isLoading ? 'Memperbarui data' : 'Live Traffic Connected'}
-                </span>
-              </section>
+            <section id="overview" className="owner-hero">
+              <div className="owner-hero-copy">
+                <span>HONDA TECH <span aria-hidden="true">|</span> OWNER ANALYTICS</span>
+                <h2>Performa Traffic Website</h2>
+                <p>Pantau seluruh domain dan landing page dalam satu dashboard.</p>
+              </div>
+              <span className="owner-live-status">
+                <span className="owner-live-dot" />
+                {isLoading ? 'Memperbarui data' : 'Live Traffic Connected'}
+              </span>
+              <img className="owner-hero-photo" src="/uploads/hero.jpeg" alt="Motor Honda Vario" />
+            </section>
 
+            <div className="space-y-6 p-4 sm:p-8">
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan metrik">
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                <div className="owner-kpi owner-kpi-visits rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Kunjungan</span>
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400"><Eye className="h-4 w-4" /></span>
                   </div>
                   <div className="mt-3 text-3xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.totalVisits || 0).toLocaleString('id-ID')}</div>
-                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Pengunjung unik pada periode terpilih</p>
+                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Pengunjung pada periode terpilih</p>
+                  <Sparkline values={visitSparkline} label="Tren kunjungan harian" color="#e11d2e" />
                 </div>
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                <div className="owner-kpi owner-kpi-sites rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Website Dipantau</span>
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"><Globe className="h-4 w-4" /></span>
                   </div>
                   <div className="mt-3 text-3xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.siteCount || 0).toLocaleString('id-ID')}</div>
                   <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Domain aktif di dashboard owner</p>
+                  <Sparkline values={domainSparkline} label="Distribusi kunjungan per domain" color="#2583f7" />
                 </div>
-                <div className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 p-5 text-white shadow-lg shadow-red-950/20">
-                  <div className="pointer-events-none absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-red-600/10 blur-xl" />
+                <div className="owner-kpi owner-kpi-top relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 p-5 text-white shadow-lg shadow-red-950/20">
                   <div className="flex items-start justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-red-300">Website Teratas</span>
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/40 bg-red-600/30 text-red-300"><Activity className="h-4 w-4" /></span>
@@ -310,13 +334,14 @@ export default function OwnerDashboard() {
                   <a href={analytics?.sites[0] ? `https://${analytics.sites[0].host}` : '#'} target="_blank" rel="noreferrer" className="mt-3 block truncate text-base font-bold text-white transition hover:text-red-300">{analytics?.sites[0]?.host || '-'}</a>
                   <div className="mt-2 text-2xl font-black text-red-400">{(analytics?.sites[0]?.visits || 0).toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-300">kunjungan</span></div>
                 </div>
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                <div className="owner-kpi owner-kpi-pages rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Halaman Populer</span>
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"><BarChart3 className="h-4 w-4" /></span>
                   </div>
                   <div className="mt-3 text-3xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.topPages.length || 0).toLocaleString('id-ID')}</div>
                   <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">URL terpopuler pada rentang terpilih</p>
+                  <Sparkline values={pageSparkline} label="Kunjungan halaman terpopuler" color="#f59e0b" />
                 </div>
               </section>
 
@@ -432,6 +457,19 @@ export default function OwnerDashboard() {
                     ))}
                   </div>
                 </div>
+              </section>
+
+              <section className="owner-insight" aria-label="Ringkasan insight">
+                <span className="owner-insight-icon"><Activity className="h-5 w-5" /></span>
+                <div className="min-w-0 flex-1">
+                  <h3>Ringkasan Insight</h3>
+                  <p>
+                    {analytics?.totalVisits
+                      ? `${analytics.sites[0]?.host || 'Website terpantau'} mencatat ${analytics.sites[0]?.visits.toLocaleString('id-ID') || 0} kunjungan; total ${analytics.totalVisits.toLocaleString('id-ID')} kunjungan pada periode ini.`
+                      : 'Data traffic akan muncul setelah kunjungan pertama tercatat.'}
+                  </p>
+                </div>
+                <a href="#domains" className="owner-insight-link">Lihat Detail <ArrowUpRight className="h-4 w-4" /></a>
               </section>
 
               <section id="admin-access" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
