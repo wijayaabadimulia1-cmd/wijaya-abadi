@@ -130,7 +130,7 @@ if ! systemctl is-active --quiet "$SERVICE"; then
 fi
 if [ -e "$DROPIN_FILE" ]; then
   if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$DROPIN_FILE" \
-    || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
+    || ! grep -Eq '^ExecStart=/usr/bin/(node|env -u CATALOG_API_URL PORT=3000 /usr/bin/node) /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
     fail "$DROPIN_FILE is not a recognized managed deployment; review it before deploying."
   fi
   PREVIOUS_DROPIN_EXISTS=1
