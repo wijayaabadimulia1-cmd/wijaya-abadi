@@ -116,6 +116,24 @@ export default function App() {
   const isSalesCounterSite = Boolean(settings.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
   const hostSeoPost = hostSeoPage ? findSeoLandingPost(hostSeoPage, currentPath) : undefined;
 
+  useEffect(() => {
+    let hideTimeout: number | undefined;
+    const showScrollbar = () => {
+      document.documentElement.classList.add('scrollbar-visible');
+      if (hideTimeout !== undefined) window.clearTimeout(hideTimeout);
+      hideTimeout = window.setTimeout(() => {
+        document.documentElement.classList.remove('scrollbar-visible');
+      }, 1000);
+    };
+
+    window.addEventListener('scroll', showScrollbar, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', showScrollbar);
+      if (hideTimeout !== undefined) window.clearTimeout(hideTimeout);
+      document.documentElement.classList.remove('scrollbar-visible');
+    };
+  }, []);
+
   // Fetch initial data from dynamic database
   const loadData = async () => {
     try {

@@ -1,33 +1,32 @@
 @import "tailwindcss";
 
-.hwa-auto-hide-scrollbar {
-  scrollbar-color: transparent transparent;
+html {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
 
-.hwa-auto-hide-scrollbar:hover,
-.hwa-auto-hide-scrollbar:focus-within,
-.hwa-auto-hide-scrollbar:active {
-  scrollbar-color: rgba(148, 163, 184, 0.65) transparent;
+html.scrollbar-visible {
+  scrollbar-color: rgba(148, 163, 184, 0.72) transparent;
 }
 
-.hwa-auto-hide-scrollbar::-webkit-scrollbar {
-  height: 6px;
+html::-webkit-scrollbar {
+  width: 8px;
 }
 
-.hwa-auto-hide-scrollbar::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.hwa-auto-hide-scrollbar::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: transparent;
+html::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: transparent;
+  background-clip: padding-box;
 }
 
-.hwa-auto-hide-scrollbar:hover::-webkit-scrollbar-thumb,
-.hwa-auto-hide-scrollbar:focus-within::-webkit-scrollbar-thumb,
-.hwa-auto-hide-scrollbar:active::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.65);
+html.scrollbar-visible::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.72);
 }
 
 :root {
@@ -386,161 +385,6 @@ html[data-color-mode="dark"] body {
   color: #f1f5f9;
 }
 
-.owner-dashboard-ui {
-  --owner-border: #e5eaf1;
-  font-family: "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  background: #f5f7fb;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-.owner-dashboard-ui main { background: #f5f7fb; }
-.owner-dashboard-ui aside { width: 224px; box-shadow: 5px 0 24px rgba(15, 23, 42, .025); }
-.owner-dashboard-ui aside nav a { min-height: 42px; border-radius: 11px; }
-.owner-dashboard-ui aside nav a:hover { transform: translateX(2px); }
-.owner-dashboard-ui header { min-height: 62px; border-color: var(--owner-border); box-shadow: 0 1px 0 rgba(15, 23, 42, .02); }
-.owner-dashboard-ui header button { transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
-.owner-dashboard-ui header button:hover { transform: translateY(-1px); }
-.owner-dashboard-ui .owner-dashboard-main { margin-left: 224px; }
-.owner-dashboard-ui .owner-hero {
-  position: relative;
-  display: flex;
-  min-height: 96px;
-  align-items: center;
-  justify-content: space-between;
-  overflow: hidden;
-  isolation: isolate;
-  padding: 18px 28px;
-  color: #fff;
-  background: linear-gradient(100deg, #ed1529 0%, #c81024 58%, #961022 100%);
-}
-.owner-dashboard-ui .owner-hero::after {
-  position: absolute;
-  z-index: 2;
-  inset: 0 0 0 auto;
-  width: min(52%, 620px);
-  content: "";
-  pointer-events: none;
-  background: linear-gradient(90deg, #c81024 0%, rgba(200, 16, 36, .38) 34%, rgba(43, 13, 23, .18) 100%);
-}
-.owner-dashboard-ui .owner-hero-copy { position: relative; z-index: 3; }
-.owner-dashboard-ui .owner-hero-copy > span { color: #ffd9df; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
-.owner-dashboard-ui .owner-hero h2 { margin-top: 5px; font-size: 25px; font-weight: 850; line-height: 1.15; }
-.owner-dashboard-ui .owner-hero p { margin-top: 3px; color: rgba(255,255,255,.82); font-size: 12px; }
-.owner-dashboard-ui .owner-hero-photo {
-  position: absolute;
-  z-index: 1;
-  inset: 0 0 0 auto;
-  width: min(52%, 620px);
-  height: 100%;
-  object-fit: cover;
-  object-position: center 43%;
-  opacity: .82;
-}
-.owner-dashboard-ui .owner-live-status {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid rgba(255,255,255,.28);
-  border-radius: 999px;
-  background: rgba(255,255,255,.92);
-  padding: 6px 10px;
-  color: #15803d;
-  font-size: 10px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-.owner-dashboard-ui .owner-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.12); }
-.owner-dashboard-ui main section[aria-label="Ringkasan metrik"] > div,
-.owner-dashboard-ui #domains,
-.owner-dashboard-ui section[aria-label="Filter tanggal"],
-.owner-dashboard-ui section[aria-label="Kata kunci pencarian"],
-.owner-dashboard-ui section[aria-label="Kata kunci Google"],
-.owner-dashboard-ui section[aria-label="Klik WhatsApp"],
-.owner-dashboard-ui #admin-access,
-.owner-dashboard-ui #prospects,
-.owner-dashboard-ui #pages,
-.owner-dashboard-ui section.grid > div {
-  border-color: var(--owner-border);
-  border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .045), 0 7px 22px rgba(15, 23, 42, .025);
-}
-.owner-dashboard-ui .owner-kpi { position: relative; min-height: 132px; padding: 18px 18px 38px; }
-.owner-dashboard-ui .owner-kpi .owner-sparkline { position: absolute; right: 14px; bottom: 12px; width: 38%; height: 29px; overflow: visible; }
-.owner-dashboard-ui .owner-kpi-visits .owner-sparkline { color: #e11d2e; }
-.owner-dashboard-ui .owner-kpi-sites .owner-sparkline { color: #2583f7; }
-.owner-dashboard-ui .owner-kpi-pages .owner-sparkline { color: #f59e0b; }
-.owner-dashboard-ui .owner-kpi-visits > p,
-.owner-dashboard-ui .owner-kpi-sites > p,
-.owner-dashboard-ui .owner-kpi-pages > p { max-width: 62%; }
-.owner-dashboard-ui .owner-kpi-top { padding-bottom: 18px; }
-.owner-dashboard-ui .owner-sparkline { display: block; }
-.owner-dashboard-ui main section[aria-label="Filter tanggal"] { padding: 16px 18px; }
-.owner-dashboard-ui input[type="date"] { min-height: 40px; border-radius: 10px; font-size: 13px; }
-.owner-dashboard-ui table { border-spacing: 0; }
-.owner-dashboard-ui table thead th { padding-top: 13px; padding-bottom: 13px; background: #f7f9fc; color: #718096; font-size: 10px; font-weight: 750; letter-spacing: .04em; white-space: nowrap; }
-.owner-dashboard-ui table tbody td { padding-top: 13px; padding-bottom: 13px; font-size: 12px; line-height: 1.55; }
-.owner-dashboard-ui table tbody tr { transition: background-color .15s ease; }
-.owner-dashboard-ui table tbody tr:hover { background-color: #f8fafc; }
-.owner-dashboard-ui #admin-access > div:nth-child(2) > div { min-height: 62px; padding-top: 15px; padding-bottom: 15px; }
-.owner-dashboard-ui #admin-access > div:nth-child(2) > div:nth-child(even) { background: #fbfcfe; }
-.owner-dashboard-ui .overflow-x-auto { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-.owner-dashboard-ui .overflow-x-auto::-webkit-scrollbar { height: 7px; }
-.owner-dashboard-ui .overflow-x-auto::-webkit-scrollbar-thumb { border-radius: 99px; background: #cbd5e1; }
-.owner-dashboard-ui .overflow-x-auto::-webkit-scrollbar-track { background: transparent; }
-.owner-dashboard-ui .owner-insight {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid #f1cdd2;
-  border-radius: 15px;
-  background: #fff;
-  padding: 14px 18px;
-  box-shadow: 0 5px 18px rgba(15,23,42,.035);
-}
-.owner-dashboard-ui .owner-insight-icon { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: #fff3d8; color: #d97706; }
-.owner-dashboard-ui .owner-insight h3 { color: #1e293b; font-size: 14px; font-weight: 800; }
-.owner-dashboard-ui .owner-insight p { margin-top: 3px; color: #64748b; font-size: 11px; }
-.owner-dashboard-ui .owner-insight-link { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; border-radius: 11px; background: #fff0f1; padding: 10px 13px; color: #c81024; font-size: 11px; font-weight: 800; }
-.owner-dashboard-ui .owner-insight-link:hover { background: #ffe1e5; }
-.owner-dashboard-ui.dark main { background: #0b1220; }
-.owner-dashboard-ui.dark table thead th { background: #172235; color: #9aabc2; }
-.owner-dashboard-ui.dark table tbody tr:hover { background: rgba(51, 65, 85, .28); }
-.owner-dashboard-ui.dark #admin-access > div:nth-child(2) > div:nth-child(even) { background: rgba(30, 41, 59, .24); }
-.owner-dashboard-ui.dark main section[aria-label="Ringkasan metrik"] > div,
-.owner-dashboard-ui.dark #domains,
-.owner-dashboard-ui.dark section[aria-label="Filter tanggal"],
-.owner-dashboard-ui.dark section[aria-label="Kata kunci pencarian"],
-.owner-dashboard-ui.dark section[aria-label="Kata kunci Google"],
-.owner-dashboard-ui.dark section[aria-label="Klik WhatsApp"],
-.owner-dashboard-ui.dark #admin-access,
-.owner-dashboard-ui.dark #prospects,
-.owner-dashboard-ui.dark #pages,
-.owner-dashboard-ui.dark section.grid > div { border-color: #263449; }
-.owner-dashboard-ui.dark .owner-insight { border-color: #344255; background: #111b2b; }
-.owner-dashboard-ui.dark .owner-insight h3 { color: #f1f5f9; }
-.owner-dashboard-ui.dark .owner-insight p { color: #9aabc2; }
-@media (max-width: 767px) {
-  .owner-dashboard-ui .owner-dashboard-main { margin-left: 0; }
-  .owner-dashboard-ui aside { width: 256px; }
-  .owner-dashboard-ui .owner-hero { min-height: 108px; padding: 16px; }
-  .owner-dashboard-ui .owner-hero h2 { max-width: 68%; font-size: 21px; }
-  .owner-dashboard-ui .owner-hero p { max-width: 65%; font-size: 11px; }
-  .owner-dashboard-ui .owner-hero-copy > span { font-size: 8px; }
-  .owner-dashboard-ui .owner-hero-photo { width: 52%; object-position: center 43%; }
-  .owner-dashboard-ui .owner-live-status { position: absolute; right: 10px; top: 10px; gap: 5px; padding: 5px 7px; font-size: 9px; }
-  .owner-dashboard-ui main section[aria-label="Ringkasan metrik"] > div { min-height: 118px; padding: 15px 14px 36px; }
-  .owner-dashboard-ui .owner-insight { align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 13px; }
-  .owner-dashboard-ui .owner-insight-link { margin-left: 48px; }
-  .owner-dashboard-ui table tbody td { padding: 12px 14px; }
-  .owner-dashboard-ui table thead th { padding: 12px 14px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .owner-dashboard-ui *, .owner-dashboard-ui *::before, .owner-dashboard-ui *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-}
-
 .website-shell.site-mode-dark {
   --site-bg-effective: var(--custom-bg, #0f172a);
   --site-panel-effective: var(--custom-panel, #172033);
@@ -891,9 +735,6 @@ html[data-color-mode="dark"] body {
 
 .website-shell.site-mode-light .bg-red-600.text-white,
 .website-shell.site-mode-light .bg-emerald-600.text-white,
-.website-shell.site-mode-light .bg-emerald-700.text-white,
-.website-shell.site-mode-light .bg-emerald-800.text-white,
-.website-shell.site-mode-light .bg-emerald-900.text-white,
 .website-shell.site-mode-light .bg-gradient-to-r.text-white {
   color: #ffffff !important;
 }
@@ -1066,34 +907,10 @@ html[data-color-mode="dark"] body {
   color: #18181b !important;
 }
 
-.website-shell.site-mode-light .site-navbar-light a.site-navbar-contact {
-  background-color: #047857 !important;
-  border-color: #047857 !important;
-  color: #ffffff !important;
-}
-
-.website-shell.site-mode-light .site-navbar-light a.site-navbar-contact:hover {
-  background-color: #065f46 !important;
-  border-color: #065f46 !important;
-}
-
-.website-shell.site-mode-light .site-navbar-light a.site-navbar-contact svg {
-  color: #ffffff !important;
-}
-
-.website-shell.site-mode-light #home .hero-cta-whatsapp {
-  background-color: #047857 !important;
-  border-color: #047857 !important;
-  color: #ffffff !important;
-}
-
-.website-shell.site-mode-light #home .hero-cta-whatsapp:hover {
-  background-color: #065f46 !important;
-  border-color: #065f46 !important;
-}
-
-.website-shell.site-mode-light #home .hero-cta-whatsapp svg {
-  color: #ffffff !important;
+.website-shell.site-mode-light .site-navbar-light a.bg-emerald-600\/20 {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
 }
 
 .website-shell.site-mode-light header a:not([class*="bg-"]),
@@ -2513,14 +2330,14 @@ html[data-color-mode="dark"] body {
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-whatsapp {
-  background: #047857 !important;
-  border-color: #047857 !important;
-  color: #ffffff !important;
+  background: #ecfdf5 !important;
+  border-color: #059669 !important;
+  color: #065f46 !important;
   box-shadow: 0 8px 20px rgba(6, 95, 70, 0.12);
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-whatsapp svg {
-  color: #ffffff !important;
+  color: #047857 !important;
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-trust-item {

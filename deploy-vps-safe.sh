@@ -3,8 +3,7 @@ set -euo pipefail
 
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
-SERVICE="kreditmotorhonda-tech.service"
-LEGACY_MAIN_SERVICE="kreditmotorhonda-id.service"
+SERVICE="kreditmotorhonda-id.service"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMIT="${DEPLOY_COMMIT:-$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)}"
@@ -13,17 +12,21 @@ RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
 BACKUP_DIR="/var/backups/honda-wijaya-abadi"
 DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/deploy.conf"
-SERVICE_UNIT_FILE="/etc/systemd/system/${SERVICE}"
-SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service" "$LEGACY_MAIN_SERVICE")
-SATELLITE_PORTS=(3001 3002 3003)
-SATELLITE_CATALOG_API_URLS=("http://127.0.0.1:3000" "http://127.0.0.1:3000" "https://${DOMAIN}")
+SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
+SATELLITE_PORTS=(3001 3002)
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zz-catalog-release.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zz-catalog-release.conf"
-  "/etc/systemd/system/${LEGACY_MAIN_SERVICE}.d/zz-catalog-release.conf"
 )
-SATELLITE_DROPIN_EXISTED=(0 0 0)
-SATELLITE_DROPIN_BACKUPS=("" "" "")
+SATELLITE_DROPIN_EXISTED=(0 0)
+SATELLITE_DROPIN_BACKUPS=("" "")
+ID_SERVICE="kreditmotorhonda-id.service"
+ID_UNIT_FILE="/etc/systemd/system/${ID_SERVICE}"
+ID_DATA_DIR="/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data"
+ID_SERVICE_UPDATED=0
+ID_SERVICE_WAS_ACTIVE=0
+ID_SERVICE_WAS_ENABLED=0
+ID_UNIT_BACKUP=""
 STAGING_DIR=""
 STAGING_PID=""
 PREVIOUS_DROPIN_EXISTS=0
@@ -31,37 +34,36 @@ PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
 SATELLITE_UPDATES_STARTED=0
-SERVICE_UNIT_CREATED=0
 
 fail() {
   echo "$*" >&2
   exit 1
 }
 
-get_listener_pid() {
-  local port="$1"
-  sudo ss -ltnp "sport = :${port}" 2>/dev/null \
-    | sed -n 's/.*pid=\([0-9][0-9]*\),.*/\1/p' \
-    | head -n 1
-}
-
-is_orphaned_managed_node_listener() {
-  local pid="$1"
-  local executable
-  local working_directory
-  local parent_pid
-
-  executable="$(sudo readlink -f "/proc/${pid}/exe" 2>/dev/null || true)"
-  working_directory="$(sudo readlink -f "/proc/${pid}/cwd" 2>/dev/null || true)"
-  parent_pid="$(sudo ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')"
-
-  [ "$executable" = "/usr/bin/node" ] \
-    && [ "$parent_pid" = "1" ] \
-    && [[ "$working_directory" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]]
-}
-
 cleanup() {
   local result=$?
+  if [ "$ID_SERVICE_UPDATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    echo "Kreditmotorhonda.id deployment failed; restoring its previous service." >&2
+    if [ -n "$ID_UNIT_BACKUP" ] && [ -f "$ID_UNIT_BACKUP" ]; then
+      sudo install -m 644 "$ID_UNIT_BACKUP" "$ID_UNIT_FILE"
+      if [ "$ID_SERVICE_WAS_ENABLED" -eq 1 ]; then
+        sudo systemctl enable "$ID_SERVICE" || true
+      else
+        sudo systemctl disable "$ID_SERVICE" || true
+      fi
+      sudo systemctl daemon-reload || true
+      if [ "$ID_SERVICE_WAS_ACTIVE" -eq 1 ]; then
+        sudo systemctl restart "$ID_SERVICE" || true
+      else
+        sudo systemctl stop "$ID_SERVICE" || true
+      fi
+    else
+      sudo systemctl stop "$ID_SERVICE" || true
+      sudo systemctl disable "$ID_SERVICE" || true
+      sudo rm -f "$ID_UNIT_FILE"
+      sudo systemctl daemon-reload || true
+    fi
+  fi
   if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Satellite catalog deployment failed; restoring previous service releases." >&2
     for index in "${!SATELLITE_SERVICES[@]}"; do
@@ -78,37 +80,13 @@ cleanup() {
   fi
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Deployment health check failed; restoring the previous systemd service." >&2
-    if [ "$SERVICE_UNIT_CREATED" -eq 1 ]; then
-      sudo systemctl disable --now "$SERVICE" || true
-      if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
-        sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
-      else
-        sudo rm -f "$DROPIN_FILE"
-      fi
-      sudo rm -f "$SERVICE_UNIT_FILE"
-    else
-      if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
-        sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
-      else
-        sudo rm -f "$DROPIN_FILE"
-      fi
-      sudo systemctl daemon-reload || true
-      if [ "$SERVICE_ENV_SOURCE" = "$SERVICE" ]; then
-        sudo systemctl restart "$SERVICE" || true
-      else
-        sudo systemctl stop "$SERVICE" || true
-      fi
-    fi
-    sudo systemctl daemon-reload || true
-  elif [ "$SERVICE_UNIT_CREATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
-    sudo systemctl disable --now "$SERVICE" || true
     if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
       sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
     else
       sudo rm -f "$DROPIN_FILE"
     fi
-    sudo rm -f "$SERVICE_UNIT_FILE"
     sudo systemctl daemon-reload || true
+    sudo systemctl restart "$SERVICE" || true
   fi
   if [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ -d "$RELEASE_DIR" ]; then
     local release_in_use=0
@@ -135,30 +113,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Nginx upstreams for kreditmotorhonda.id:"
-sudo nginx -T 2>/dev/null | awk '
-  /^[[:space:]]*server[[:space:]]*\{/ { in_server = 1; found = 0; next }
-  in_server && /server_name[^;]*kreditmotorhonda[.]id/ { found = 1 }
-  found && /server_name|listen|location|root[[:space:]]|alias[[:space:]]|proxy_pass|proxy_cache|add_header|expires|try_files/ { print }
-' || true
-echo "kreditmotorhonda-id.service state:"
-sudo systemctl show "$LEGACY_MAIN_SERVICE" --property=LoadState,ActiveState,SubState,FragmentPath,ExecStart --value || true
-echo "kreditmotorhonda-id.service data environment:"
-sudo systemctl show "$LEGACY_MAIN_SERVICE" --property=Environment --value \
-  | tr ' ' '\n' \
-  | grep -E '^(DATA_DIR|CATALOG_API_URL|CATALOG_OWNER_DATA_FILE|APP_URL|PORT)=' || true
-echo "Listener on port 3003:"
-listener_info="$(sudo ss -ltnp 'sport = :3003' || true)"
-printf '%s\n' "$listener_info"
-listener_pid="$(printf '%s\n' "$listener_info" | sed -n 's/.*pid=\([0-9][0-9]*\),.*/\1/p' | head -n 1)"
-if [ -n "$listener_pid" ]; then
-  sudo ps -o pid=,ppid=,user=,etime=,comm= -p "$listener_pid" || true
-  printf 'Listener executable: '
-  sudo readlink -f "/proc/${listener_pid}/exe" || true
-  printf 'Listener working directory: '
-  sudo readlink -f "/proc/${listener_pid}/cwd" || true
-fi
-
 for host in "$DOMAIN" "www.${DOMAIN}"; do
   resolved_ips="$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)"
   if [ "$resolved_ips" != "$EXPECTED_VPS_IP" ]; then
@@ -166,33 +120,28 @@ for host in "$DOMAIN" "www.${DOMAIN}"; do
   fi
 done
 
-SERVICE_ENV_SOURCE="$SERVICE"
 if ! systemctl is-active --quiet "$SERVICE"; then
-  if systemctl is-active --quiet "$LEGACY_MAIN_SERVICE"; then
-    SERVICE_ENV_SOURCE="$LEGACY_MAIN_SERVICE"
-  else
-    fail "$SERVICE and $LEGACY_MAIN_SERVICE are not active; refusing to replace an unknown production state."
-  fi
+  fail "$SERVICE is not active; refusing to replace an unknown production state."
 fi
 if [ -e "$DROPIN_FILE" ]; then
   if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$DROPIN_FILE" \
-    || ! grep -Eq '^ExecStart=/usr/bin/env -u CATALOG_API_URL PORT=3000 /usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
+    || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
     fail "$DROPIN_FILE is not a recognized managed deployment; review it before deploying."
   fi
   PREVIOUS_DROPIN_EXISTS=1
 fi
 
-SERVICE_ENV="$(systemctl show "$SERVICE_ENV_SOURCE" --property=Environment --value)"
-SERVICE_USER="$(systemctl show "$SERVICE_ENV_SOURCE" --property=User --value)"
-SERVICE_GROUP="$(systemctl show "$SERVICE_ENV_SOURCE" --property=Group --value)"
+SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value)"
+SERVICE_USER="$(systemctl show "$SERVICE" --property=User --value)"
+SERVICE_GROUP="$(systemctl show "$SERVICE" --property=Group --value)"
 SERVICE_USER="${SERVICE_USER:-root}"
 SERVICE_GROUP="${SERVICE_GROUP:-$(id -gn "$SERVICE_USER")}"
 DATA_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*DATA_DIR=\([^ ]*\).*/\1/p')"
 UPLOADS_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*UPLOADS_DIR=\([^ ]*\).*/\1/p')"
-ENV_FILE="$(systemctl show "$SERVICE_ENV_SOURCE" --property=EnvironmentFiles --value | sed -n 's/^\([^ ]*\).*/\1/p')"
+ENV_FILE="$(systemctl show "$SERVICE" --property=EnvironmentFiles --value | sed -n 's/^\([^ ]*\).*/\1/p')"
 
 if [ -z "$DATA_DIR" ] || [ -z "$UPLOADS_DIR" ] || [ -z "$ENV_FILE" ]; then
-  fail "Could not determine the live DATA_DIR, UPLOADS_DIR, and EnvironmentFile from $SERVICE_ENV_SOURCE."
+  fail "Could not determine the live DATA_DIR, UPLOADS_DIR, and EnvironmentFile from $SERVICE."
 fi
 if [ ! -s "$DATA_DIR/db.json" ] || [ ! -d "$UPLOADS_DIR" ] || [ ! -f "$ENV_FILE" ]; then
   fail "Live catalog, uploads, or environment file is missing; refusing deployment."
@@ -229,43 +178,21 @@ get_service_environment_value() {
 
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
 SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
-ID_DATA_DIR="$(get_service_environment_value "$LEGACY_MAIN_SERVICE" DATA_DIR)"
-for index in "${!SATELLITE_SERVICES[@]}"; do
-  service="${SATELLITE_SERVICES[$index]}"
-  active_state="$(systemctl show "$service" --property=ActiveState --value)"
-  if [ "$active_state" != "active" ]; then
-    if [ "$service" = "$LEGACY_MAIN_SERVICE" ]; then
-      listener_pid="$(get_listener_pid "${SATELLITE_PORTS[$index]}")"
-      if [ -n "$listener_pid" ] && is_orphaned_managed_node_listener "$listener_pid"; then
-        echo "$service is $active_state; verified orphaned managed Node listener on port ${SATELLITE_PORTS[$index]} will be replaced at cutover."
-      else
-        fail "$service is $active_state and its port listener is not a recognized managed Node release."
-      fi
-    else
-      fail "$service is not active; refusing to replace an unknown production state."
-    fi
-  fi
-  if [ "$service" = "$LEGACY_MAIN_SERVICE" ] && [ "$SERVICE_ENV_SOURCE" = "$LEGACY_MAIN_SERVICE" ]; then
-    continue
+for service in "${SATELLITE_SERVICES[@]}"; do
+  if ! systemctl is-active --quiet "$service"; then
+    fail "$service is not active; refusing to replace an unknown production state."
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
-  expected_catalog_api_url="${SATELLITE_CATALOG_API_URLS[$index]}"
-  if [ "$catalog_api_url" != "http://127.0.0.1:3000" ] && [ "$catalog_api_url" != "$expected_catalog_api_url" ]; then
+  if [ "$catalog_api_url" != "http://127.0.0.1:3000" ]; then
     fail "$service is not configured to use the main catalog API; refusing deployment."
   fi
 done
 OWNER_ANALYTICS_WIJAYA_DB_FILE="${OWNER_ANALYTICS_WIJAYA_DB_FILE:-${WIJAYA_DATA_DIR}/db.json}"
 OWNER_ANALYTICS_SOLUSI_DB_FILE="${OWNER_ANALYTICS_SOLUSI_DB_FILE:-${SOLUSI_DATA_DIR}/db.json}"
-OWNER_ANALYTICS_ID_DB_FILE="${OWNER_ANALYTICS_ID_DB_FILE:-${ID_DATA_DIR}/db.json}"
-OWNER_ANALYTICS_ROOT_DIR="${OWNER_ANALYTICS_ROOT_DIR:-$(dirname "$DATA_DIR")}"
-OWNER_ANALYTICS_TECH_DB_FILE="${OWNER_ANALYTICS_TECH_DB_FILE:-${DATA_DIR}/db.json}"
-if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] || [ -z "$ID_DATA_DIR" ] \
+if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
   || [ ! -s "$OWNER_ANALYTICS_WIJAYA_DB_FILE" ] \
-  || [ ! -s "$OWNER_ANALYTICS_SOLUSI_DB_FILE" ] \
-  || [ ! -s "$WIJAYA_DATA_DIR/db.json" ] \
-  || [ ! -s "$SOLUSI_DATA_DIR/db.json" ] \
-  || [ ! -s "$ID_DATA_DIR/db.json" ]; then
-  fail "Could not verify all app database files for the site theme rollout."
+  || [ ! -s "$OWNER_ANALYTICS_SOLUSI_DB_FILE" ]; then
+  fail "Could not verify the Wijaya and Solusi site databases for owner analytics."
 fi
 
 EXPECTED_MOTORS="$(node -e 'const db = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (!Array.isArray(db.motors)) process.exit(2); console.log(db.motors.length)' "$DATA_DIR/db.json")"
@@ -285,6 +212,10 @@ cd "$RELEASE_DIR"
 npm ci
 npm run build
 
+sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 755 "$ID_DATA_DIR"
+sudo -u "$SERVICE_USER" env DATA_DIR="$DATA_DIR" ID_SITE_DATA_DIR="$ID_DATA_DIR" \
+  node "$RELEASE_DIR/scripts/provision-kreditmotorhonda-id.mjs"
+
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
 STAGING_PORT="$(node -e 'const net = require("node:net"); const server = net.createServer(); server.listen(0, "127.0.0.1", () => { console.log(server.address().port); server.close(); });')"
 if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ]; then
@@ -298,11 +229,8 @@ cp "$DATA_DIR/db.json" "$STAGING_DIR/data/db.json"
   cd "$RELEASE_DIR"
   exec env NODE_ENV=production HOST=127.0.0.1 PORT="$STAGING_PORT" \
     DATA_DIR="$STAGING_DIR/data" UPLOADS_DIR="$STAGING_DIR/uploads" \
-    OWNER_ANALYTICS_ROOT_DIR="$OWNER_ANALYTICS_ROOT_DIR" \
-    OWNER_ANALYTICS_TECH_DB_FILE="$OWNER_ANALYTICS_TECH_DB_FILE" \
     OWNER_ANALYTICS_WIJAYA_DB_FILE="$OWNER_ANALYTICS_WIJAYA_DB_FILE" \
     OWNER_ANALYTICS_SOLUSI_DB_FILE="$OWNER_ANALYTICS_SOLUSI_DB_FILE" \
-    OWNER_ANALYTICS_ID_DB_FILE="$OWNER_ANALYTICS_ID_DB_FILE" \
     node dist/server.cjs >"$STAGING_DIR/server.log" 2>&1
 ) &
 STAGING_PID=$!
@@ -337,13 +265,7 @@ STAGING_PID=""
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_FILE="${BACKUP_DIR}/catalog-uploads-${STAMP}.tar.gz"
 sudo install -d -m 700 "$BACKUP_DIR"
-SITE_DB_BACKUP_DIR="$STAGING_DIR/site-database-backups"
-mkdir -p "$SITE_DB_BACKUP_DIR"
-sudo cp -p "$DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/tech-db.json"
-sudo cp -p "$ID_DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/id-db.json"
-sudo cp -p "$WIJAYA_DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/wijaya-db.json"
-sudo cp -p "$SOLUSI_DATA_DIR/db.json" "$SITE_DB_BACKUP_DIR/solusi-db.json"
-sudo tar -czf "$BACKUP_FILE" -C "$DATA_DIR" db.json -C "$SITE_DB_BACKUP_DIR" . -C "$UPLOADS_DIR" .
+sudo tar -czf "$BACKUP_FILE" -C "$DATA_DIR" db.json -C "$UPLOADS_DIR" .
 sudo chmod 600 "$BACKUP_FILE"
 if ! sudo tar -tzf "$BACKUP_FILE" | grep -Fx 'db.json' > /dev/null; then
   fail "Catalog backup verification failed: $BACKUP_FILE"
@@ -362,14 +284,6 @@ if [ -f "$GSC_CREDENTIALS_FILE" ]; then
 fi
 
 sudo install -d -m 755 "$DROPIN_DIR"
-if [ ! -e "$SERVICE_UNIT_FILE" ]; then
-  SOURCE_UNIT_FILE="$(systemctl show "$SERVICE_ENV_SOURCE" --property=FragmentPath --value)"
-  if [ ! -f "$SOURCE_UNIT_FILE" ]; then
-    fail "Could not find the unit file for $SERVICE_ENV_SOURCE to create $SERVICE."
-  fi
-  sudo install -m 644 "$SOURCE_UNIT_FILE" "$SERVICE_UNIT_FILE"
-  SERVICE_UNIT_CREATED=1
-fi
 sudo tee "$DROPIN_FILE" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
@@ -378,24 +292,19 @@ EnvironmentFile=$ENV_FILE
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
-Environment=CATALOG_API_URL=
 Environment=APP_URL=https://$DOMAIN
 Environment=DATA_DIR=$DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
 Environment=GSC_SERVICE_ACCOUNT_FILE=/etc/wijaya-abadi/gsc-service-account.json
 Environment=GSC_SITE_URLS=$GSC_SITE_URLS
-Environment=OWNER_ANALYTICS_ROOT_DIR=$OWNER_ANALYTICS_ROOT_DIR
-Environment=OWNER_ANALYTICS_TECH_DB_FILE=$OWNER_ANALYTICS_TECH_DB_FILE
 Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
 Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
-Environment=OWNER_ANALYTICS_ID_DB_FILE=$OWNER_ANALYTICS_ID_DB_FILE
 ExecStart=
-ExecStart=/usr/bin/env -u CATALOG_API_URL PORT=3000 /usr/bin/node $RELEASE_DIR/dist/server.cjs
+ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 
 CUTOVER_STARTED=1
 sudo systemctl daemon-reload
-sudo systemctl enable "$SERVICE"
 sudo systemctl restart "$SERVICE"
 
 if ! systemctl show "$SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
@@ -438,8 +347,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
   if [ -e "$dropin_file" ]; then
     if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$dropin_file" \
-      || { ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file" \
-        && ! grep -Eq '^ExecStart=/usr/bin/env PORT=(3001|3002|3003) CATALOG_API_URL=(http://127\.0\.0\.1:3000|https://kreditmotorhonda\.tech) CATALOG_OWNER_DATA_FILE=[^[:space:]]+ /usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file"; }; then
+      || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file"; then
       fail "$dropin_file is not a recognized managed catalog release; review it before deployment."
     fi
     SATELLITE_DROPIN_EXISTED[$index]=1
@@ -455,16 +363,9 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
-Environment=PORT=${SATELLITE_PORTS[$index]}
-Environment=CATALOG_API_URL=${SATELLITE_CATALOG_API_URLS[$index]}
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
-Environment=OWNER_ANALYTICS_ROOT_DIR=$OWNER_ANALYTICS_ROOT_DIR
-Environment=OWNER_ANALYTICS_TECH_DB_FILE=$OWNER_ANALYTICS_TECH_DB_FILE
-Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
-Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
-Environment=OWNER_ANALYTICS_ID_DB_FILE=$OWNER_ANALYTICS_ID_DB_FILE
 ExecStart=
-ExecStart=/usr/bin/env PORT=${SATELLITE_PORTS[$index]} CATALOG_API_URL=${SATELLITE_CATALOG_API_URLS[$index]} CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json /usr/bin/node $RELEASE_DIR/dist/server.cjs
+ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 done
 sudo systemctl daemon-reload
@@ -472,52 +373,7 @@ sudo systemctl daemon-reload
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
-  if [ "$service" = "$LEGACY_MAIN_SERVICE" ] \
-    && [ "$(systemctl show "$service" --property=ActiveState --value)" != "active" ]; then
-    listener_pid="$(get_listener_pid "$port")"
-    if [ -z "$listener_pid" ] || ! is_orphaned_managed_node_listener "$listener_pid"; then
-      fail "$service no longer has the verified orphaned Node listener on port $port."
-    fi
-    echo "Stopping verified orphaned Node process $listener_pid on port $port from a managed release."
-    sudo kill -TERM "$listener_pid"
-    listener_stopped=0
-    for attempt in $(seq 1 30); do
-      if [ -z "$(get_listener_pid "$port")" ]; then
-        listener_stopped=1
-        break
-      fi
-      sleep 1
-    done
-    if [ "$listener_stopped" -ne 1 ]; then
-      fail "Verified orphaned process $listener_pid did not release port $port."
-    fi
-    sudo systemctl reset-failed "$service"
-  fi
   sudo systemctl restart "$service"
-  if [ "$service" = "$LEGACY_MAIN_SERVICE" ]; then
-    owner_ready=0
-    for attempt in $(seq 1 10); do
-      if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3000/api/health; then
-        owner_ready=1
-        break
-      fi
-      sleep 1
-    done
-    if [ "$owner_ready" -ne 1 ]; then
-      echo "Catalog owner health check failed after restarting $service; restarting $SERVICE."
-      sudo systemctl restart "$SERVICE"
-      for attempt in $(seq 1 30); do
-        if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3000/api/health; then
-          owner_ready=1
-          break
-        fi
-        sleep 1
-      done
-      if [ "$owner_ready" -ne 1 ]; then
-        fail "$SERVICE did not recover after restarting $service."
-      fi
-    fi
-  fi
   if ! systemctl is-active --quiet "$service" \
     || ! systemctl show "$service" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
     fail "$service did not start the new catalog release."
@@ -535,30 +391,73 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     fail "$service did not become healthy on port ${port}."
   fi
 
-  if ! satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"; then
-    echo "Recent shared-catalog proxy errors for $service:" >&2
-    sudo journalctl -u "$service" --since "5 minutes ago" --no-pager | grep -F 'Shared catalog proxy error:' | tail -n 10 >&2 || true
-    systemctl show "$service" --property=MainPID,ExecStart,Environment,NetworkNamespacePath,PrivateNetwork,IPAddressAllow,IPAddressDeny,RestrictAddressFamilies,StandardOutput,StandardError \
-      | sed -E 's/(CATALOG_SERVICE_TOKEN=)[^ ]+/\1[redacted]/g' >&2
-    systemctl show "$service" --property=Environment --value | tr ' ' '\n' | grep -E '^(PORT|CATALOG_API_URL)=' >&2 || true
-    service_pid="$(systemctl show "$service" --property=MainPID --value)"
-    if command -v nsenter >/dev/null 2>&1 && [ "$service_pid" -gt 0 ]; then
-      if sudo nsenter --target "$service_pid" --net curl --silent --show-error --fail --max-time 5 http://127.0.0.1:3000/api/health >/dev/null; then
-        echo "$service network namespace can reach the main catalog health endpoint." >&2
-      else
-        echo "$service network namespace cannot reach the main catalog health endpoint." >&2
-      fi
-    fi
-    fail "$service could not read the shared catalog on port ${port}."
-  fi
+  satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
   if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
     fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
   fi
   echo "${service} catalog verified: ${satellite_motors} motors"
 done
 
-sudo node "$RELEASE_DIR/scripts/apply-website-theme.mjs" \
-  "$DATA_DIR/db.json" "$ID_DATA_DIR/db.json" "$WIJAYA_DATA_DIR/db.json" "$SOLUSI_DATA_DIR/db.json"
+if [ -f "$ID_UNIT_FILE" ]; then
+  ID_UNIT_BACKUP="$STAGING_DIR/kreditmotorhonda-id.service.previous"
+  sudo cp "$ID_UNIT_FILE" "$ID_UNIT_BACKUP"
+  if systemctl is-active --quiet "$ID_SERVICE"; then ID_SERVICE_WAS_ACTIVE=1; fi
+  if systemctl is-enabled --quiet "$ID_SERVICE"; then ID_SERVICE_WAS_ENABLED=1; fi
+fi
+ID_SERVICE_UPDATED=1
+sudo tee "$ID_UNIT_FILE" >/dev/null <<EOF
+[Unit]
+Description=Honda Wijaya Abadi kreditmotorhonda.id site
+After=network.target kreditmotorhonda-id.service
+
+[Service]
+Type=simple
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
+WorkingDirectory=$RELEASE_DIR
+EnvironmentFile=
+EnvironmentFile=$ENV_FILE
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3003
+Environment=APP_URL=https://kreditmotorhonda.id
+Environment=DATA_DIR=$ID_DATA_DIR
+Environment=UPLOADS_DIR=$UPLOADS_DIR
+Environment=CATALOG_API_URL=http://127.0.0.1:3000
+Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
+Environment=CATALOG_ADMIN_URL=https://kreditmotorhonda.tech/admin
+ExecStart=
+ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable "$ID_SERVICE"
+sudo systemctl restart "$ID_SERVICE"
+if ! systemctl is-active --quiet "$ID_SERVICE" \
+  || ! systemctl show "$ID_SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+  fail "$ID_SERVICE did not start the new release."
+fi
+
+id_site_ready=0
+for attempt in $(seq 1 30); do
+  if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3003/api/health; then
+    id_site_ready=1
+    break
+  fi
+  sleep 1
+done
+if [ "$id_site_ready" -ne 1 ]; then
+  fail "$ID_SERVICE did not become healthy on port 3003."
+fi
+id_site_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:3003/api/motors | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+if [ "$id_site_motors" != "$EXPECTED_MOTORS" ]; then
+  fail "$ID_SERVICE catalog proxy returned $id_site_motors motors; expected $EXPECTED_MOTORS."
+fi
+echo "$ID_SERVICE catalog verified: $id_site_motors motors"
 
 DEPLOY_SUCCEEDED=1
 CUTOVER_STARTED=0

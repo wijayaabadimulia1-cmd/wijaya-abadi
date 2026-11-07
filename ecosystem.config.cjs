@@ -37,7 +37,7 @@ const sites = [
     name: 'kreditmotorhonda-id',
     port: 3003,
     appUrl: 'https://kreditmotorhonda.id',
-    dataDir: path.join(persistentRoot, 'sites', 'id', 'data'),
+    dataDir: path.join(persistentRoot, 'sites', 'kreditmotorhonda-id', 'data'),
     catalogOwner: false,
   },
 ];
@@ -54,8 +54,6 @@ module.exports = {
       APP_URL: site.appUrl,
       DATA_DIR: site.dataDir,
       UPLOADS_DIR: sharedUploads,
-      OWNER_ANALYTICS_ROOT_DIR: persistentRoot,
-      OWNER_ANALYTICS_TECH_DB_FILE: sharedCatalogDb,
       CATALOG_SERVICE_TOKEN: catalogServiceToken,
       CATALOG_ADMIN_URL: 'https://kreditmotorhonda.tech/admin',
       ...(site.catalogOwner ? {} : {
