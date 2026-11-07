@@ -297,13 +297,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const loadAllData = async () => {
     setIsLoading(true);
     const [settingsResult, motorsResult, promosResult, testiResult, leadsResult, priceListResult] = await Promise.allSettled([
-        api.getAdminSettings(),
-        api.getMotors(),
-        api.getPromos(),
-        api.getTestimonials(),
-        api.getInterests(),
-        api.getFifPriceList(),
-      ]);
+      api.getAdminSettings(),
+      api.getMotors(),
+      api.getPromos(),
+      api.getTestimonials(),
+      api.getInterests(),
+      api.getFifPriceList(),
+    ]);
 
     const failedSections: string[] = [];
     const priceList = priceListResult.status === 'fulfilled' ? priceListResult.value : DEFAULT_FIF_PRICE_LIST;
@@ -311,20 +311,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
     if (settingsResult.status === 'fulfilled') setSettings(settingsResult.value);
     else failedSections.push('pengaturan');
-    if (motorsResult.status === 'fulfilled') setMotors(motorsResult.value.map((motor) => normalizeMotorOtrPrice(motor, priceList)));
-    else failedSections.push('motor');
+
+    if (motorsResult.status === 'fulfilled') {
+      setMotors(motorsResult.value.map((motor) => normalizeMotorOtrPrice(motor, priceList)));
+    } else failedSections.push('motor');
+
     if (promosResult.status === 'fulfilled') setPromos(promosResult.value);
     else failedSections.push('promo');
+
     if (testiResult.status === 'fulfilled') setTestimonials(testiResult.value);
     else failedSections.push('ulasan');
+
     if (leadsResult.status === 'fulfilled') setLeads(leadsResult.value);
     else failedSections.push('peminat');
-    if (priceListResult.status === 'rejected') failedSections.push('price list FIF');
 
+    if (priceListResult.status === 'rejected') failedSections.push('price list FIF');
     if (failedSections.length) {
-      console.error('Failed to load admin sections:', failedSections);
+      console.error('Failed to load admin sections:', { settingsResult, motorsResult, promosResult, testiResult, leadsResult, priceListResult });
       showToast(`Sebagian data gagal dimuat: ${failedSections.join(', ')}`);
     }
+
     setIsLoading(false);
   };
 
