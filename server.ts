@@ -883,7 +883,8 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}, testim
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('id-ID')
-    .replace(/[^a-z0-9]/g, '');
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/^honda/, '');
   const normalizedProductName = normalizeReviewModel(name);
   const productReviews = testimonials.filter((item: any) => {
     const rating = Number(item?.rating);
