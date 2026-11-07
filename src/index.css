@@ -1240,6 +1240,54 @@ html[data-color-mode="dark"] body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
+@media (max-width: 767px) {
+  .catalog-photo-frame {
+    min-height: 230px;
+    height: 230px;
+    padding: 0.75rem;
+  }
+
+  .catalog-card {
+    border-radius: 1.5rem;
+  }
+
+  .catalog-cta-primary,
+  .catalog-cta-secondary,
+  .catalog-compare-button {
+    min-height: 46px;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+
+  [role="dialog"] .relative.flex {
+    width: min(100%, 560px);
+    gap: 0.5rem;
+  }
+
+  [role="dialog"] img {
+    max-height: 72vh;
+    max-width: min(100%, 520px);
+    width: auto;
+  }
+
+  [role="dialog"] .gallery-nav-button,
+  [role="dialog"] .gallery-close-button {
+    width: 3rem;
+    height: 3rem;
+    min-width: 3rem;
+    min-height: 3rem;
+    z-index: 2;
+  }
+
+  [role="dialog"] .gallery-caption {
+    position: static;
+    display: block;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+}
+
 .catalog-photo-animation,
 .catalog-animation-preview img {
   animation-duration: var(--catalog-animation-duration, 2.4s);

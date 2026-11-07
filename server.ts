@@ -15,8 +15,15 @@ import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from '.
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
-const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DEFAULT_DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_DIR = path.resolve(process.env.DATA_DIR || DEFAULT_DATA_DIR);
+const FALLBACK_DB_FILE = path.join(DEFAULT_DATA_DIR, 'db.json');
+const DB_FILE = (() => {
+  const configuredDbFile = path.join(DATA_DIR, 'db.json');
+  if (fs.existsSync(configuredDbFile)) return configuredDbFile;
+  if (fs.existsSync(FALLBACK_DB_FILE)) return FALLBACK_DB_FILE;
+  return configuredDbFile;
+})();
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
   'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
@@ -25,7 +32,12 @@ const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
 const CATALOG_API_URL = String(process.env.CATALOG_API_URL || '').trim().replace(/\/+$/, '');
 const CATALOG_SERVICE_TOKEN = String(process.env.CATALOG_SERVICE_TOKEN || '');
-const CATALOG_OWNER_DATA_FILE = path.resolve(process.env.CATALOG_OWNER_DATA_FILE || DB_FILE);
+const CATALOG_OWNER_DATA_FILE = (() => {
+  const configuredPath = path.resolve(process.env.CATALOG_OWNER_DATA_FILE || DB_FILE);
+  if (fs.existsSync(configuredPath)) return configuredPath;
+  if (fs.existsSync(FALLBACK_DB_FILE)) return FALLBACK_DB_FILE;
+  return configuredPath;
+})();
 const execFileAsync = promisify(execFile);
 const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
 const FIF_TENORS = [11, 17, 23, 29, 35];
@@ -39,13 +51,16 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 function readDb() {
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(data);
+  for (const candidatePath of [DB_FILE, FALLBACK_DB_FILE]) {
+    try {
+      if (!fs.existsSync(candidatePath)) continue;
+      const raw = fs.readFileSync(candidatePath, 'utf-8').trim();
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch (err) {
+      console.error('Error reading db:', err);
     }
-  } catch (err) {
-    console.error('Error reading db:', err);
   }
   return {
     settings: {},
@@ -874,7 +889,13 @@ function renderDynamicSitemap(db: any, hostname = '') {
 
 function writeDb(data: any) {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    const targetDbFile = fs.existsSync(FALLBACK_DB_FILE) ? FALLBACK_DB_FILE : DB_FILE;
+    const targetDir = path.dirname(targetDbFile);
+    fs.mkdirSync(targetDir, { recursive: true });
+    fs.writeFileSync(targetDbFile, JSON.stringify(data, null, 2), 'utf-8');
+    if (targetDbFile !== DB_FILE && fs.existsSync(DB_FILE)) {
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    }
     return true;
   } catch (err) {
     console.error('Error writing db:', err);
@@ -1256,6 +1277,35 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
   next();
 }
 
+function getCatalogAccessState(req: express.Request) {
+  const session = getSession(req);
+  const host = normalizeAnalyticsHost(req.hostname);
+  const isMainCatalogHost = host === 'kreditmotorhonda.tech';
+  const isSuperAdmin = session?.role === 'Super Admin';
+  const canManageCatalog = Boolean(session) && (isSuperAdmin || isMainCatalogHost);
+
+  return {
+    session,
+    host,
+    isMainCatalogHost,
+    isSuperAdmin,
+    canManageCatalog,
+    owner: isSuperAdmin || isMainCatalogHost,
+    adminUrl: 'https://kreditmotorhonda.tech/admin',
+  };
+}
+
+function requireCatalogWriteAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const access = getCatalogAccessState(req);
+  if (!access.session) {
+    return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+  }
+  if (!access.canManageCatalog) {
+    return res.status(403).json({ error: 'Hanya admin utama katalog yang dapat mengedit motor dan katalog shared.' });
+  }
+  next();
+}
+
 async function startServer() {
   const app = express();
   // CORS_ALLOWLIST_MIDDLEWARE
@@ -1296,6 +1346,10 @@ async function startServer() {
   app.use((req, res, next) => {
     if (req.hostname.toLowerCase() === 'www.kreditmotorhonda.tech') {
       return res.redirect(301, `https://kreditmotorhonda.tech${req.originalUrl}`);
+    }
+    const host = req.hostname.toLowerCase();
+    if (req.path.startsWith('/admin') && host !== 'kreditmotorhonda.tech' && host !== 'localhost' && host !== '127.0.0.1') {
+      return res.redirect(302, `https://kreditmotorhonda.tech/admin`);
     }
     next();
   });
@@ -1497,6 +1551,15 @@ async function startServer() {
     res.json(currentFifPriceList());
   });
 
+  app.get('/api/catalog/status', requireAdmin, (req, res) => {
+    const access = getCatalogAccessState(req);
+    res.json({
+      owner: access.owner,
+      canManageCatalog: access.canManageCatalog,
+      adminUrl: access.adminUrl,
+    });
+  });
+
   app.get('/api/fif-price-list/template', (req, res) => {
     try {
       const db = readDb();
@@ -1509,7 +1572,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/fif-price-list/import', express.raw({
+  app.post('/api/fif-price-list/import', requireCatalogWriteAccess, express.raw({
     type: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'],
     limit: Infinity,
   }), (req, res) => {
@@ -1670,7 +1733,7 @@ async function startServer() {
     res.send(buffer);
   });
 
-  app.post('/api/motors/import', express.raw({ type: ['text/csv', 'application/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'], limit: '5mb' }), (req, res) => {
+  app.post('/api/motors/import', requireCatalogWriteAccess, express.raw({ type: ['text/csv', 'application/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/octet-stream'], limit: '5mb' }), (req, res) => {
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'File upload kosong atau tidak terbaca.' });
 
@@ -1786,7 +1849,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/motors', (req, res) => {
+  app.post('/api/motors', requireCatalogWriteAccess, (req, res) => {
     const db = readDb();
     const images = normalizeMotorImages(req.body.images, [req.body.image]);
     if (images.some((image) => /^https?:\/\//i.test(image) && !isSharedCatalogImageUrl(image))) {
@@ -1820,7 +1883,7 @@ async function startServer() {
     res.status(201).json(newMotor);
   });
 
-  app.put('/api/motors/:id', (req, res) => {
+  app.put('/api/motors/:id', requireCatalogWriteAccess, (req, res) => {
     const db = readDb();
     const index = (db.motors || []).findIndex((m: any) => m.id === req.params.id);
     if (index === -1) {
@@ -1854,7 +1917,7 @@ async function startServer() {
     res.json(updated);
   });
 
-  app.delete('/api/motors/:id', (req, res) => {
+  app.delete('/api/motors/:id', requireCatalogWriteAccess, (req, res) => {
     const db = readDb();
     db.motors = (db.motors || []).filter((m: any) => m.id !== req.params.id);
     writeDb(db);

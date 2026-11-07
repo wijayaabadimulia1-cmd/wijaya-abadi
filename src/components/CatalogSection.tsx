@@ -452,36 +452,36 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index - 1 + selectedGallery.images.length) % selectedGallery.images.length })}
-                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200"
+                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-14 sm:w-14"
                 aria-label="Foto sebelumnya"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
             )}
             <img
               src={selectedGallery.images[selectedGallery.index]}
               alt={`${selectedGallery.alt} foto ${selectedGallery.index + 1}`}
-              className="max-h-[88vh] max-w-full rounded-2xl object-contain shadow-2xl"
+              className="max-h-[88vh] max-w-full rounded-2xl object-contain shadow-2xl sm:max-h-[88vh]"
             />
             <button
               type="button"
               onClick={() => setSelectedGallery(null)}
-              className="gallery-close-button absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full shadow-xl transition-all duration-200"
+              className="gallery-close-button absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-12 sm:w-12"
               aria-label="Tutup foto"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
             {selectedGallery.images.length > 1 && (
               <button
                 type="button"
                 onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index + 1) % selectedGallery.images.length })}
-                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200"
+                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-14 sm:w-14"
                 aria-label="Foto berikutnya"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
             )}
-            <p className="gallery-caption absolute -bottom-8 left-0 right-0 text-center text-sm font-semibold text-white">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</p>
+            <p className="gallery-caption absolute -bottom-8 left-0 right-0 text-center text-sm font-semibold text-white sm:text-sm">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</p>
           </div>
         </div>
       )}
