@@ -136,9 +136,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-semibold rounded-xl transition-colors"
+              className="site-navbar-contact flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 border border-emerald-800 text-white hover:text-white text-xs font-semibold rounded-xl transition-colors"
             >
-              <MessageSquare className="w-4 h-4 text-emerald-400" />
+              <MessageSquare className="w-4 h-4 text-white" />
                 <span>{isWijayaEnerjik ? 'Chat Sales' : 'WhatsApp Sales'}</span>
             </a>
 

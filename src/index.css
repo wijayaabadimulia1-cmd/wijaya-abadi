@@ -891,6 +891,9 @@ html[data-color-mode="dark"] body {
 
 .website-shell.site-mode-light .bg-red-600.text-white,
 .website-shell.site-mode-light .bg-emerald-600.text-white,
+.website-shell.site-mode-light .bg-emerald-700.text-white,
+.website-shell.site-mode-light .bg-emerald-800.text-white,
+.website-shell.site-mode-light .bg-emerald-900.text-white,
 .website-shell.site-mode-light .bg-gradient-to-r.text-white {
   color: #ffffff !important;
 }
@@ -1063,10 +1066,34 @@ html[data-color-mode="dark"] body {
   color: #18181b !important;
 }
 
-.website-shell.site-mode-light .site-navbar-light a.bg-emerald-600\/20 {
-  background: #ecfdf5 !important;
-  border-color: #6ee7b7 !important;
-  color: #047857 !important;
+.website-shell.site-mode-light .site-navbar-light a.site-navbar-contact {
+  background-color: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+.website-shell.site-mode-light .site-navbar-light a.site-navbar-contact:hover {
+  background-color: #065f46 !important;
+  border-color: #065f46 !important;
+}
+
+.website-shell.site-mode-light .site-navbar-light a.site-navbar-contact svg {
+  color: #ffffff !important;
+}
+
+.website-shell.site-mode-light #home .hero-cta-whatsapp {
+  background-color: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+.website-shell.site-mode-light #home .hero-cta-whatsapp:hover {
+  background-color: #065f46 !important;
+  border-color: #065f46 !important;
+}
+
+.website-shell.site-mode-light #home .hero-cta-whatsapp svg {
+  color: #ffffff !important;
 }
 
 .website-shell.site-mode-light header a:not([class*="bg-"]),
@@ -2486,14 +2513,14 @@ html[data-color-mode="dark"] body {
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-whatsapp {
-  background: #ecfdf5 !important;
-  border-color: #059669 !important;
-  color: #065f46 !important;
+  background: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
   box-shadow: 0 8px 20px rgba(6, 95, 70, 0.12);
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-cta-whatsapp svg {
-  color: #047857 !important;
+  color: #ffffff !important;
 }
 
 .website-shell.website-template-wijaya-cool.site-mode-light #home .hero-trust-item {

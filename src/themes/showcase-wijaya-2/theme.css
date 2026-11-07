@@ -108,9 +108,18 @@
 }
 
 .website-shell.website-template-showcase-wijaya-2 #home .hero-cta-whatsapp {
-  color: #087d45;
-  background: rgba(10, 159, 87, 0.08);
-  border-color: rgba(10, 159, 87, 0.32);
+  color: #ffffff;
+  background: #047857;
+  border-color: #047857;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-cta-whatsapp:hover {
+  background: #065f46;
+  border-color: #065f46;
+}
+
+.website-shell.website-template-showcase-wijaya-2 #home .hero-cta-whatsapp svg {
+  color: #ffffff;
 }
 
 .website-shell.website-template-showcase-wijaya-2 #home .hero-trust-item {

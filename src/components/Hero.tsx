@@ -153,9 +153,9 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hero-cta-whatsapp px-5 py-3.5 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/35 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5"
+                className="hero-cta-whatsapp px-5 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-800 hover:border-emerald-900 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5"
               >
-                <MessageSquare className="w-4 h-4 text-emerald-400" />
+                <MessageSquare className="w-4 h-4 text-white" />
                 <span>Chat WhatsApp</span>
               </a>
             </div>
