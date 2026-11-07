@@ -1222,10 +1222,42 @@ async function saveExternalImage(url: string): Promise<string> {
   return `/uploads/${filename}`;
 }
 
+function isAdminAuthorizedForHost(session: any, hostname: string, db: any = readDb()) {
+  if (!session) return false;
+  if (session.role === 'Super Admin') return true;
+
+  const host = String(hostname || '').toLowerCase().replace(/:\d+$/, '');
+  const hostPost = getSeoPageForHost(db.settings || {}, host);
+  if (hostPost) {
+    return session.id === hostPost.adminUserId;
+  }
+
+  const assignedSeoPage = Array.isArray(db.settings?.seoPages)
+    ? db.settings.seoPages.find((page: any) => page.adminUserId === session.id)
+    : undefined;
+  if (!assignedSeoPage) return false;
+
+  const assignedHost = String(assignedSeoPage.subdomain || '').trim().toLowerCase();
+  if (!assignedHost) return false;
+
+  const permittedHosts = new Set([
+    `${assignedHost}.kreditmotorhonda.tech`,
+    `${assignedHost}.solusikreditmotor.cloud`,
+    `${assignedHost}.kreditmotorhonda.id`,
+  ]);
+  return permittedHosts.has(host);
+}
+
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
-  const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
+
+  const db = readDb();
+  const hostPost = getSeoPageForHost(db.settings || {}, req.hostname);
+  if (!isAdminAuthorizedForHost(session, req.hostname, db)) {
+    return res.status(403).json({ error: 'Akun ini tidak memiliki akses admin untuk website ini.' });
+  }
+
   if (hostPost && session.role !== 'Super Admin') {
     if (session.id !== hostPost.adminUserId) {
       return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
@@ -2547,7 +2579,7 @@ async function startServer() {
     sessions.set(token, session);
     appendAudit(db, { actor: user.username, action: 'LOGIN', resource: 'admin-session', details: 'Login admin berhasil' });
     writeDb(db);
-    return res.json({ success: true, token, user: { name: user.username, role: user.role, id: user.id } });
+    return res.json({ success: true, token, user: { username: user.username, role: user.role, id: user.id } });
   });
 
   app.post('/api/admin/logout', requireAdmin, (req, res) => {

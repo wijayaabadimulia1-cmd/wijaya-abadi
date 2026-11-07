@@ -278,7 +278,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     setIsLoading(true);
     try {
       const settingsRes = await api.getAdminSettings();
-      if (settingsRes.seoPostHost) {
+      const isCurrentUserSuperAdmin = adminSession?.role === 'Super Admin';
+      if (settingsRes.seoPostHost && !isCurrentUserSuperAdmin) {
         setSettings(settingsRes);
         setMotors([]);
         setPromos(await api.getPromos().catch(() => []));
