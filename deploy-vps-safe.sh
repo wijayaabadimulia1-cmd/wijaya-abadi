@@ -8,7 +8,7 @@ fi
 
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
-SERVICE="kreditmotorhonda-id.service"
+SERVICE="kreditmotorhonda-tech.service"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMIT="${DEPLOY_COMMIT:-$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)}"
