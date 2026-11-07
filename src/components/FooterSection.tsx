@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare, Bike, ArrowUp } from 'lucide-react';
 import { DealerSettings } from '../types';
-import { createWhatsAppUrl } from '../utils/whatsapp';
+import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
 
 interface FooterSectionProps {
   settings: DealerSettings;
@@ -41,7 +41,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
           </div>
           <div>
             <h2>Hubungi Kami</h2>
-            <a href={`tel:+${cleanPhone}`}><Phone aria-hidden="true" /> {settings.phone}</a>
+            <a href={`tel:+${normalizeWhatsAppNumber(settings.phone)}`}><Phone aria-hidden="true" /> {settings.phone}</a>
             <a href={mapsUrl} target="_blank" rel="noopener noreferrer"><MapPin aria-hidden="true" /> {settings.address}</a>
             <span><Clock aria-hidden="true" /> {settings.workingHours}</span>
           </div>

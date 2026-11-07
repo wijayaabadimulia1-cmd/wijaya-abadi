@@ -13,6 +13,7 @@ import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
 import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './src/utils/seoPosts';
+import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from './src/utils/whatsapp';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -1672,6 +1673,12 @@ async function startServer() {
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const settingsUpdates = { ...(req.body || {}) };
+    if (Object.prototype.hasOwnProperty.call(settingsUpdates, 'phone')) {
+      if (typeof settingsUpdates.phone !== 'string' || !isValidWhatsAppNumber(settingsUpdates.phone)) {
+        return res.status(400).json({ error: 'Nomor WhatsApp tidak valid. Masukkan 8–15 digit.' });
+      }
+      settingsUpdates.phone = normalizeWhatsAppNumber(settingsUpdates.phone, '');
+    }
     if (hostPage) {
       const session = (req as any).adminSession || getSession(req);
       if (!session || (session.role !== 'Super Admin' && session.id !== hostPage.adminUserId)) {

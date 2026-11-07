@@ -54,7 +54,7 @@ import {
   MIN_CATALOG_ANIMATION_SPEED,
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
-import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
+import { createWhatsAppUrl, isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp';
 import { getSeoLandingPosts, getSeoLandingPostPath, slugifySeoPost } from '../utils/seoPosts';
 import { CustomizationPanel } from './CustomizationPanel';
 
@@ -1443,7 +1443,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const settingsToSave = Object.fromEntries(
         Object.entries(settings).filter(([key]) => key !== 'seoPages' && key !== 'ownerDashboard'),
       ) as Partial<DealerSettings>;
-      const savedSettings = await api.updateSettings(settingsToSave);
+      const savedSettings = await api.updateSettings({
+        ...settingsToSave,
+        phone: normalizeWhatsAppNumber(settings.phone, ''),
+      });
       setSettings(savedSettings);
       showToast('Pengaturan dealer berhasil disimpan ke database!');
       onRefreshData();
@@ -1982,7 +1985,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].filter((tab) => isSeoPostAdmin
-              ? ['promos', 'settings', 'theme'].includes(tab.id)
+              ? (isSalesCounterAdmin
+                ? ['sales-counter', 'leads', 'promos', 'settings', 'theme'].includes(tab.id)
+                : ['promos', 'settings', 'theme'].includes(tab.id))
               : canManageCatalog || !['motors', 'credit'].includes(tab.id)).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
