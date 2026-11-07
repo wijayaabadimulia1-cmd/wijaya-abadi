@@ -1252,22 +1252,6 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
 
-  const db = readDb();
-  const hostPost = getSeoPageForHost(db.settings || {}, req.hostname);
-  if (!isAdminAuthorizedForHost(session, req.hostname, db)) {
-    return res.status(403).json({ error: 'Akun ini tidak memiliki akses admin untuk website ini.' });
-  }
-
-  if (hostPost && session.role !== 'Super Admin') {
-    if (session.id !== hostPost.adminUserId) {
-      return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
-    }
-    const adminPath = req.originalUrl.split('?')[0].replace(/^\/api/, '');
-    const canSaveAssignedPostSettings = req.method === 'PUT' && adminPath === '/settings';
-    if (!['/admin/me', '/admin/logout'].includes(adminPath) && !canSaveAssignedPostSettings) {
-      return res.status(403).json({ error: 'Admin post hanya dapat mengakses pengaturan post yang ditugaskan.' });
-    }
-  }
   (req as any).adminSession = session;
   next();
 }

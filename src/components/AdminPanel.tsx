@@ -172,7 +172,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
   const isSuperAdmin = adminSession?.role === 'Super Admin';
-  const isSeoPostAdmin = Boolean(settings?.seoPostHost && !isSuperAdmin);
+  const isSeoPostAdmin = false;
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
@@ -277,19 +277,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const settingsRes = await api.getAdminSettings();
-      const isCurrentUserSuperAdmin = adminSession?.role === 'Super Admin';
-      if (settingsRes.seoPostHost && !isCurrentUserSuperAdmin) {
-        setSettings(settingsRes);
-        setMotors([]);
-        setPromos(await api.getPromos().catch(() => []));
-        setTestimonials([]);
-        setLeads([]);
-        setFifPriceList(DEFAULT_FIF_PRICE_LIST);
-        return;
-      }
-
-      const [motorsRes, promosRes, testiRes, leadsRes, priceListRes] = await Promise.all([
+      const [settingsRes, motorsRes, promosRes, testiRes, leadsRes, priceListRes] = await Promise.all([
+        api.getAdminSettings(),
         api.getMotors(),
         api.getPromos(),
         api.getTestimonials(),
