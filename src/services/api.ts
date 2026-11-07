@@ -145,14 +145,14 @@ export const api = {
     return res.json();
   },
 
-  async getOwnerDashboardConfig(): Promise<{ selectedHosts: string[]; dashboardUrl: string }> {
+  async getOwnerDashboardConfig(): Promise<{ selectedHosts: string[]; dashboardUrl: string; availableSites: Array<{ host: string; label: string }> }> {
     const res = await fetch('/api/admin/owner-dashboard', { headers: adminHeaders(), cache: 'no-store' });
     const result = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(result.error || 'Gagal mengambil konfigurasi dashboard owner');
     return result;
   },
 
-  async saveOwnerDashboardConfig(hosts: string[]): Promise<{ selectedHosts: string[]; dashboardUrl: string }> {
+  async saveOwnerDashboardConfig(hosts: string[]): Promise<{ selectedHosts: string[]; dashboardUrl: string; availableSites: Array<{ host: string; label: string }> }> {
     const res = await fetch('/api/admin/owner-dashboard', {
       method: 'PUT',
       headers: adminHeaders(),

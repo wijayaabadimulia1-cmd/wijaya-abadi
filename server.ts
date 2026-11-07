@@ -19,13 +19,16 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const SALES_COUNTER_ROOT_DOMAINS = new Set(['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud']);
 const SALES_COUNTER_SSL_RETRY_INTERVAL_MS = 5 * 60 * 1000;
-const SALES_COUNTER_SSL_MAX_RETRIES = 12;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
+const OWNER_ANALYTICS_ROOT_DB_FILES: Record<string, string> = {
+  'kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_TECH_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'data', 'db.json')),
+  'kreditmotorhonda.id': path.resolve(process.env.OWNER_ANALYTICS_ID_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'id', 'data', 'db.json')),
+  'solusikreditmotor.cloud': path.resolve(process.env.OWNER_ANALYTICS_SOLUSI_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json')),
+};
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
   'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
-  'solusikreditmotor.cloud': path.resolve(process.env.OWNER_ANALYTICS_SOLUSI_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json')),
 };
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
 const CATALOG_API_URL = String(process.env.CATALOG_API_URL || '').trim().replace(/\/+$/, '');
@@ -432,6 +435,50 @@ function normalizeAnalyticsHost(hostname: unknown) {
   return host.startsWith('www.') ? host.slice(4) : host;
 }
 
+function getOwnerAnalyticsSourceFile(hostname: unknown) {
+  const host = normalizeAnalyticsHost(hostname);
+  const siteFile = OWNER_ANALYTICS_SITE_DB_FILES[host];
+  if (siteFile) return siteFile;
+
+  const rootDomain = SALES_COUNTER_ROOT_DOMAINS.has(host)
+    ? host
+    : [...SALES_COUNTER_ROOT_DOMAINS].find((domain) => host.endsWith(`.${domain}`));
+  return rootDomain ? OWNER_ANALYTICS_ROOT_DB_FILES[rootDomain] || DB_FILE : DB_FILE;
+}
+
+function getOwnerAnalyticsRootHost(hostname: unknown) {
+  const host = normalizeAnalyticsHost(hostname);
+  if (SALES_COUNTER_ROOT_DOMAINS.has(host)) return host;
+  return [...SALES_COUNTER_ROOT_DOMAINS].find((domain) => host.endsWith(`.${domain}`)) || host;
+}
+
+function getOwnerDashboardAvailableSites() {
+  const sites = new Map<string, { host: string; label: string }>();
+  const addSite = (host: string, label: string) => {
+    const normalizedHost = normalizeAnalyticsHost(host);
+    if (normalizedHost) sites.set(normalizedHost, { host: normalizedHost, label: label || normalizedHost });
+  };
+
+  for (const [rootHost, sourceFile] of Object.entries(OWNER_ANALYTICS_ROOT_DB_FILES)) {
+    let sourceDb: any = {};
+    try {
+      sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') console.error(`Owner analytics could not list ${sourceFile}:`, error.message);
+    }
+    addSite(rootHost, String(sourceDb.settings?.name || rootHost));
+    for (const page of Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : []) {
+      const subdomain = String(page.subdomain || '').toLocaleLowerCase('en-US');
+      const domainSuffix = SALES_COUNTER_ROOT_DOMAINS.has(page.domainSuffix) ? page.domainSuffix : rootHost;
+      if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)) continue;
+      addSite(`${subdomain}.${domainSuffix}`, String(page.siteSettings?.name || page.title || page.seoTitle || subdomain));
+    }
+  }
+
+  addSite('wijaya.kreditmotorhonda.tech', 'Wijaya Kredit Motor');
+  return [...sites.values()].sort((first, second) => first.host.localeCompare(second.host, 'en'));
+}
+
 function normalizeSearchKeyword(value: unknown) {
   return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
 }
@@ -690,10 +737,10 @@ async function provisionSeoPageSsl(page: any, settings: any): Promise<{ status: 
       resolve4(hostname),
     ]);
   } catch {
-    return { status: 'pending', message: `Tambahkan A record ${hostname} ke IP VPS yang sama dengan ${rootDomain}.` };
+    return { status: 'pending', message: `Tambahkan A record ${hostname} atau wildcard *.${rootDomain} ke IP VPS yang sama dengan ${rootDomain}. SSL akan dicoba otomatis setelah DNS aktif.` };
   }
   if (!postAddresses.some((address) => rootAddresses.includes(address))) {
-    return { status: 'pending', message: `A record ${hostname} harus mengarah ke IP yang sama dengan ${rootDomain}.` };
+    return { status: 'pending', message: `A record ${hostname} atau wildcard *.${rootDomain} harus mengarah ke IP yang sama dengan ${rootDomain}.` };
   }
 
   const isSalesCounter = page.siteType === 'sales-counter';
@@ -745,21 +792,29 @@ async function retryPendingSalesCounterSslJobs() {
   try {
     const db = readDb();
     const pendingPageIds = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
-      .filter((page: any) => page.siteType === 'sales-counter'
-        && SALES_COUNTER_ROOT_DOMAINS.has(page.domainSuffix)
-        && page.sslStatus === 'pending'
-        && Number(page.sslAutoRetryCount || 0) < SALES_COUNTER_SSL_MAX_RETRIES)
+      .filter((page: any) => {
+        const status = page.sslStatus || 'pending';
+        const exhaustedDnsRetries = status === 'failed'
+          && String(page.sslError || '').includes('Retry otomatis dihentikan setelah');
+        return page.siteType === 'sales-counter'
+          && SALES_COUNTER_ROOT_DOMAINS.has(page.domainSuffix)
+          && (status === 'pending' || exhaustedDnsRetries);
+      })
       .map((page: any) => page.id);
 
     for (const pageId of pendingPageIds) {
       const currentDb = readDb();
       const page = (Array.isArray(currentDb.settings?.seoPages) ? currentDb.settings.seoPages : [])
         .find((item: any) => item.id === pageId);
+      const exhaustedDnsRetries = page?.sslStatus === 'failed'
+        && String(page.sslError || '').includes('Retry otomatis dihentikan setelah');
       if (!page || page.siteType !== 'sales-counter' || !SALES_COUNTER_ROOT_DOMAINS.has(page.domainSuffix)
-        || page.sslStatus !== 'pending' || Number(page.sslAutoRetryCount || 0) >= SALES_COUNTER_SSL_MAX_RETRIES) continue;
+        || (page.sslStatus !== 'pending' && !exhaustedDnsRetries)) continue;
 
       page.sslAutoRetryCount = Number(page.sslAutoRetryCount || 0) + 1;
       const retryCount = page.sslAutoRetryCount;
+      page.sslStatus = 'pending';
+      page.sslError = undefined;
       if (!writeDb(currentDb)) continue;
 
       let result: { status: 'pending' | 'active' | 'failed'; message: string };
@@ -774,19 +829,16 @@ async function retryPendingSalesCounterSslJobs() {
         .find((item: any) => item.id === pageId);
       if (!updatedPage || updatedPage.sslStatus !== 'pending' || updatedPage.sslAutoRetryCount !== retryCount) continue;
 
-      const retriesExhausted = result.status === 'pending' && retryCount >= SALES_COUNTER_SSL_MAX_RETRIES;
-      updatedPage.sslStatus = retriesExhausted ? 'failed' : result.status;
+      updatedPage.sslStatus = result.status;
       updatedPage.sslError = result.status === 'active'
         ? undefined
-        : retriesExhausted
-          ? `${result.message} Retry otomatis dihentikan setelah ${SALES_COUNTER_SSL_MAX_RETRIES} percobaan. Pastikan DNS A atau wildcard mengarah ke IP VPS, lalu coba lagi secara manual.`
-          : result.message;
+        : result.message;
       updatedPage.updated_at = new Date().toISOString();
       appendAudit(updatedDb, {
         actor: 'server',
         action: 'PROVISION_SALES_COUNTER_SSL',
         resource: pageId,
-        details: `${updatedPage.subdomain}.${updatedPage.domainSuffix}: ${updatedPage.sslStatus} (retry ${retryCount}/${SALES_COUNTER_SSL_MAX_RETRIES})`,
+        details: `${updatedPage.subdomain}.${updatedPage.domainSuffix}: ${updatedPage.sslStatus} (retry ${retryCount})`,
       });
       if (!writeDb(updatedDb)) console.error(`Failed to save SSL retry status for Sales Counter ${pageId}.`);
     }
@@ -821,12 +873,51 @@ function getSeoMotorPages(db: any): Array<{ motor: any; slug: string; path: stri
   });
 }
 
-function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
+function renderMotorSeoPage(motor: any, slug: string, settings: any = {}, testimonials: any[] = []) {
   const origin = getSiteOrigin(settings);
   const canonical = `${origin}/motor/${slug}/`;
   const name = String(motor.name || 'Motor Honda').trim();
   const category = String(motor.category || 'Sepeda Motor Honda').trim();
   const description = String(motor.description || `Lihat harga ${name} di Bandung, spesifikasi, dan pilihan kredit di ${settings.name || 'Honda Wijaya Abadi Mulia Motor'}. Tanyakan ketersediaan unit melalui WhatsApp.`).trim();
+  const normalizeReviewModel = (value: unknown) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('id-ID')
+    .replace(/[^a-z0-9]/g, '');
+  const normalizedProductName = normalizeReviewModel(name);
+  const productReviews = testimonials.filter((item: any) => {
+    const rating = Number(item?.rating);
+    return item?.approved !== false
+      && normalizeReviewModel(item?.motor) === normalizedProductName
+      && Number.isFinite(rating)
+      && rating >= 1
+      && rating <= 5
+      && String(item?.comment || '').trim();
+  });
+  const productReviewSchema = productReviews.length ? {
+    review: productReviews.map((item: any) => {
+      const createdAt = new Date(String(item.created_at || ''));
+      return {
+        '@type': 'Review',
+        ...(Number.isNaN(createdAt.getTime()) ? {} : { datePublished: createdAt.toISOString().slice(0, 10) }),
+        reviewBody: String(item.comment).trim(),
+        author: { '@type': 'Person', name: String(item.name || 'Pelanggan Honda').trim() },
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: Number(item.rating),
+          bestRating: 5,
+          worstRating: 1,
+        },
+      };
+    }),
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: Number((productReviews.reduce((sum: number, item: any) => sum + Number(item.rating), 0) / productReviews.length).toFixed(1)),
+      reviewCount: productReviews.length,
+      bestRating: 5,
+      worstRating: 1,
+    },
+  } : {};
   const safeName = escapeHtmlAttribute(name);
   const safeCategory = escapeHtmlAttribute(category);
   const safeDescription = escapeHtmlAttribute(description);
@@ -852,6 +943,7 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
     category,
     sku: String(motor.id || slug),
     ...(image ? { image } : {}),
+    ...productReviewSchema,
     offers: {
       '@type': 'Offer',
       url: canonical,
@@ -1379,9 +1471,13 @@ async function startServer() {
   const app = express();
   // CORS_ALLOWLIST_MIDDLEWARE
   const allowedOrigins = new Set([
+    'https://kreditmotorhonda.id',
+    'https://www.kreditmotorhonda.id',
     'https://kreditmotorhonda.tech',
+    'https://www.kreditmotorhonda.tech',
     'https://wijaya.kreditmotorhonda.tech',
     'https://solusikreditmotor.cloud',
+    'https://www.solusikreditmotor.cloud',
   ]);
 
   app.use((req, res, next) => {
@@ -1411,8 +1507,10 @@ async function startServer() {
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
   app.use((req, res, next) => {
-    if (req.hostname.toLowerCase() === 'www.kreditmotorhonda.tech') {
-      return res.redirect(301, `https://kreditmotorhonda.tech${req.originalUrl}`);
+    const hostname = req.hostname.toLowerCase();
+    const canonicalRoot = getSalesCounterRootDomain(hostname);
+    if (hostname.startsWith('www.') && canonicalRoot) {
+      return res.redirect(301, `https://${canonicalRoot}${req.originalUrl}`);
     }
     next();
   });
@@ -1627,7 +1725,7 @@ async function startServer() {
     const page = getSeoPageForHost(settings, req.hostname);
     if (page) return res.json(publicSettings(getSettingsForSeoPage(settings, page)));
     const session = getSession(req);
-    if (req.hostname === 'kreditmotorhonda.tech' && session?.role === 'Super Admin') return res.json(settings);
+    if (getSalesCounterRootDomain(req.hostname) && session?.role === 'Super Admin') return res.json(settings);
     return res.json(publicSettings(settings));
   });
 
@@ -1693,7 +1791,7 @@ async function startServer() {
     }
     if (!hostPage && Object.prototype.hasOwnProperty.call(settingsUpdates, 'seoPages')) {
       const session = (req as any).adminSession || getSession(req);
-      if (req.hostname !== 'kreditmotorhonda.tech' || session?.role !== 'Super Admin') {
+      if (!getSalesCounterRootDomain(req.hostname) || session?.role !== 'Super Admin') {
         delete settingsUpdates.seoPages;
         delete settingsUpdates.ownerDashboard;
         if (Object.keys(settingsUpdates).length === 0) {
@@ -2330,33 +2428,32 @@ async function startServer() {
 
   app.get('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
     const session = (req as any).adminSession;
-    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    const rootDomain = getSalesCounterRootDomain(req.hostname);
+    if (!rootDomain || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang didukung yang dapat mengatur dashboard owner.' });
     }
     const db = readDb();
     const config = db.settings?.ownerDashboard || {};
     const token = String(config.token || '');
     return res.json({
       selectedHosts: Array.isArray(config.hosts) ? config.hosts : [],
-      dashboardUrl: token ? `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}` : '',
+      dashboardUrl: token ? `https://${rootDomain}/owner-dashboard?key=${encodeURIComponent(token)}` : '',
+      availableSites: getOwnerDashboardAvailableSites(),
     });
   });
 
   app.put('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
     const session = (req as any).adminSession;
-    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    const rootDomain = getSalesCounterRootDomain(req.hostname);
+    if (!rootDomain || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang didukung yang dapat mengatur dashboard owner.' });
     }
 
     const db = readDb();
-    const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
-    const allowedHosts = new Set([
-      'kreditmotorhonda.tech',
-      ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
-      ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech`),
-    ]);
+    const availableSites = getOwnerDashboardAvailableSites();
+    const allowedHosts = new Set(availableSites.map((site) => site.host));
     const requestedHosts = Array.isArray(req.body?.hosts) ? req.body.hosts : [];
-    const hosts = [...new Set(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
+    const hosts = [...new Set<string>(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
       .filter((host) => allowedHosts.has(host));
     if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
 
@@ -2367,7 +2464,8 @@ async function startServer() {
 
     return res.json({
       selectedHosts: hosts,
-      dashboardUrl: `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}`,
+      dashboardUrl: `https://${rootDomain}/owner-dashboard?key=${encodeURIComponent(token)}`,
+      availableSites,
     });
   });
 
@@ -2389,8 +2487,8 @@ async function startServer() {
 
     const databaseSources = new Map<string, string>();
     for (const host of validHosts) {
-      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
-      if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, OWNER_ANALYTICS_SITE_DB_FILES[host] ? host : 'kreditmotorhonda.tech');
+      const sourceFile = getOwnerAnalyticsSourceFile(host);
+      if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, getOwnerAnalyticsRootHost(host));
     }
     const databaseContents = new Map<string, any>();
     const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
@@ -2420,17 +2518,55 @@ async function startServer() {
       }
     }
     const siteAdmins = [...validHosts].map((host) => {
-      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
+      const sourceFile = getOwnerAnalyticsSourceFile(host);
       const sourceDb = databaseContents.get(sourceFile) || {};
       const assignedSeoPage = (Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : [])
-        .find((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech` === host);
-      const hasSeoPost = assignedSeoPage && getSeoLandingPosts(assignedSeoPage).length > 0;
-      const admins = (hasSeoPost ? (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : []) : [])
+        .find((page: any) => normalizeAnalyticsHost(`${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`) === host);
+      const hasManagedSeoSite = assignedSeoPage && (
+        assignedSeoPage.siteType === 'sales-counter' || getSeoLandingPosts(assignedSeoPage).length > 0
+      );
+      const admins = (hasManagedSeoSite ? (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : []) : [])
         .filter((user: any) => user.role !== 'Super Admin' && user.id === assignedSeoPage.adminUserId)
         .map((user: any) => ({ username: String(user.username || ''), role: String(user.role || 'Admin') }))
         .filter((user: any) => user.username);
       return { host, dataAvailable: databaseContents.has(sourceFile), admins };
     });
+    const seoSubdomainsByHost = new Map<string, { host: string; title: string; sslStatus: string; seoRobots: string; postCount: number; updatedAt: string }>();
+    const seoPostsByUrl = new Map<string, { host: string; title: string; url: string; author: string; updatedAt: string }>();
+    for (const [sourceFile, sourceDb] of databaseContents) {
+      const sourceRootHost = databaseSources.get(sourceFile) || '';
+      const pages = Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : [];
+      for (const page of pages) {
+        const subdomain = String(page.subdomain || '').toLocaleLowerCase('en-US');
+        const domainSuffix = getSeoPageDomainSuffix(page);
+        const host = normalizeAnalyticsHost(`${subdomain}.${domainSuffix}`);
+        const isSelected = validHosts.has(host) || validHosts.has(getOwnerAnalyticsRootHost(host));
+        if (!isSelected || !subdomain) continue;
+
+        const posts = getSeoLandingPosts(page);
+        seoSubdomainsByHost.set(host, {
+          host,
+          title: String(page.title || page.seoTitle || subdomain),
+          sslStatus: String(page.sslStatus || 'pending'),
+          seoRobots: String(page.seoRobots || 'index, follow'),
+          postCount: posts.length,
+          updatedAt: String(page.updated_at || ''),
+        });
+        for (const post of posts) {
+          const postPath = getSeoLandingPostPath(page, post);
+          const url = `https://${host}${postPath}`;
+          seoPostsByUrl.set(`${host}:${post.id}`, {
+            host,
+            title: String(post.title || 'Tanpa judul'),
+            url,
+            author: String(post.authorUsername || post.authorRole || ''),
+            updatedAt: String(post.updated_at || page.updated_at || ''),
+          });
+        }
+      }
+    }
+    const seoSubdomains = [...seoSubdomainsByHost.values()].sort((first, second) => first.host.localeCompare(second.host, 'en'));
+    const seoPosts = [...seoPostsByUrl.values()].sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
     const allSiteLeads = [...databaseSources.entries()].flatMap(([sourceFile, legacyHost]) => {
       const sourceDb = databaseContents.get(sourceFile) || {};
       const interests = Array.isArray(sourceDb.interests) ? sourceDb.interests : [];
@@ -2536,6 +2672,8 @@ async function startServer() {
       siteCount: validHosts.size,
       sites,
       siteAdmins,
+      seoSubdomains,
+      seoPosts,
       siteLeads,
       siteLeadsTotal: filteredSiteLeads.length,
       dailyVisitors,
@@ -3235,7 +3373,7 @@ async function startServer() {
     res.set('Cache-Control', 'public, max-age=300');
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const hostSettings = hostPage ? getSettingsForSeoPage(db.settings || {}, hostPage) : db.settings || {};
-    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, hostSettings));
+    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, hostSettings, db.testimonials || []));
   });
 
   // Vite middleware in dev or static files in production

@@ -4,6 +4,8 @@ import {
   ArrowUpRight,
   BarChart3,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   Globe,
   LayoutDashboard,
@@ -24,6 +26,8 @@ interface OwnerAnalytics {
   siteCount: number;
   sites: Array<{ host: string; visits: number }>;
   siteAdmins: Array<{ host: string; dataAvailable: boolean; admins: Array<{ username: string; role: string }> }>;
+  seoSubdomains: Array<{ host: string; title: string; sslStatus: string; seoRobots: string; postCount: number; updatedAt: string }>;
+  seoPosts: Array<{ host: string; title: string; url: string; author: string; updatedAt: string }>;
   siteLeads: Array<{ id: string; host: string; customerName: string; motorName: string; status: string; createdAt: string }>;
   siteLeadsTotal: number;
   dailyVisitors: Array<{ date: string; label: string; visits: number }>;
@@ -45,6 +49,7 @@ interface OwnerAnalytics {
 
 type DateRange = '7d' | '30d' | 'all' | 'custom';
 type ChartType = 'bar' | 'line';
+type OwnerDashboardSection = 'overview' | 'domains' | 'admins' | 'leads' | 'pages' | 'posts' | 'subdomains';
 
 function jakartaDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
@@ -73,6 +78,46 @@ function Sparkline({ values, label, color }: { values: number[]; label: string; 
   );
 }
 
+function TablePagination({
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+}) {
+  if (!total) return null;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const firstRow = total ? (page - 1) * pageSize + 1 : 0;
+  const lastRow = Math.min(page * pageSize, total);
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3 text-xs dark:border-slate-800 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <span className="text-slate-500 dark:text-slate-400">Menampilkan {firstRow}-{lastRow} dari {total} data</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+          Baris per halaman
+          <select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+            {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
+          </select>
+        </label>
+        <button type="button" aria-label="Halaman sebelumnya" disabled={page <= 1} onClick={() => onPageChange(page - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"><ChevronLeft className="h-4 w-4" /></button>
+        <span className="min-w-20 text-center tabular-nums text-slate-600 dark:text-slate-300">Halaman {page} dari {pageCount}</span>
+        <button type="button" aria-label="Halaman berikutnya" disabled={page >= pageCount} onClick={() => onPageChange(page + 1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"><ChevronRight className="h-4 w-4" /></button>
+      </div>
+    </div>
+  );
+}
+
+function paginateRows<T>(rows: T[], page: number, pageSize: number) {
+  return rows.slice((page - 1) * pageSize, page * pageSize);
+}
+
 const domainColors = ['#dc2626', '#334155', '#f59e0b', '#0891b2', '#059669', '#7c3aed'];
 
 export default function OwnerDashboard() {
@@ -87,15 +132,20 @@ export default function OwnerDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('hwa-owner-dashboard-theme') === 'dark');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [chartType, setChartType] = useState<ChartType>('bar');
+  const [activeSection, setActiveSection] = useState<OwnerDashboardSection>('overview');
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [showAllDays, setShowAllDays] = useState(false);
-  const [showAllPages, setShowAllPages] = useState(false);
   const [showAllSearchTerms, setShowAllSearchTerms] = useState(false);
-  const [showAllLeads, setShowAllLeads] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     localStorage.setItem('hwa-owner-dashboard-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSection, range, startDate, endDate]);
 
   useEffect(() => {
     if (!key) {
@@ -128,9 +178,9 @@ export default function OwnerDashboard() {
       setIsLoading(true);
       try {
         const result = await api.getOwnerDashboardAnalytics(key, requestStartDate, requestEndDate, {
-          pages: showAllPages,
+          pages: activeSection === 'pages',
           searchTerms: showAllSearchTerms,
-          leads: showAllLeads,
+          leads: activeSection === 'leads',
         });
         if (!active) return;
         setAnalytics(result);
@@ -150,7 +200,7 @@ export default function OwnerDashboard() {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [key, range, startDate, endDate, refreshVersion, showAllPages, showAllSearchTerms, showAllLeads]);
+  }, [key, range, startDate, endDate, refreshVersion, showAllSearchTerms, activeSection]);
 
   const selectRange = (nextRange: DateRange) => {
     const today = jakartaDateKey(new Date());
@@ -212,12 +262,23 @@ export default function OwnerDashboard() {
   }).join(' ');
 
   const navItems = [
-    { label: 'Dashboard Analytics', href: '#overview', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: 'Domain Dipantau', href: '#domains', icon: <Globe className="h-4 w-4" /> },
-    { label: 'Admin Owner', href: '#admin-access', icon: <Users className="h-4 w-4" /> },
-    { label: 'Prospek Masuk', href: '#prospects', icon: <Users className="h-4 w-4" /> },
-    { label: 'URL Landing Pages', href: '#pages', icon: <Link2 className="h-4 w-4" /> },
+    { id: 'overview', label: 'Dashboard Analytics', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { id: 'domains', label: 'Domain Dipantau', icon: <Globe className="h-4 w-4" /> },
+    { id: 'admins', label: 'Admin Owner', icon: <Users className="h-4 w-4" /> },
+    { id: 'leads', label: 'Prospek Masuk', icon: <Users className="h-4 w-4" /> },
+    { id: 'pages', label: 'URL Landing Pages', icon: <Link2 className="h-4 w-4" /> },
+    { id: 'posts', label: 'Pos SEO', icon: <Link2 className="h-4 w-4" /> },
+    { id: 'subdomains', label: 'SEO Subdomain', icon: <Globe className="h-4 w-4" /> },
   ];
+  const sectionTitles: Record<OwnerDashboardSection, string> = {
+    overview: 'Dashboard Analytics',
+    domains: 'Domain Dipantau',
+    admins: 'Admin Owner',
+    leads: 'Prospek Masuk',
+    pages: 'URL Landing Pages',
+    posts: 'Pos SEO',
+    subdomains: 'SEO Subdomain',
+  };
 
   return (
     <div className={`owner-dashboard-ui ${isDarkMode ? 'dark' : ''}`}>
@@ -246,16 +307,21 @@ export default function OwnerDashboard() {
                 </button>
               </div>
               <nav className="mt-6 space-y-1 px-3" aria-label="Navigasi dashboard">
-                {navItems.map((item, index) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsSidebarOpen(false)}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors ${index === 0 ? 'bg-red-50 font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60'}`}
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-current={activeSection === item.id ? 'page' : undefined}
+                    onClick={() => {
+                      setActiveSection(item.id as OwnerDashboardSection);
+                      setIsSidebarOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition-colors ${activeSection === item.id ? 'bg-red-600 font-semibold text-white shadow-md shadow-red-950/20' : 'font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60'}`}
                   >
                     {item.icon}<span>{item.label}</span>
-                    {item.href === '#domains' && <span className="ml-auto rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-300">{analytics?.siteCount || 0}</span>}
-                  </a>
+                    {item.id === 'domains' && <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${activeSection === item.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>{analytics?.siteCount || 0}</span>}
+                  </button>
                 ))}
               </nav>
             </div>
@@ -276,8 +342,8 @@ export default function OwnerDashboard() {
                 <button type="button" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden" onClick={() => setIsSidebarOpen(true)} aria-label="Buka menu">
                   <Menu className="h-5 w-5" />
                 </button>
-                <h1 className="hidden truncate text-lg font-bold text-slate-900 dark:text-white sm:block">Ringkasan Analitik Network</h1>
-                <span className="truncate text-sm font-bold text-slate-900 dark:text-white sm:hidden">Owner Analytics</span>
+                <h1 className="hidden truncate text-lg font-bold text-slate-900 dark:text-white sm:block">{sectionTitles[activeSection]}</h1>
+                <span className="truncate text-sm font-bold text-slate-900 dark:text-white sm:hidden">{sectionTitles[activeSection]}</span>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 sm:flex">
@@ -307,7 +373,7 @@ export default function OwnerDashboard() {
             </section>
 
             <div className="space-y-6 p-4 sm:p-8">
-              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan metrik">
+              <section className={`${activeSection === 'overview' ? '' : 'hidden'} grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4`} aria-label="Ringkasan metrik">
                 <div className="owner-kpi owner-kpi-visits rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Kunjungan</span>
@@ -378,7 +444,7 @@ export default function OwnerDashboard() {
 
               {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300" role="alert">{error}</div>}
 
-              <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <section className={`${activeSection === 'overview' ? '' : 'hidden'} grid grid-cols-1 gap-6 lg:grid-cols-3`}>
                 <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2 sm:p-6">
                   <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                     <div>
@@ -459,7 +525,7 @@ export default function OwnerDashboard() {
                 </div>
               </section>
 
-              <section className="owner-insight" aria-label="Ringkasan insight">
+              {activeSection === 'overview' && <section className="owner-insight" aria-label="Ringkasan insight">
                 <span className="owner-insight-icon"><Activity className="h-5 w-5" /></span>
                 <div className="min-w-0 flex-1">
                   <h3>Ringkasan Insight</h3>
@@ -469,10 +535,37 @@ export default function OwnerDashboard() {
                       : 'Data traffic akan muncul setelah kunjungan pertama tercatat.'}
                   </p>
                 </div>
-                <a href="#domains" className="owner-insight-link">Lihat Detail <ArrowUpRight className="h-4 w-4" /></a>
-              </section>
+                <button type="button" onClick={() => { setActiveSection('domains'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="owner-insight-link">Lihat Detail <ArrowUpRight className="h-4 w-4" /></button>
+              </section>}
 
-              <section id="admin-access" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              {activeSection === 'domains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Detail Domain Dipantau</h2>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Seluruh domain owner dan kunjungan pada periode {rangeLabel}.</p>
+                </div>
+                {(analytics?.sites || []).length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] border-collapse text-left">
+                      <thead><tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-800/50"><th className="px-5 py-3 sm:px-6">Domain</th><th className="px-5 py-3 text-right">Kunjungan</th><th className="px-5 py-3 text-right">Porsi</th><th className="px-5 py-3 sm:px-6">Status data</th></tr></thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {paginateRows(analytics!.sites, currentPage, pageSize).map((site, index) => {
+                          const adminData = analytics!.siteAdmins.find((item) => item.host === site.host);
+                          const share = totalDomainVisits ? (site.visits / totalDomainVisits) * 100 : 0;
+                          return <tr key={site.host} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                            <td className="px-5 py-3.5 sm:px-6"><a href={`https://${site.host}`} target="_blank" rel="noreferrer" className="font-semibold text-slate-800 hover:text-red-600 dark:text-slate-200">{site.host}</a></td>
+                            <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white">{site.visits.toLocaleString('id-ID')}</td>
+                            <td className="px-5 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{share.toFixed(1)}%</td>
+                            <td className="px-5 py-3.5 sm:px-6"><span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: domainColors[index % domainColors.length] }} />{adminData?.dataAvailable ? 'Terhubung' : 'Data belum tersedia'}</span></td>
+                          </tr>;
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada domain yang dipantau.</p>}
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.sites.length || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+              </section>}
+
+              <section id="admin-access" className={`${activeSection === 'admins' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>
                 <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Admin Owner per Website</h3>
@@ -481,7 +574,7 @@ export default function OwnerDashboard() {
                   <span className="text-[11px] text-slate-400">{analytics?.siteAdmins?.length || 0} website</span>
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {(analytics?.siteAdmins || []).map((site) => (
+                  {paginateRows(analytics?.siteAdmins || [], currentPage, pageSize).map((site) => (
                     <div key={site.host} className="flex flex-col justify-between gap-3 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{site.host}</p>
@@ -499,16 +592,16 @@ export default function OwnerDashboard() {
                   ))}
                   {!analytics?.siteAdmins?.length && <p className="px-6 py-8 text-center text-xs text-slate-500">Informasi website belum tersedia.</p>}
                 </div>
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.siteAdmins?.length || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
               </section>
 
-              <section id="prospects" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <section id="prospects" className={`${activeSection === 'leads' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>
                 <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Daftar Peminat &amp; Prospek Masuk</h3>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Tersimpan secara dinamis setiap kali pengunjung mengklik &quot;Saya Tertarik&quot; atau &quot;Ajukan Kredit&quot;.</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {(analytics?.siteLeadsTotal || 0) > 20 && <button type="button" aria-expanded={showAllLeads} onClick={() => setShowAllLeads((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">{showAllLeads ? 'Tampilkan ringkasan' : `Lihat semua data (${analytics?.siteLeadsTotal})`}</button>}
                     <span className="shrink-0 text-[11px] text-slate-400">{analytics?.siteLeadsTotal || 0} prospek</span>
                   </div>
                 </div>
@@ -524,7 +617,7 @@ export default function OwnerDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
-                        {analytics.siteLeads.map((lead) => {
+                        {paginateRows(analytics.siteLeads, currentPage, pageSize).map((lead) => {
                           const statusClass = lead.status === 'Selesai'
                             ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300'
                             : lead.status === 'Ditolak'
@@ -549,16 +642,16 @@ export default function OwnerDashboard() {
                     </table>
                   </div>
                 ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada data peminat yang tersimpan di website terpilih.</p>}
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.siteLeadsTotal || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
               </section>
 
-              <section id="pages" className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <section id="pages" className={`${activeSection === 'pages' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Halaman Paling Banyak Dikunjungi</h3>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Gabungan seluruh website pada periode terpilih ({analytics?.topPages.length || 0} halaman)</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                    {(analytics?.topPagesTotal || 0) > 10 && <button type="button" aria-expanded={showAllPages} onClick={() => setShowAllPages((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">{showAllPages ? 'Tampilkan ringkasan' : `Lihat semua data (${analytics?.topPagesTotal})`}</button>}
                     <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" />Diperbarui {lastUpdated ? lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                   </div>
                 </div>
@@ -573,7 +666,7 @@ export default function OwnerDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
-                        {analytics.topPages.map((page, index) => {
+                        {paginateRows(analytics.topPages, currentPage, pageSize).map((page, index) => {
                           const percentage = analytics.totalVisits ? (page.visits / analytics.totalVisits) * 100 : 0;
                           const separatorIndex = page.page.indexOf('/');
                           const host = separatorIndex >= 0 ? page.page.slice(0, separatorIndex) : page.page;
@@ -604,9 +697,58 @@ export default function OwnerDashboard() {
                   <span>Menampilkan halaman terpopuler pada rentang tanggal</span>
                   <span>{isLoading ? 'Memperbarui...' : 'Realtime'}</span>
                 </div>
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.topPagesTotal || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Kata kunci pencarian">
+              {activeSection === 'posts' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pos SEO</h2>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Semua pos dari subdomain yang dipilih ({analytics?.seoPosts?.length || 0} pos).</p>
+                </div>
+                {(analytics?.seoPosts || []).length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[720px] border-collapse text-left">
+                      <thead><tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-800/50"><th className="px-5 py-3 sm:px-6">Subdomain</th><th className="px-5 py-3">Judul Pos</th><th className="px-5 py-3">Penulis</th><th className="px-5 py-3 sm:px-6">Diperbarui</th></tr></thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {paginateRows(analytics!.seoPosts, currentPage, pageSize).map((post) => <tr key={post.url} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                          <td className="px-5 py-3.5 font-medium text-slate-600 dark:text-slate-300 sm:px-6">{post.host}</td>
+                          <td className="max-w-[30rem] px-5 py-3.5 font-semibold text-slate-800 dark:text-slate-200"><a href={post.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-red-600 dark:hover:text-red-400">{post.title}<ArrowUpRight className="h-3 w-3 shrink-0" /></a></td>
+                          <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{post.author || '-'}</td>
+                          <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 sm:px-6">{post.updatedAt ? new Date(post.updatedAt).toLocaleDateString('id-ID') : '-'}</td>
+                        </tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada pos SEO pada subdomain yang dipantau.</p>}
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.seoPosts?.length || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+              </section>}
+
+              {activeSection === 'subdomains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">SEO Subdomain</h2>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Status, indeks, dan jumlah pos pada setiap subdomain.</p>
+                </div>
+                {(analytics?.seoSubdomains || []).length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[720px] border-collapse text-left">
+                      <thead><tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-800/50"><th className="px-5 py-3 sm:px-6">Subdomain</th><th className="px-5 py-3">Nama Website</th><th className="px-5 py-3">SSL</th><th className="px-5 py-3">Robots</th><th className="px-5 py-3 text-right">Pos</th><th className="px-5 py-3 sm:px-6">Diperbarui</th></tr></thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {paginateRows(analytics!.seoSubdomains, currentPage, pageSize).map((site) => <tr key={site.host} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                          <td className="px-5 py-3.5 font-semibold text-slate-800 dark:text-slate-200 sm:px-6"><a href={`https://${site.host}`} target="_blank" rel="noreferrer" className="hover:text-red-600 dark:hover:text-red-400">{site.host}</a></td>
+                          <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{site.title}</td>
+                          <td className="px-5 py-3.5"><span className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${site.sslStatus === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'}`}>{site.sslStatus}</span></td>
+                          <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{site.seoRobots}</td>
+                          <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white">{site.postCount}</td>
+                          <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 sm:px-6">{site.updatedAt ? new Date(site.updatedAt).toLocaleDateString('id-ID') : '-'}</td>
+                        </tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada subdomain SEO yang tercatat.</p>}
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.seoSubdomains?.length || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+              </section>}
+
+              <section className={`${activeSection === 'overview' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`} aria-label="Kata kunci pencarian">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Search className="h-4 w-4 text-red-600" />Pencarian Katalog</h3>
@@ -641,7 +783,7 @@ export default function OwnerDashboard() {
                 ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada kata kunci pencarian pada periode ini. Pencatatan dimulai setelah fitur ini aktif.</p>}
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Kata kunci Google">
+              <section className={`${activeSection === 'overview' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`} aria-label="Kata kunci Google">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Search className="h-4 w-4 text-blue-600" />Kata Kunci Google</h3>
@@ -699,7 +841,7 @@ export default function OwnerDashboard() {
                 )}
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Klik WhatsApp">
+              <section className={`${activeSection === 'overview' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`} aria-label="Klik WhatsApp">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><MessageSquare className="h-4 w-4 text-emerald-600" />Klik WhatsApp</h3>

@@ -152,9 +152,12 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
   };
 }
 
-const getSalesCounterDomainSuffix = (hostname: string) => {
+type SupportedRootDomain = 'kreditmotorhonda.id' | 'kreditmotorhonda.tech' | 'solusikreditmotor.cloud';
+
+const getSalesCounterDomainSuffix = (hostname: string): SupportedRootDomain | undefined => {
   const normalized = hostname.toLocaleLowerCase('en-US').replace(/^www\./, '');
-  return ['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud'].find((domain) => domain === normalized);
+  const supportedDomains: SupportedRootDomain[] = ['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud'];
+  return supportedDomains.find((domain): domain is SupportedRootDomain => domain === normalized);
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
@@ -171,8 +174,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [securityForm, setSecurityForm] = useState({ username: '', password: '', role: 'Staff Admin', assignedSeoPageId: '' });
   const [ownerDashboardHosts, setOwnerDashboardHosts] = useState<string[]>([]);
+  const [ownerDashboardSites, setOwnerDashboardSites] = useState<Array<{ host: string; label: string }>>([]);
   const [ownerDashboardUrl, setOwnerDashboardUrl] = useState('');
   const [isSavingOwnerDashboard, setIsSavingOwnerDashboard] = useState(false);
+  const [isLoadingOwnerDashboard, setIsLoadingOwnerDashboard] = useState(false);
+  const [ownerDashboardError, setOwnerDashboardError] = useState<string | null>(null);
 
   // Local state for all dynamic data
   const [motors, setMotors] = useState<Motor[]>([]);
@@ -183,7 +189,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const isSeoPostAdmin = Boolean(settings?.seoPostHost && adminSession?.role !== 'Super Admin');
   const isSalesCounterWebsite = Boolean(settings?.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
   const isSalesCounterAdmin = isSeoPostAdmin && isSalesCounterWebsite;
-  const salesCounterDomainSuffix = getSalesCounterDomainSuffix(window.location.hostname) || 'kreditmotorhonda.id';
+  const salesCounterDomainSuffix: SupportedRootDomain = getSalesCounterDomainSuffix(window.location.hostname) || 'kreditmotorhonda.id';
   const canManageSalesCounters = adminSession?.role === 'Super Admin' && Boolean(getSalesCounterDomainSuffix(window.location.hostname));
   const [salesCounters, setSalesCounters] = useState<SalesCounterSite[]>([]);
   const [editingSalesCounterSeoId, setEditingSalesCounterSeoId] = useState<string | null>(null);
@@ -367,14 +373,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   }, [adminSession]);
 
+  async function loadOwnerDashboard() {
+    setIsLoadingOwnerDashboard(true);
+    setOwnerDashboardError(null);
+    try {
+      const config = await api.getOwnerDashboardConfig();
+      setOwnerDashboardHosts(config.selectedHosts);
+      setOwnerDashboardSites(config.availableSites);
+      setOwnerDashboardUrl(config.dashboardUrl);
+    } catch (error: any) {
+      setOwnerDashboardError(error.message || 'Gagal memuat daftar website dashboard owner.');
+    } finally {
+      setIsLoadingOwnerDashboard(false);
+    }
+  }
+
   useEffect(() => {
-    if (adminSession?.role !== 'Super Admin' || window.location.hostname !== 'kreditmotorhonda.tech') return;
-    api.getOwnerDashboardConfig()
-      .then((config) => {
-        setOwnerDashboardHosts(config.selectedHosts);
-        setOwnerDashboardUrl(config.dashboardUrl);
-      })
-      .catch(() => undefined);
+    if (adminSession?.role !== 'Super Admin' || !getSalesCounterDomainSuffix(window.location.hostname)) return;
+    void loadOwnerDashboard();
   }, [adminSession]);
 
   useEffect(() => {
@@ -486,13 +502,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const handleSaveOwnerDashboard = async () => {
     setIsSavingOwnerDashboard(true);
+    setOwnerDashboardError(null);
     try {
       const result = await api.saveOwnerDashboardConfig(ownerDashboardHosts);
       setOwnerDashboardHosts(result.selectedHosts);
+      setOwnerDashboardSites(result.availableSites);
       setOwnerDashboardUrl(result.dashboardUrl);
       showToast('Dashboard owner berhasil diperbarui');
     } catch (error: any) {
-      alert(error.message || 'Gagal menyimpan dashboard owner');
+      setOwnerDashboardError(error.message || 'Gagal menyimpan dashboard owner');
     } finally {
       setIsSavingOwnerDashboard(false);
     }
@@ -1494,6 +1512,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const generatedPage: SeoLandingPage = {
       id: subdomainPage?.id || `seo-page-${Date.now()}`,
       subdomain,
+      domainSuffix: subdomainPage?.domainSuffix || salesCounterDomainSuffix,
       adminUserId: subdomainPage?.adminUserId || adminSession.id,
       title: seoTitle,
       content: subdomainPage?.content || '',
@@ -1570,6 +1589,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       ...seoSubdomainEditor,
       id: existingPage?.id || `seo-page-${Date.now()}`,
       subdomain,
+      domainSuffix: existingPage?.domainSuffix || salesCounterDomainSuffix,
       adminUserId: adminUser.id,
       title: existingPage?.content.trim() ? existingPage.title : seoTitle,
       content: existingPage?.content || '',
@@ -1975,7 +1995,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
               { id: 'theme', label: 'Template View Website', icon: Palette },
               { id: 'seo', label: 'Dashboard SEO', icon: Search },
-              ...(window.location.hostname === 'kreditmotorhonda.tech' && adminSession.role === 'Super Admin'
+              ...(canManageSalesCounters
                 ? [
                     { id: 'seo-subdomains', label: 'SEO Subdomain', icon: Search },
                     { id: 'seo-posts', label: 'Buat Pos', icon: FileText },
@@ -2060,7 +2080,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <input value={salesCounterForm.seoTitle} maxLength={70} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoTitle: event.target.value })} placeholder="Judul SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
                       <textarea value={salesCounterForm.seoDescription} maxLength={160} rows={2} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoDescription: event.target.value })} placeholder="Deskripsi SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
                       <input value={salesCounterForm.seoKeywords} maxLength={300} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoKeywords: event.target.value })} placeholder="Kata kunci SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
-                      <p className="text-[11px] text-zinc-500 xl:col-span-3">Buat satu A record untuk tiap subdomain, tanpa wildcard, ke IP VPS yang sama dengan domain utama. SSL otomatis dicoba setelah DNS tersedia; halaman mulai diindeks setelah SSL aktif.</p>
+                       <p className="text-[11px] text-zinc-500 xl:col-span-3">Arahkan A record tiap subdomain atau satu wildcard *.{salesCounterDomainSuffix} ke IP VPS yang sama. SSL akan terus dicoba otomatis tiap 5 menit sampai DNS siap; halaman mulai diindeks setelah SSL aktif.</p>
                       <button type="submit" disabled={isSavingSalesCounter} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-60">
                         <Plus className="h-4 w-4" />
                         {isSavingSalesCounter ? 'Membuat website...' : 'Tambah Sales Counter'}
@@ -4025,33 +4045,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6">
-                  {adminSession.role === 'Super Admin' && window.location.hostname === 'kreditmotorhonda.tech' && (
+                  {adminSession.role === 'Super Admin' && Boolean(getSalesCounterDomainSuffix(window.location.hostname)) && (
                     <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 sm:p-5">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <h3 className="font-bold text-white">Dashboard Owner</h3>
                           <p className="mt-1 max-w-2xl text-[11px] text-zinc-400">Pilih website yang dapat dipantau owner. Link bersifat rahasia, siapa pun yang memilikinya dapat melihat ringkasan kunjungan.</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleSaveOwnerDashboard}
-                          disabled={isSavingOwnerDashboard || ownerDashboardHosts.length === 0}
-                          className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isSavingOwnerDashboard ? 'Menyimpan...' : 'Simpan & buat link'}
-                        </button>
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void loadOwnerDashboard()}
+                            disabled={isLoadingOwnerDashboard}
+                            className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-white/5 disabled:cursor-wait disabled:opacity-50"
+                          >
+                            <RotateCcw className={`h-3 w-3 ${isLoadingOwnerDashboard ? 'animate-spin' : ''}`} />
+                            Muat ulang
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveOwnerDashboard}
+                            disabled={isSavingOwnerDashboard || ownerDashboardHosts.length === 0}
+                            className="rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isSavingOwnerDashboard ? 'Menyimpan...' : 'Simpan & buat link'}
+                          </button>
+                        </div>
                       </div>
 
+                      {ownerDashboardError && <p role="alert" className="mt-3 text-xs text-red-300">{ownerDashboardError}</p>}
+                      {!ownerDashboardError && ownerDashboardSites.length === 0 && (
+                        <p className="mt-3 text-xs text-zinc-400">
+                          {isLoadingOwnerDashboard ? 'Memuat daftar website...' : 'Belum ada website tersedia.'}
+                        </p>
+                      )}
                       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {[
-                          { host: 'kreditmotorhonda.tech', label: 'Website utama' },
-                          { host: 'wijaya.kreditmotorhonda.tech', label: 'Wijaya Kredit Motor' },
-                          { host: 'solusikreditmotor.cloud', label: 'Solusi Kredit Motor' },
-                          ...(settings?.seoPages || []).map((page) => ({
-                            host: `${page.subdomain}.kreditmotorhonda.tech`,
-                            label: page.title || page.subdomain,
-                          })),
-                        ].map((site) => (
+                        {ownerDashboardSites.map((site) => (
                           <label key={site.host} className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-zinc-950/60 px-3 py-2.5 text-xs text-zinc-200">
                             <input
                               type="checkbox"
