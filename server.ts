@@ -929,6 +929,16 @@ async function startServer() {
       (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit');
     if (req.method === 'GET' || isPublicWrite) return next();
     return requireAdmin(req, res, () => {
+      if (CATALOG_API_URL) {
+        const allowedSubdomainWrites = req.path === '/settings'
+          || req.path === '/upload'
+          || req.path === '/admin/logout'
+          || /^\/promos(?:\/[^/]+)?$/.test(req.path);
+        if (!allowedSubdomainWrites) {
+          return res.status(403).json({ error: 'Subdomain hanya dapat mengubah promo, tema, dan pengaturan dealer.' });
+        }
+      }
+
       const session = (req as any).adminSession;
       const db = readDb();
       appendAudit(db, {
