@@ -48,6 +48,7 @@ jobs:
             echo "GSC_SITE_URLS contains unsupported characters." >&2
             exit 1
           fi
+          ssh "${VPS_USER}@${VPS_HOST}" 'sudo -n true || { echo "ERROR: Passwordless sudo is not configured for the VPS deploy user." >&2; exit 1; }'
           ssh "${VPS_USER}@${VPS_HOST}" 'bash -s' <<'CLEANUP'
           set -euo pipefail
           RELEASE_ROOT="/opt/wijaya-abadi/releases"

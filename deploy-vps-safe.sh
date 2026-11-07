@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! sudo -n true >/dev/null 2>&1; then
+  echo "ERROR: Passwordless sudo is required for the deployment user. Grant NOPASSWD for sudo on the VPS and retry." >&2
+  exit 1
+fi
+
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-id.service"
