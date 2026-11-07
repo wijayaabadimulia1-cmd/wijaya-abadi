@@ -441,13 +441,16 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
       {selectedGallery && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 backdrop-blur-sm sm:p-4"
           onClick={() => setSelectedGallery(null)}
           role="dialog"
           aria-modal="true"
           aria-label={`Galeri foto ${selectedGallery.alt}`}
         >
-          <div className="relative flex max-h-[92vh] max-w-5xl items-center gap-3" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="mobile-gallery-shell relative flex max-h-[92vh] w-full max-w-[92vw] items-center justify-center gap-2 sm:gap-3"
+            onClick={(event) => event.stopPropagation()}
+          >
             {selectedGallery.images.length > 1 && (
               <button
                 type="button"
@@ -461,7 +464,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             <img
               src={selectedGallery.images[selectedGallery.index]}
               alt={`${selectedGallery.alt} foto ${selectedGallery.index + 1}`}
-              className="max-h-[88vh] max-w-full rounded-2xl object-contain shadow-2xl sm:max-h-[88vh]"
+              className="mobile-gallery-image max-h-[82vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl sm:max-h-[88vh]"
             />
             <button
               type="button"

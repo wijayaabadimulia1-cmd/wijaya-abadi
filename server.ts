@@ -18,11 +18,19 @@ const HOST = process.env.HOST || '0.0.0.0';
 const DEFAULT_DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_DIR = path.resolve(process.env.DATA_DIR || DEFAULT_DATA_DIR);
 const FALLBACK_DB_FILE = path.join(DEFAULT_DATA_DIR, 'db.json');
+const PERSISTENT_DB_FILE = path.join(DATA_DIR, 'db.json');
 const DB_FILE = (() => {
-  const configuredDbFile = path.join(DATA_DIR, 'db.json');
-  if (fs.existsSync(configuredDbFile)) return configuredDbFile;
-  if (fs.existsSync(FALLBACK_DB_FILE)) return FALLBACK_DB_FILE;
-  return configuredDbFile;
+  const candidates = [FALLBACK_DB_FILE, PERSISTENT_DB_FILE];
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue;
+    try {
+      const raw = fs.readFileSync(candidate, 'utf-8').trim();
+      if (raw) return candidate;
+    } catch {
+      // continue to the next candidate, but keep the canonical repo DB as the preferred source when it is valid.
+    }
+  }
+  return FALLBACK_DB_FILE;
 })();
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
@@ -51,7 +59,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 function readDb() {
-  for (const candidatePath of [DB_FILE, FALLBACK_DB_FILE]) {
+  for (const candidatePath of [FALLBACK_DB_FILE, PERSISTENT_DB_FILE, DB_FILE]) {
     try {
       if (!fs.existsSync(candidatePath)) continue;
       const raw = fs.readFileSync(candidatePath, 'utf-8').trim();
