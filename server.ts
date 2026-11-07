@@ -1289,8 +1289,9 @@ function getCatalogAccessState(req: express.Request) {
   const session = getSession(req);
   const host = normalizeAnalyticsHost(req.hostname);
   const isMainCatalogHost = host === 'kreditmotorhonda.tech';
+  const isLocalCatalogHost = host === 'localhost' || host === '127.0.0.1';
   const isSuperAdmin = session?.role === 'Super Admin';
-  const canManageCatalog = Boolean(session) && (isSuperAdmin || isMainCatalogHost);
+  const canManageCatalog = Boolean(session) && (isMainCatalogHost || (isSuperAdmin && isLocalCatalogHost));
 
   return {
     session,
@@ -1298,7 +1299,7 @@ function getCatalogAccessState(req: express.Request) {
     isMainCatalogHost,
     isSuperAdmin,
     canManageCatalog,
-    owner: isSuperAdmin || isMainCatalogHost,
+    owner: isMainCatalogHost || (isSuperAdmin && isLocalCatalogHost),
     adminUrl: 'https://kreditmotorhonda.tech/admin',
   };
 }
@@ -1376,6 +1377,9 @@ async function startServer() {
     const session = needsAdmin ? getSession(req) : null;
     if (needsAdmin && !session) {
       return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+    }
+    if (!['GET', 'HEAD'].includes(req.method) && !getCatalogAccessState(req).canManageCatalog) {
+      return res.status(403).json({ error: 'Edit katalog hanya tersedia di admin utama kreditmotorhonda.tech.' });
     }
 
     let target: URL;
@@ -1534,14 +1538,6 @@ async function startServer() {
   // --- API Endpoints ---
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'Honda Wijaya Abadi API' });
-  });
-
-  app.get('/api/catalog/status', (_req, res) => {
-    res.json({
-      owner: !CATALOG_API_URL,
-      canManageCatalog: !CATALOG_API_URL || Boolean(CATALOG_SERVICE_TOKEN),
-      adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
-    });
   });
 
   // Settings
@@ -2732,6 +2728,42 @@ async function startServer() {
     appendAudit(db, { actor: session.username, action: 'UPDATE_ADMIN', resource: current.id, details: `Mengubah akun ${current.username}` });
     writeDb(db);
     res.json(publicAdminUser(users[index], db));
+  });
+
+  app.post('/api/admin/change-password', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    const users = ensureAdminUsers(db);
+    const user = users.find((item: any) => item.id === session.id);
+    if (!user) return res.status(404).json({ error: 'Akun admin tidak ditemukan.' });
+
+    const currentPassword = String(req.body?.currentPassword || '');
+    const newPassword = String(req.body?.newPassword || '');
+    if (!verifyPassword(currentPassword, user.passwordHash)) {
+      return res.status(400).json({ error: 'Password saat ini tidak sesuai.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password baru minimal 8 karakter.' });
+    }
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: 'Password baru harus berbeda dari password saat ini.' });
+    }
+
+    user.passwordHash = hashPassword(newPassword);
+    user.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: session.username,
+      action: 'CHANGE_OWN_PASSWORD',
+      resource: user.id,
+      details: `Mengganti password akun ${session.username}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Password gagal disimpan.' });
+
+    const currentToken = req.header('x-admin-token');
+    for (const [token, activeSession] of sessions) {
+      if (activeSession.id === user.id && token !== currentToken) sessions.delete(token);
+    }
+    return res.json({ success: true });
   });
 
   app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {

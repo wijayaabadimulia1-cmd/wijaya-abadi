@@ -36,7 +36,7 @@ async function downloadAdminFile(url: string, fallbackName: string): Promise<voi
 
 export const api = {
   async getCatalogStatus(): Promise<{ owner: boolean; canManageCatalog: boolean; adminUrl: string }> {
-    const res = await fetch('/api/catalog/status', { cache: 'no-store' });
+    const res = await fetch('/api/catalog/status', { headers: adminHeaders(), cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal memeriksa panel katalog pusat');
     return res.json();
   },
@@ -129,6 +129,16 @@ export const api = {
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Gagal mengubah admin');
     return result;
+  },
+
+  async changeOwnPassword(currentPassword: string, newPassword: string): Promise<void> {
+    const res = await fetch('/api/admin/change-password', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengganti password');
   },
 
   async deleteAdminUser(id: string): Promise<void> {

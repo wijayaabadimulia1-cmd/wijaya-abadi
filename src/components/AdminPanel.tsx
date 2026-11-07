@@ -161,6 +161,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [securityForm, setSecurityForm] = useState({ username: '', password: '', role: 'Staff Admin', assignedSeoPageId: '' });
+  const [accountUsername, setAccountUsername] = useState('');
+  const [passwordChangeForm, setPasswordChangeForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [ownerDashboardHosts, setOwnerDashboardHosts] = useState<string[]>([]);
   const [ownerDashboardUrl, setOwnerDashboardUrl] = useState('');
   const [isSavingOwnerDashboard, setIsSavingOwnerDashboard] = useState(false);
@@ -176,8 +179,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
-  const [isCatalogOwner, setIsCatalogOwner] = useState(true);
-  const [canManageCatalog, setCanManageCatalog] = useState(true);
+  const [isCatalogOwner, setIsCatalogOwner] = useState(false);
+  const [canManageCatalog, setCanManageCatalog] = useState(false);
   const [catalogAdminUrl, setCatalogAdminUrl] = useState('https://kreditmotorhonda.tech/admin');
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -251,6 +254,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   }, [adminTheme]);
 
   useEffect(() => {
+    if (!adminSession) return;
     api.getCatalogStatus()
       .then((status) => {
         setIsCatalogOwner(status.owner);
@@ -258,8 +262,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         setCatalogAdminUrl(status.adminUrl);
         if (!status.canManageCatalog) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
       })
-      .catch(() => setIsCatalogOwner(true));
-  }, []);
+      .catch(() => {
+        setIsCatalogOwner(false);
+        setCanManageCatalog(false);
+      });
+  }, [adminSession]);
 
   useEffect(() => {
     if (!settings) return;
@@ -276,28 +283,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
   const loadAllData = async () => {
     setIsLoading(true);
-    try {
-      const [settingsRes, motorsRes, promosRes, testiRes, leadsRes, priceListRes] = await Promise.all([
+    const [settingsResult, motorsResult, promosResult, testiResult, leadsResult, priceListResult] = await Promise.allSettled([
         api.getAdminSettings(),
         api.getMotors(),
         api.getPromos(),
         api.getTestimonials(),
         api.getInterests(),
-        api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
+        api.getFifPriceList(),
       ]);
 
-      setFifPriceList(priceListRes);
-      setMotors(motorsRes.map((motor) => normalizeMotorOtrPrice(motor, priceListRes)));
-      setPromos(promosRes);
-      setTestimonials(testiRes);
-      setSettings(settingsRes);
-      setLeads(leadsRes);
-    } catch (err) {
-      console.error('Failed to load admin data:', err);
-      showToast('Gagal memuat beberapa data dari database');
-    } finally {
-      setIsLoading(false);
+    const failedSections: string[] = [];
+    const priceList = priceListResult.status === 'fulfilled' ? priceListResult.value : DEFAULT_FIF_PRICE_LIST;
+    setFifPriceList(priceList);
+
+    if (settingsResult.status === 'fulfilled') setSettings(settingsResult.value);
+    else failedSections.push('pengaturan');
+    if (motorsResult.status === 'fulfilled') setMotors(motorsResult.value.map((motor) => normalizeMotorOtrPrice(motor, priceList)));
+    else failedSections.push('motor');
+    if (promosResult.status === 'fulfilled') setPromos(promosResult.value);
+    else failedSections.push('promo');
+    if (testiResult.status === 'fulfilled') setTestimonials(testiResult.value);
+    else failedSections.push('ulasan');
+    if (leadsResult.status === 'fulfilled') setLeads(leadsResult.value);
+    else failedSections.push('peminat');
+    if (priceListResult.status === 'rejected') failedSections.push('price list FIF');
+
+    if (failedSections.length) {
+      console.error('Failed to load admin sections:', failedSections);
+      showToast(`Sebagian data gagal dimuat: ${failedSections.join(', ')}`);
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -366,6 +381,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const [users, logs] = await Promise.all([api.getAdminUsers(), api.getAuditLogs()]);
     setAdminUsers(users);
     setAuditLogs(logs);
+  };
+
+  const handleUpdateOwnUsername = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!adminSession || !accountUsername.trim()) return;
+    try {
+      const updated = await api.updateAdminUser(adminSession.id, { username: accountUsername.trim() });
+      setAdminSession({ ...adminSession, username: updated.username });
+      setAccountUsername('');
+      showToast('Username berhasil diperbarui');
+      await refreshSecurityData();
+    } catch (error: any) {
+      alert(error.message || 'Gagal memperbarui username');
+    }
+  };
+
+  const handleChangeOwnPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (passwordChangeForm.newPassword.length < 8) {
+      alert('Password baru minimal 8 karakter.');
+      return;
+    }
+    if (passwordChangeForm.newPassword !== passwordChangeForm.confirmPassword) {
+      alert('Konfirmasi password baru tidak cocok.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.changeOwnPassword(passwordChangeForm.currentPassword, passwordChangeForm.newPassword);
+      setPasswordChangeForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      showToast('Password berhasil diganti. Sesi lain telah dikeluarkan.');
+    } catch (error: any) {
+      alert(error.message || 'Gagal mengganti password');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleCreateAdmin = async (event: React.FormEvent) => {
@@ -1853,9 +1905,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].filter((tab) => {
+              if (tab.id === 'motors' || tab.id === 'credit') return canManageCatalog;
               if (isSuperAdmin) return true;
               if (isSeoPostAdmin) return ['promos', 'settings', 'theme'].includes(tab.id);
-              return canManageCatalog || !['motors', 'credit'].includes(tab.id);
+              return true;
             }).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1910,7 +1963,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <section className="flex flex-col gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h2 className="text-sm font-bold text-white">Katalog motor dikelola bersama</h2>
-                      <p className="mt-1 text-xs text-zinc-400">Perubahan katalog dan price list dari panel ini disimpan ke layanan pusat dan langsung berlaku di seluruh website.</p>
+                      <p className="mt-1 text-xs text-zinc-400">Pengelolaan motor dan price list dilakukan dari panel katalog pusat.</p>
                     </div>
                     <a href={catalogAdminUrl} className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
                       Buka Admin Katalog Pusat
@@ -3603,26 +3656,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <form
-                    onSubmit={async (event) => {
-                      event.preventDefault();
-                      try {
-                        const updated = await api.updateAdminUser(adminSession.id, { username: securityForm.username || adminSession.username, password: securityForm.password || undefined });
-                        setAdminSession({ ...adminSession, username: updated.username });
-                        setSecurityForm({ ...securityForm, username: '', password: '' });
-                        showToast('Username dan password berhasil diperbarui');
-                        await refreshSecurityData();
-                      } catch (error: any) {
-                        alert(error.message || 'Gagal memperbarui akun');
-                      }
-                    }}
-                    className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4"
-                  >
-                    <h3 className="font-bold text-white">Akun Saya</h3>
-                    <input value={securityForm.username} onChange={(event) => setSecurityForm({ ...securityForm, username: event.target.value })} placeholder={`Username saat ini: ${adminSession.username}`} className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
-                    <input type="password" value={securityForm.password} onChange={(event) => setSecurityForm({ ...securityForm, password: event.target.value })} placeholder="Password baru (opsional)" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
-                    <button className="rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500">Simpan Perubahan Akun</button>
-                  </form>
+                  <div className="space-y-4">
+                    <form onSubmit={handleUpdateOwnUsername} className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4">
+                      <h3 className="font-bold text-white">Username Saya</h3>
+                      <input value={accountUsername} onChange={(event) => setAccountUsername(event.target.value)} placeholder={`Username saat ini: ${adminSession.username}`} className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <button className="rounded-xl bg-zinc-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-zinc-600">Perbarui Username</button>
+                    </form>
+
+                    <form onSubmit={handleChangeOwnPassword} className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4">
+                      <h3 className="font-bold text-white">Ganti Password</h3>
+                      <input required type="password" autoComplete="current-password" value={passwordChangeForm.currentPassword} onChange={(event) => setPasswordChangeForm({ ...passwordChangeForm, currentPassword: event.target.value })} placeholder="Password saat ini" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="password" minLength={8} autoComplete="new-password" value={passwordChangeForm.newPassword} onChange={(event) => setPasswordChangeForm({ ...passwordChangeForm, newPassword: event.target.value })} placeholder="Password baru (min. 8 karakter)" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="password" minLength={8} autoComplete="new-password" value={passwordChangeForm.confirmPassword} onChange={(event) => setPasswordChangeForm({ ...passwordChangeForm, confirmPassword: event.target.value })} placeholder="Konfirmasi password baru" className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <button disabled={isChangingPassword} className="rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-50">{isChangingPassword ? 'Menyimpan...' : 'Ganti Password'}</button>
+                    </form>
+                  </div>
 
                   {isSuperAdmin && (
                     <form onSubmit={handleCreateAdmin} className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6 space-y-4">
