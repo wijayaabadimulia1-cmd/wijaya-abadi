@@ -1,0 +1,1264 @@
+.website-shell.website-template-wijaya-enerjik {
+  --site-bg: #f3f5f7;
+  --site-panel: #ffffff;
+  --site-card: #ffffff;
+  --site-text: #181c21;
+  --site-muted: #5b6570;
+  --site-accent: #d71920;
+  --site-accent-soft: rgba(215, 25, 32, 0.1);
+  --site-border: #dfe3e8;
+  --custom-primary: #d71920 !important;
+  --custom-secondary: #15191f !important;
+  --custom-accent: #ed2939 !important;
+  --custom-bg: #f3f5f7 !important;
+  --custom-panel: #ffffff !important;
+  --custom-card: #ffffff !important;
+  --custom-elevated: #ffffff !important;
+  --custom-border: #dfe3e8 !important;
+  --custom-text: #181c21 !important;
+  --custom-muted: #5b6570 !important;
+  color-scheme: light;
+  background: #f3f5f7;
+  color: #181c21;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark {
+  --site-bg: #111418;
+  --site-panel: #191d23;
+  --site-card: #20252d;
+  --site-text: #f5f6f8;
+  --site-muted: #bec5cd;
+  --site-accent: #ff3445;
+  --site-accent-soft: rgba(255, 52, 69, 0.15);
+  --site-border: #3a424c;
+  --custom-primary: #ff3445 !important;
+  --custom-secondary: #f4f6f8 !important;
+  --custom-accent: #ff5966 !important;
+  --custom-bg: #111418 !important;
+  --custom-panel: #191d23 !important;
+  --custom-card: #20252d !important;
+  --custom-elevated: #292f38 !important;
+  --custom-border: #3a424c !important;
+  --custom-text: #f5f6f8 !important;
+  --custom-muted: #bec5cd !important;
+  color-scheme: dark;
+  background: #111418;
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik,
+.website-shell.website-template-wijaya-enerjik.site-mode-light,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark {
+  --site-bg-effective: var(--site-bg);
+  --site-panel-effective: var(--site-panel);
+  --site-card-effective: var(--site-card);
+  --site-text-effective: var(--site-text);
+  --site-muted-effective: var(--site-muted);
+  --site-accent-effective: var(--site-accent);
+  background-color: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar {
+  background: #d71920;
+  color: #ffffff;
+  box-shadow: inset 0 -3px 0 #15191f;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__item,
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__official {
+  color: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__official {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(21, 25, 31, 0.2);
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar {
+  border-bottom: 1px solid #dfe3e8;
+  background: rgba(255, 255, 255, 0.97);
+  color: #15191f;
+  box-shadow: 0 4px 18px rgba(21, 25, 31, 0.06);
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .site-navbar {
+  border-color: #343b45;
+  background: rgba(17, 20, 24, 0.97);
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar a,
+.website-shell.website-template-wijaya-enerjik .site-navbar button {
+  border-radius: 6px;
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar nav a:first-child {
+  border: 1px solid #d71920;
+  background: #d71920;
+  color: #ffffff !important;
+  padding: 9px 14px;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .site-navbar nav a:first-child {
+  border-color: #7d242c;
+  background: #35191d;
+  color: #ff707a !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar > div > div > a > div:first-child {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar > div > div > a > div:first-child img {
+  object-fit: contain;
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar a.bg-emerald-600\/20 {
+  border-color: #d71920;
+  background: #d71920;
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .site-navbar a.bg-emerald-600\/20 svg {
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar--enerjik {
+  font-size: 11px;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar--enerjik .astra-honda-topbar__inner {
+  min-height: 34px;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__socials {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__socials svg {
+  width: 14px;
+  height: 14px;
+  color: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-topbar__socials a {
+  display: inline-flex;
+  color: inherit;
+}
+
+.website-shell.website-template-wijaya-enerjik #home.wijaya-enerjik-hero {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 0 0 30px;
+  background: #f5f6f8;
+  color: #15191f;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__image,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__image {
+  z-index: -2;
+  overflow: hidden;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__image img.is-active {
+  opacity: 1;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__shade {
+  z-index: -1;
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff 38%, rgba(255, 255, 255, 0.92) 49%, rgba(255, 255, 255, 0.2) 67%, transparent 82%), linear-gradient(0deg, rgba(12, 16, 22, 0.22), transparent 34%);
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__inner {
+  display: flex;
+  width: min(100% - 48px, 1360px);
+  min-height: 410px;
+  align-items: center;
+  margin: 0 auto;
+  padding: 44px 0 54px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy {
+  width: min(52%, 650px);
+  min-width: 0;
+  animation: wijaya-enerjik-enter 650ms ease-out both;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__eyebrow {
+  display: block;
+  margin-bottom: 10px;
+  color: #d71920;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy h1 {
+  max-width: 620px;
+  margin: 0;
+  color: #15191f;
+  font-size: 54px;
+  font-style: italic;
+  font-weight: 900;
+  line-height: 0.96;
+  overflow-wrap: anywhere;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy h1 span {
+  display: block;
+  margin-top: 3px;
+  color: #d71920;
+  font-size: 76px;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy p {
+  max-width: 520px;
+  margin: 14px 0 0;
+  color: #313943;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-action-primary,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-action-secondary {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 16px;
+  text-decoration: none;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-action-primary {
+  background: #d71920;
+  color: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-action-primary:hover {
+  background: #b9111a;
+  transform: translateY(-1px);
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-action-primary svg {
+  width: 15px;
+  height: 15px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-action-secondary {
+  border-color: #dfe3e8;
+  background: #ffffff;
+  color: #15191f;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__controls {
+  position: absolute;
+  right: max(24px, calc((100% - 1360px) / 2));
+  bottom: 66px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__controls > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(21, 25, 31, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  color: #15191f;
+  cursor: pointer;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__controls > button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__dots button {
+  width: 7px;
+  height: 7px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(21, 25, 31, 0.34);
+  cursor: pointer;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__dots button[aria-current='true'] {
+  background: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  width: min(100% - 48px, 1340px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: -22px auto 0;
+  padding: 14px 20px;
+  border: 1px solid #e8ebef;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 14px 35px rgba(21, 25, 31, 0.12);
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits > div {
+  display: flex;
+  min-width: 0;
+  min-height: 50px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  border-right: 1px solid #e1e4e8;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits > div:last-child {
+  border-right: 0;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits > div > svg {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits strong,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits small {
+  display: block;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits strong {
+  color: #181c21;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits small {
+  margin-top: 2px;
+  color: #5b6570;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.website-shell.website-template-wijaya-enerjik #home.astra-honda-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #f5f6f8;
+  background-image:
+    repeating-linear-gradient(135deg, transparent 0 44px, rgba(215, 25, 32, 0.055) 44px 46px, transparent 46px 94px),
+    linear-gradient(110deg, #ffffff 0%, #f3f5f7 65%, #e8ebef 100%);
+  color: #15191f;
+}
+
+.website-shell.website-template-wijaya-enerjik #home.astra-honda-hero::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: -9%;
+  width: 38%;
+  height: 100%;
+  background: linear-gradient(145deg, transparent 0 34%, rgba(215, 25, 32, 0.09) 34% 39%, transparent 39% 48%, rgba(21, 25, 31, 0.06) 48% 53%, transparent 53%);
+  content: '';
+  pointer-events: none;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark #home.astra-honda-hero {
+  background-color: #111418;
+  background-image:
+    repeating-linear-gradient(135deg, transparent 0 44px, rgba(255, 52, 69, 0.09) 44px 46px, transparent 46px 94px),
+    linear-gradient(110deg, #171b20 0%, #111418 66%, #1c222a 100%);
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-hero__copy h1 {
+  color: #15191f;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-hero__copy h1 {
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-hero__copy h1 span {
+  color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-hero__copy h1 span {
+  color: #ff4656;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-hero__badge {
+  border-color: #e6a3a8;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #a50f18;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-hero__badge {
+  border-color: #71343a;
+  background: #25191c;
+  color: #ff7781;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-hero__description,
+.website-shell.website-template-wijaya-enerjik .astra-honda-benefits small {
+  color: #5b6570;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-hero__description,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-benefits small {
+  color: #bec5cd;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-benefits > div {
+  min-height: 76px;
+  border: 1px solid #dfe3e8;
+  border-radius: 7px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(21, 25, 31, 0.06);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-benefits > div {
+  border-color: #3a424c;
+  background: #191d23;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-benefits > div:hover {
+  transform: translateY(-2px);
+  border-color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-benefits strong {
+  color: #181c21;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-benefits strong {
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-benefits__icon {
+  background: #fff0f1;
+  color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-button {
+  min-height: 48px;
+  border-radius: 6px;
+  font-weight: 800;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-button--primary {
+  background: #d71920;
+  box-shadow: 0 6px 16px rgba(215, 25, 32, 0.22);
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-button--primary:hover:not(:disabled) {
+  background: #b9111a;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-button--outline {
+  border: 1px solid #15191f;
+  background: #ffffff;
+  color: #15191f !important;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-button--outline {
+  border-color: #f5f6f8;
+  background: #191d23;
+  color: #f5f6f8 !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured {
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 38px rgba(21, 25, 31, 0.12);
+  animation: wijaya-enerjik-enter 650ms ease-out both;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-featured {
+  border-color: #3a424c;
+  background: #191d23;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__ribbon {
+  background: #15191f;
+  color: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__image-wrap {
+  border-color: #dfe3e8;
+  background: #f3f5f7;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__image-wrap img {
+  object-fit: contain;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__details h2 {
+  color: #181c21;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-featured__details h2 {
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__details p,
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__price span {
+  color: #5b6570;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-featured__details p,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .astra-honda-featured__price span {
+  color: #bec5cd;
+}
+
+.website-shell.website-template-wijaya-enerjik .astra-honda-featured__price {
+  border-color: #dfe3e8;
+}
+
+.website-shell.website-template-wijaya-enerjik #katalog,
+.website-shell.website-template-wijaya-enerjik #promo,
+.website-shell.website-template-wijaya-enerjik #manifesto,
+.website-shell.website-template-wijaya-enerjik #testimoni,
+.website-shell.website-template-wijaya-enerjik #simulasi,
+.website-shell.website-template-wijaya-enerjik #kontak {
+  background-color: var(--site-bg-effective) !important;
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-enerjik #katalog,
+.website-shell.website-template-wijaya-enerjik #manifesto,
+.website-shell.website-template-wijaya-enerjik #kontak {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell.website-template-wijaya-enerjik #katalog h2,
+.website-shell.website-template-wijaya-enerjik #katalog .catalog-product-title,
+.website-shell.website-template-wijaya-enerjik #katalog .catalog-price-value {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-wijaya-enerjik #katalog p,
+.website-shell.website-template-wijaya-enerjik #katalog .catalog-product-description,
+.website-shell.website-template-wijaya-enerjik #katalog .catalog-compare-button {
+  color: var(--site-muted-effective);
+}
+
+.website-shell.website-template-wijaya-enerjik .catalog-card,
+.website-shell.website-template-wijaya-enerjik .simulator-container {
+  border-color: #dfe3e8 !important;
+  border-radius: 7px;
+  background: var(--site-card-effective);
+  box-shadow: 0 8px 22px rgba(21, 25, 31, 0.07);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .catalog-card,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .simulator-container {
+  border-color: #3a424c !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .catalog-card:hover {
+  transform: translateY(-3px);
+  border-color: #d71920 !important;
+  box-shadow: 0 12px 28px rgba(215, 25, 32, 0.12);
+}
+
+.website-shell.website-template-wijaya-enerjik .catalog-cta-primary,
+.website-shell.website-template-wijaya-enerjik .astra-honda-button--primary,
+.website-shell.website-template-wijaya-enerjik .bg-red-600 {
+  background-color: #d71920 !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .text-red-400,
+.website-shell.website-template-wijaya-enerjik .text-red-500,
+.website-shell.website-template-wijaya-enerjik .text-red-600 {
+  color: #d71920 !important;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .text-red-400,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .text-red-500,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .text-red-600 {
+  color: #ff5966 !important;
+}
+
+.website-shell.website-template-wijaya-enerjik input[type='range'] {
+  accent-color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik footer {
+  border-top: 3px solid #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik article {
+  border-color: var(--site-border) !important;
+  border-radius: 8px !important;
+  background: var(--site-panel) !important;
+  color: var(--site-text) !important;
+}
+
+.website-shell.website-template-wijaya-enerjik article h2,
+.website-shell.website-template-wijaya-enerjik article .text-white {
+  color: var(--site-text) !important;
+}
+
+.website-shell.website-template-wijaya-enerjik article .text-zinc-300 {
+  color: var(--site-muted) !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase {
+  position: relative;
+  z-index: 1;
+  padding: 22px 0 26px;
+  background: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__inner {
+  display: grid;
+  width: min(100% - 48px, 1360px);
+  grid-template-columns: minmax(190px, 1.3fr) repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 12px;
+  margin: 0 auto;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8px 8px 8px 0;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro > span {
+  color: #d71920;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro h2 {
+  margin: 8px 0 6px;
+  color: #181c21;
+  font-size: 25px;
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro h2 strong {
+  display: block;
+  color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro p {
+  margin: 0;
+  color: #5b6570;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro > a {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  border-radius: 6px;
+  background: #d71920;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro > a svg,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__detail svg {
+  width: 12px;
+  height: 12px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__motor {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  border: 1px solid #e6e9ed;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(21, 25, 31, 0.06);
+  padding: 10px 9px;
+  color: #181c21;
+  text-align: center;
+  text-decoration: none;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__motor:hover {
+  transform: translateY(-2px);
+  border-color: #d71920;
+  box-shadow: 0 10px 22px rgba(215, 25, 32, 0.1);
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__image {
+  display: grid;
+  width: 100%;
+  height: 102px;
+  place-items: center;
+  overflow: hidden;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__motor > strong {
+  width: 100%;
+  overflow: hidden;
+  color: #181c21;
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__motor > small {
+  margin-top: 3px;
+  color: #69727d;
+  font-size: 9px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  color: #d71920;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner {
+  position: relative;
+  display: flex;
+  min-height: 164px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  overflow: hidden;
+  background-color: #b5121b;
+  background-image: linear-gradient(90deg, rgba(20, 12, 14, 0.96) 0%, rgba(181, 18, 27, 0.86) 43%, rgba(181, 18, 27, 0.08) 100%), var(--enerjik-promo-image, linear-gradient(110deg, #b5121b, #ed2939));
+  background-position: center;
+  background-size: cover;
+  color: #ffffff;
+  padding: 24px max(24px, calc((100% - 1280px) / 2));
+  text-decoration: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__copy {
+  display: grid;
+  max-width: 680px;
+  gap: 4px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__copy small {
+  color: #ffd5d7;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__copy strong {
+  font-size: 30px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__copy > span {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #181c21;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 0 14px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links {
+  display: grid;
+  width: min(100% - 48px, 1360px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px auto 24px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links > a {
+  display: flex;
+  min-width: 0;
+  min-height: 84px;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #e4e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(21, 25, 31, 0.05);
+  padding: 14px;
+  color: #181c21;
+  text-decoration: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links > a > svg {
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+  color: #d71920;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links > a > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links strong {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links small {
+  color: #69727d;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links em {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  color: #d71920;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links em svg {
+  width: 11px;
+  height: 11px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links__contact {
+  border-color: #d71920 !important;
+  background: #d71920 !important;
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links__contact > svg,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links__contact small,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links__contact em {
+  color: #ffffff !important;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer {
+  border-top: 3px solid #d71920;
+  background: #15191f;
+  color: #c8cdd3;
+  padding-top: 22px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner {
+  display: grid;
+  width: min(100% - 48px, 1360px);
+  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin: 0 auto;
+  padding-bottom: 20px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__brand {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__brand img {
+  width: 52px;
+  height: 44px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__brand span,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner > div {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__brand strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__brand small {
+  color: #aab1b9;
+  font-size: 10px;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner h2 {
+  margin: 0 0 2px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner > div > a,
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner > div > span {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 6px;
+  color: #c8cdd3;
+  font-size: 10px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner > div > a:hover {
+  color: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner > div svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: #ffffff;
+}
+
+.website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9299a1;
+  font-size: 9px;
+  padding: 10px 24px;
+  text-align: center;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-showcase,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-showcase__motor,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-quick-links > a {
+  border-color: #3a424c;
+  background: #191d23;
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-showcase__intro h2,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-showcase__motor > strong,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-quick-links strong {
+  color: #f5f6f8;
+}
+
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-showcase__intro p,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-showcase__motor > small,
+.website-shell.website-template-wijaya-enerjik.site-mode-dark .wijaya-enerjik-quick-links small {
+  color: #bec5cd;
+}
+
+@media (max-width: 1100px) {
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__inner {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro {
+    grid-column: 1 / -1;
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 900px) {
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__inner {
+    min-height: 380px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy {
+    width: 62%;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy h1 {
+    font-size: 44px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy h1 span {
+    font-size: 58px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-wijaya-enerjik .astra-honda-topbar--enerjik .astra-honda-topbar__inner {
+    width: calc(100% - 24px);
+    justify-content: center;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .astra-honda-topbar--enerjik .astra-honda-topbar__location,
+  .website-shell.website-template-wijaya-enerjik .astra-honda-topbar--enerjik .astra-honda-topbar__hours,
+  .website-shell.website-template-wijaya-enerjik .astra-honda-topbar__socials {
+    display: none;
+  }
+
+  .website-shell.website-template-wijaya-enerjik #home.wijaya-enerjik-hero {
+    padding-bottom: 24px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__image img {
+    object-position: 64% center;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__shade {
+    background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.98) 43%, rgba(255, 255, 255, 0.22) 100%), linear-gradient(0deg, rgba(12, 16, 22, 0.18), transparent 40%);
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__inner {
+    width: calc(100% - 32px);
+    min-height: 510px;
+    align-items: flex-start;
+    padding: 34px 0 112px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy {
+    width: 100%;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy h1 {
+    max-width: 360px;
+    font-size: 40px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy h1 span {
+    font-size: 48px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__copy p {
+    max-width: 340px;
+    font-size: 12px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-hero__controls {
+    right: 16px;
+    bottom: 88px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits {
+    width: calc(100% - 24px);
+    gap: 4px;
+    margin-top: -26px;
+    padding: 8px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits > div {
+    gap: 7px;
+    padding: 6px;
+    border-right: 0;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits > div > svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits strong {
+    font-size: 10px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-benefits small {
+    font-size: 9px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__inner,
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links {
+    width: calc(100% - 24px);
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__image {
+    height: 88px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-showcase__intro h2 {
+    font-size: 22px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner {
+    min-height: 148px;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 18px 16px;
+    background-image: linear-gradient(90deg, rgba(20, 12, 14, 0.9), rgba(181, 18, 27, 0.34)), var(--enerjik-promo-image, linear-gradient(110deg, #b5121b, #ed2939));
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__copy strong {
+    font-size: 22px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__copy > span {
+    font-size: 10px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-promo-banner__button {
+    min-height: 32px;
+    padding: 0 9px;
+    font-size: 9px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links {
+    gap: 8px;
+    margin: 12px auto 18px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links > a {
+    min-height: 82px;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-quick-links > a > svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner {
+    width: calc(100% - 32px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 12px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__brand {
+    grid-column: 1 / -1;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .wijaya-enerjik-footer__inner > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@keyframes wijaya-enerjik-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-wijaya-enerjik .astra-honda-benefits > div {
+    min-height: 66px;
+  }
+
+  .website-shell.website-template-wijaya-enerjik .astra-honda-hero__badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .website-shell.website-template-wijaya-enerjik .astra-honda-featured {
+    animation: none;
+  }
+}

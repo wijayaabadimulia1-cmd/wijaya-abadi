@@ -4,20 +4,33 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { execFile } from 'node:child_process';
+import { resolve4 } from 'node:dns/promises';
 import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
-import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from './src/utils/whatsapp';
+import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './src/utils/seoPosts';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+const SALES_COUNTER_ROOT_DOMAINS = new Set(['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud']);
+const SALES_COUNTER_SSL_RETRY_INTERVAL_MS = 5 * 60 * 1000;
+const SALES_COUNTER_SSL_MAX_RETRIES = 12;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
+const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
+  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
+  'solusikreditmotor.cloud': path.resolve(process.env.OWNER_ANALYTICS_SOLUSI_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json')),
+};
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
 const CATALOG_API_URL = String(process.env.CATALOG_API_URL || '').trim().replace(/\/+$/, '');
 const CATALOG_SERVICE_TOKEN = String(process.env.CATALOG_SERVICE_TOKEN || '');
 const CATALOG_OWNER_DATA_FILE = path.resolve(process.env.CATALOG_OWNER_DATA_FILE || DB_FILE);
+const execFileAsync = promisify(execFile);
 const DEFAULT_FIF_PRICE_LIST_FILE = path.join(process.cwd(), 'src', 'data', 'fifPriceList.json');
 const FIF_TENORS = [11, 17, 23, 29, 35];
 const FIF_DP_PERCENTAGES = [10, 13, 15, 20, 25];
@@ -128,7 +141,8 @@ function escapeHtmlAttribute(value: string) {
   })[character] || character);
 }
 
-function createPublicInitialData(db: any) {
+function createPublicInitialData(db: any, hostname?: string) {
+  const hostPage = hostname ? getSeoPageForHost(db.settings || {}, hostname) : undefined;
   const testimonials = (Array.isArray(db.testimonials) ? db.testimonials : [])
     .filter((item: any) => item.approved !== false)
     .map((item: any) => ({
@@ -144,11 +158,38 @@ function createPublicInitialData(db: any) {
 
   return {
     motors: Array.isArray(db.motors) ? db.motors : [],
-    promos: Array.isArray(db.promos) ? db.promos : [],
+    promos: hostPage
+      ? Array.isArray(hostPage.promos) ? hostPage.promos : []
+      : Array.isArray(db.promos) ? db.promos : [],
     testimonials,
     manifesto: Array.isArray(db.manifesto) ? db.manifesto : [],
     fifPriceList: currentFifPriceList(db),
   };
+}
+
+async function createSsrInitialData(db: any, hostname?: string) {
+  if (!CATALOG_API_URL) return createPublicInitialData(readCatalogDb(), hostname);
+
+  const catalogApiUrl = `http://127.0.0.1:${PORT}`;
+  const options = { cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
+
+  try {
+    const [motorsResponse, priceListResponse] = await Promise.all([
+      fetch(`${catalogApiUrl}/api/motors`, options),
+      fetch(`${catalogApiUrl}/api/fif-price-list`, options),
+    ]);
+    if (!motorsResponse.ok) throw new Error(`Catalog API returned HTTP ${motorsResponse.status}`);
+
+    const motors = await motorsResponse.json();
+    if (!Array.isArray(motors)) throw new Error('Catalog API returned invalid motor data');
+
+    const catalogDb = { ...db, motors };
+    if (priceListResponse.ok) catalogDb.fifPriceList = await priceListResponse.json();
+    return createPublicInitialData(catalogDb, hostname);
+  } catch (error) {
+    console.error('Shared catalog SSR fetch failed:', error);
+    return createPublicInitialData(readCatalogDb(), hostname);
+  }
 }
 
 
@@ -218,7 +259,7 @@ function updateSeoJsonLdForPage(
   }
 }
 
-function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', initialData?: unknown) {
+function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', initialData?: unknown, hostname = '') {
   const landingSeo: Record<string, { title: string; description: string; keywords: string }> = {
     '/dealer-honda-bandung': {
       title: 'Dealer Honda Bandung | Promo & Kredit Terbaik',
@@ -266,34 +307,42 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
       keywords: 'Honda ADV Bandung, harga Honda ADV, kredit Honda ADV Bandung',
     },
   };
+  const hostPage = getSeoPageForHost(settings, hostname);
+  const hostPost = hostPage ? findSeoLandingPost(hostPage, pathname) : undefined;
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
-  const title = String(page?.title || settings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
-  const description = String(page?.description || settings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
-  const keywords = String(page?.keywords || settings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
-  const siteOrigin = getSiteOrigin(settings);
-  const logoValue = String(settings.logo || '/uploads/logo.jpeg').trim();
+  const pageSettings = getSettingsForSeoPage(settings, hostPage);
+  const isHostPost = Boolean(hostPost && hostPage && hostPost.id !== hostPage.id);
+  const title = String(isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
+  const description = String(isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
+  const keywords = String(hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
+  const siteOrigin = hostPage ? getSeoPageOrigin(hostPage) : getSiteOrigin(pageSettings);
+  const logoValue = String(pageSettings.logo || '/uploads/logo.jpeg').trim();
   const logoUrl = /^https?:\/\//i.test(logoValue)
     ? logoValue
     : `${siteOrigin}${logoValue.startsWith('/') ? '' : '/'}${logoValue}`;
-  const canonical = page
+  const canonical = hostPage
+    ? `${siteOrigin}${hostPost ? getSeoLandingPostPath(hostPage, hostPost) : '/'}`
+    : page
     ? `${siteOrigin}${pathname.replace(/\/+$/, '') || '/'}`
-    : String(settings.seoCanonicalUrl || `${siteOrigin}/`).trim();
-  const robots = String(settings.seoRobots || 'index, follow').trim();
+    : String(pageSettings.seoCanonicalUrl || `${siteOrigin}/`).trim();
+  const robots = hostPage && hostPage.sslStatus !== 'active'
+    ? 'noindex, follow'
+    : String(hostPage?.seoRobots || pageSettings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
-  const initialSettings = JSON.stringify(settings).replace(/</g, '\\u003c');
+  const initialSettings = JSON.stringify(publicSettings(pageSettings)).replace(/</g, '\\u003c');
   const initialPublicData = JSON.stringify(initialData).replace(/</g, '\\u003c');
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
     : '';
 
   const normalizedSeoPath = pathname.replace(/\/+$/, '') || '/';
-  const fallbackHeading = page
+  const fallbackHeading = hostPost?.title || hostPage?.seoTitle || hostPage?.title || (page
     ? page.title.split(/[|–—]/)[0].trim()
     : [
-        String(settings.heroMainTitle || '').trim(),
-        String(settings.heroTitleHighlight || '').trim(),
-      ].filter(Boolean).join(' ');
-  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page);
+        String(pageSettings.heroMainTitle || '').trim(),
+        String(pageSettings.heroTitleHighlight || '').trim(),
+      ].filter(Boolean).join(' '));
+  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page) || Boolean(hostPage);
   const htmlWithH1Fallback =
     shouldAddH1Fallback &&
     fallbackHeading &&
@@ -331,6 +380,419 @@ function getSiteOrigin(settings: any = {}) {
     return new URL(String(settings.seoCanonicalUrl || 'https://www.solusikreditmotor.cloud/')).origin;
   } catch {
     return 'https://www.solusikreditmotor.cloud';
+  }
+}
+
+const RESERVED_SEO_SUBDOMAINS = new Set(['www', 'wijaya', 'admin', 'api', 'mail', 'ftp', 'm', 'static']);
+
+function getSalesCounterRootDomain(hostname: string) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '').replace(/^www\./, '');
+  return SALES_COUNTER_ROOT_DOMAINS.has(host) ? host : undefined;
+}
+
+function getManagedSubdomainHost(hostname: string) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
+  for (const domainSuffix of SALES_COUNTER_ROOT_DOMAINS) {
+    const suffix = `.${domainSuffix}`;
+    if (!host.endsWith(suffix)) continue;
+    const subdomain = host.slice(0, -suffix.length);
+    if (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) && !RESERVED_SEO_SUBDOMAINS.has(subdomain)) {
+      return { subdomain, domainSuffix };
+    }
+  }
+  return undefined;
+}
+
+function getSeoPageDomainSuffix(page: any) {
+  return SALES_COUNTER_ROOT_DOMAINS.has(page?.domainSuffix) ? page.domainSuffix : 'kreditmotorhonda.tech';
+}
+
+function getSeoPageForHost(settings: any = {}, hostname: string) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
+  const pages = Array.isArray(settings.seoPages) ? settings.seoPages : [];
+  return pages.find((page: any) => {
+    const domainSuffix = getSeoPageDomainSuffix(page);
+    const suffix = `.${domainSuffix}`;
+    if (!host.endsWith(suffix)) return false;
+    const subdomain = host.slice(0, -suffix.length);
+    return page.subdomain === subdomain
+      && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)
+      && !RESERVED_SEO_SUBDOMAINS.has(subdomain);
+  });
+}
+
+function getSeoPageOrigin(page: any) {
+  const domainSuffix = getSeoPageDomainSuffix(page);
+  return `https://${page.subdomain}.${domainSuffix}`;
+}
+
+function normalizeAnalyticsHost(hostname: unknown) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
+  return host.startsWith('www.') ? host.slice(4) : host;
+}
+
+function normalizeSearchKeyword(value: unknown) {
+  return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
+}
+
+let cachedGscAccessToken: { token: string; expiresAt: number } | null = null;
+const googleSearchConsoleReportCache = new Map<string, { expiresAt: number; report: any }>();
+
+async function getGoogleSearchConsoleAccessToken() {
+  const credentialsFile = process.env.GSC_SERVICE_ACCOUNT_FILE || '/etc/wijaya-abadi/gsc-service-account.json';
+  if (!fs.existsSync(credentialsFile)) return null;
+  if (cachedGscAccessToken && cachedGscAccessToken.expiresAt > Date.now() + 60_000) {
+    return cachedGscAccessToken.token;
+  }
+
+  let account: { client_email?: string; private_key?: string };
+  try {
+    account = JSON.parse(fs.readFileSync(credentialsFile, 'utf8'));
+  } catch {
+    throw new Error('File service account Search Console tidak valid.');
+  }
+  if (!account.client_email || !account.private_key) {
+    throw new Error('Service account Search Console tidak memiliki client_email atau private_key.');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const base64url = (value: string | Buffer) => Buffer.from(value).toString('base64url');
+  const unsignedToken = [
+    base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' })),
+    base64url(JSON.stringify({
+      iss: account.client_email,
+      scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    })),
+  ].join('.');
+  const signer = crypto.createSign('RSA-SHA256');
+  signer.update(unsignedToken);
+  signer.end();
+  const assertion = `${unsignedToken}.${signer.sign(account.private_key).toString('base64url')}`;
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+    }),
+  });
+  const result = await response.json() as { access_token?: string; expires_in?: number };
+  if (!response.ok || !result.access_token) throw new Error('Google Search Console menolak autentikasi service account.');
+
+  cachedGscAccessToken = {
+    token: result.access_token,
+    expiresAt: Date.now() + Number(result.expires_in || 3600) * 1000,
+  };
+  return cachedGscAccessToken.token;
+}
+
+async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: string) {
+  const sites = [...new Set((process.env.GSC_SITE_URLS
+    || 'sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud')
+    .split(',')
+    .map((site) => site.trim())
+    .filter(Boolean))];
+  const today = new Date();
+  const latestFinalDate = new Date(today);
+  latestFinalDate.setUTCDate(latestFinalDate.getUTCDate() - 3);
+  const effectiveEndDate = endDate && endDate < latestFinalDate.toISOString().slice(0, 10)
+    ? endDate
+    : latestFinalDate.toISOString().slice(0, 10);
+  const earliestDate = new Date(today);
+  earliestDate.setUTCMonth(earliestDate.getUTCMonth() - 16);
+  const effectiveStartDate = startDate || earliestDate.toISOString().slice(0, 10);
+  if (effectiveStartDate > effectiveEndDate) {
+    return { configured: true, startDate: effectiveStartDate, endDate: effectiveEndDate, sites, rows: [], errors: [] };
+  }
+
+  const cacheKey = `${effectiveStartDate}:${effectiveEndDate}:${sites.join(',')}`;
+  const cached = googleSearchConsoleReportCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.report;
+
+  const token = await getGoogleSearchConsoleAccessToken();
+  if (!token) {
+    return {
+      configured: false,
+      startDate: effectiveStartDate,
+      endDate: effectiveEndDate,
+      sites,
+      rows: [],
+      errors: ['Search Console belum terhubung. Admin perlu menambahkan secret GSC_SERVICE_ACCOUNT_JSON di GitHub Actions.'],
+    };
+  }
+
+  const responses = await Promise.all(sites.map(async (site) => {
+    try {
+      const response = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(site)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: effectiveStartDate,
+          endDate: effectiveEndDate,
+          dimensions: ['query'],
+          rowLimit: 25_000,
+          dataState: 'final',
+        }),
+      });
+      const body = await response.json() as {
+        rows?: Array<{ keys?: string[]; clicks?: number; impressions?: number; position?: number }>;
+        error?: { message?: string };
+      };
+      if (!response.ok) throw new Error(body.error?.message || `Gagal mengambil data untuk ${site}.`);
+      return { site, rows: body.rows || [], error: '' };
+    } catch (error: any) {
+      return { site, rows: [], error: String(error?.message || `Gagal mengambil data untuk ${site}.`) };
+    }
+  }));
+
+  const keywordTotals = new Map<string, { keyword: string; clicks: number; impressions: number; positionWeight: number; positionTotal: number; sites: Set<string> }>();
+  for (const result of responses) {
+    for (const row of result.rows) {
+      const keyword = String(row.keys?.[0] || '').trim();
+      const normalizedKeyword = normalizeSearchKeyword(keyword);
+      if (!normalizedKeyword) continue;
+      const impressions = Number(row.impressions || 0);
+      const aggregate = keywordTotals.get(normalizedKeyword) || {
+        keyword,
+        clicks: 0,
+        impressions: 0,
+        positionWeight: 0,
+        positionTotal: 0,
+        sites: new Set<string>(),
+      };
+      aggregate.clicks += Number(row.clicks || 0);
+      aggregate.impressions += impressions;
+      aggregate.positionWeight += impressions;
+      aggregate.positionTotal += Number(row.position || 0) * impressions;
+      aggregate.sites.add(result.site);
+      keywordTotals.set(normalizedKeyword, aggregate);
+    }
+  }
+
+  const rows = [...keywordTotals.values()]
+    .map(({ positionWeight, positionTotal, sites: matchedSites, ...row }) => ({
+      ...row,
+      ctr: row.impressions ? row.clicks / row.impressions : 0,
+      position: positionWeight ? positionTotal / positionWeight : 0,
+      siteCount: matchedSites.size,
+    }))
+    .sort((left, right) => right.impressions - left.impressions || right.clicks - left.clicks)
+    .slice(0, 50);
+  const report = {
+    configured: true,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
+    sites,
+    rows,
+    errors: responses.filter((result) => result.error).map((result) => result.error),
+  };
+  googleSearchConsoleReportCache.set(cacheKey, { report, expiresAt: Date.now() + 15 * 60 * 1000 });
+  return report;
+}
+
+function publicSeoPage(page: any) {
+  return {
+    id: page.id,
+    subdomain: page.subdomain,
+    ...(page.domainSuffix ? { domainSuffix: page.domainSuffix } : {}),
+    ...(page.siteType ? { siteType: page.siteType } : {}),
+    title: page.title,
+    content: page.content,
+    posts: getSeoLandingPosts(page).map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      content: post.content,
+    })),
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
+    seoKeywords: page.seoKeywords,
+    seoRobots: page.seoRobots,
+    sslStatus: page.sslStatus,
+    updated_at: page.updated_at,
+  };
+}
+
+function publicSettings(settings: any = {}) {
+  const { ownerDashboard: _ownerDashboard, ...publicValues } = settings;
+  return {
+    ...publicValues,
+    seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : []).map(publicSeoPage),
+  };
+}
+
+function getSettingsForSeoPage(settings: any = {}, page: any) {
+  if (!page) return settings;
+  const domainSuffix = getSeoPageDomainSuffix(page);
+  return {
+    ...settings,
+    ...(page.siteSettings || {}),
+    seoTitle: page.seoTitle || page.title || settings.seoTitle,
+    seoDescription: page.seoDescription || settings.seoDescription,
+    seoKeywords: page.seoKeywords || settings.seoKeywords,
+    seoRobots: page.sslStatus === 'active' ? page.seoRobots || 'index, follow' : 'noindex, follow',
+    seoCanonicalUrl: `https://${page.subdomain}.${domainSuffix}/`,
+    seoPages: [publicSeoPage(page)],
+    seoPostHost: true,
+  };
+}
+
+async function installManagedNginxConfig(name: string, contents: string) {
+  const configPath = `/etc/nginx/sites-available/${name}`;
+  const enabledPath = `/etc/nginx/sites-enabled/${name}`;
+  const marker = '# Managed by Honda SEO subdomain pages.';
+  try {
+    const existing = await fs.promises.readFile(configPath, 'utf8');
+    if (!existing.startsWith(marker)) throw new Error(`Nginx config already exists and is not managed by the SEO page provisioner: ${configPath}`);
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  await fs.promises.mkdir('/etc/nginx/sites-available', { recursive: true });
+  await fs.promises.mkdir('/etc/nginx/sites-enabled', { recursive: true });
+  const temporaryPath = `${configPath}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
+  await fs.promises.writeFile(temporaryPath, contents, { encoding: 'utf8', mode: 0o644, flag: 'wx' });
+  await fs.promises.rename(temporaryPath, configPath);
+
+  try {
+    const stat = await fs.promises.lstat(enabledPath);
+    if (!stat.isSymbolicLink() || await fs.promises.realpath(enabledPath) !== configPath) {
+      throw new Error(`Nginx site is already enabled from an unmanaged path: ${enabledPath}`);
+    }
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') throw error;
+    await fs.promises.symlink(configPath, enabledPath);
+  }
+}
+
+async function provisionSeoPageSsl(page: any, settings: any): Promise<{ status: 'active' | 'failed' | 'pending'; message: string }> {
+  if (typeof process.getuid === 'function' && process.getuid() !== 0) {
+    return { status: 'pending', message: 'Provisioning SSL memerlukan service server berjalan dengan izin root.' };
+  }
+
+  const subdomain = String(page.subdomain || '').toLocaleLowerCase('en-US');
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || RESERVED_SEO_SUBDOMAINS.has(subdomain)) {
+    return { status: 'failed', message: 'Format subdomain tidak valid atau memakai nama yang dicadangkan.' };
+  }
+  const domainSuffix = getSeoPageDomainSuffix(page);
+  const rootDomain = domainSuffix;
+  const hostname = `${subdomain}.${domainSuffix}`;
+  const upstreamPort = domainSuffix === 'kreditmotorhonda.id' ? 3003 : domainSuffix === 'solusikreditmotor.cloud' ? 3002 : 3000;
+  let rootAddresses: string[];
+  let postAddresses: string[];
+  try {
+    [rootAddresses, postAddresses] = await Promise.all([
+      resolve4(rootDomain),
+      resolve4(hostname),
+    ]);
+  } catch {
+    return { status: 'pending', message: `Tambahkan A record ${hostname} ke IP VPS yang sama dengan ${rootDomain}.` };
+  }
+  if (!postAddresses.some((address) => rootAddresses.includes(address))) {
+    return { status: 'pending', message: `A record ${hostname} harus mengarah ke IP yang sama dengan ${rootDomain}.` };
+  }
+
+  const isSalesCounter = page.siteType === 'sales-counter';
+  const domainKey = domainSuffix.replace(/\./g, '-');
+  const certName = isSalesCounter ? `sales-counter-${domainKey}-${subdomain}` : `seo-post-${subdomain}`;
+  const certPath = `/etc/letsencrypt/live/${certName}/fullchain.pem`;
+  const keyPath = `/etc/letsencrypt/live/${certName}/privkey.pem`;
+  const webroot = '/var/www/letsencrypt';
+  await fs.promises.mkdir(path.join(webroot, '.well-known', 'acme-challenge'), { recursive: true });
+
+  const acmeConfigName = isSalesCounter ? `honda-sales-counter-${domainKey}-acme` : 'honda-seo-posts-acme';
+  const escapedDomainSuffix = domainSuffix.replace(/\./g, '\\.');
+  const acmeServerName = isSalesCounter
+    ? `~^[a-z0-9-]+\\.${escapedDomainSuffix}$`
+    : '~^[a-z0-9-]+\\.kreditmotorhonda\\.tech$';
+  await installManagedNginxConfig(acmeConfigName, `# Managed by Honda SEO subdomain pages. ACME HTTP-01 challenge routing.\nserver {\n  listen 80;\n  listen [::]:80;\n  server_name ${acmeServerName};\n  location ^~ /.well-known/acme-challenge/ {\n    root ${webroot};\n    default_type text/plain;\n    try_files $uri =404;\n  }\n  location / { return 301 https://$host$request_uri; }\n}\n`);
+  await execFileAsync('nginx', ['-t'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+  await execFileAsync('systemctl', ['reload', 'nginx'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+
+  const defaultEmail = `admin@${rootDomain}`;
+  const configuredEmail = String(process.env.CERTBOT_EMAIL || settings.email || defaultEmail).trim();
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) ? configuredEmail : defaultEmail;
+  try {
+    await execFileAsync('certbot', [
+      'certonly', '--webroot', '--webroot-path', webroot,
+      '--non-interactive', '--agree-tos', '--keep-until-expiring', '--email', email,
+      '--cert-name', certName, '-d', hostname,
+    ], { timeout: 180000, maxBuffer: 4 * 1024 * 1024 });
+    await fs.promises.access(certPath);
+    await fs.promises.access(keyPath);
+  } catch (error: any) {
+    const message = String(error.stderr || error.message || 'Penerbitan sertifikat gagal').split('\n').slice(-5).join(' ').slice(0, 500);
+    return { status: 'failed', message };
+  }
+
+  const nginxConfigName = isSalesCounter ? `honda-sales-counter-${domainKey}-${subdomain}` : `honda-seo-post-${subdomain}`;
+  await installManagedNginxConfig(nginxConfigName, `# Managed by Honda SEO subdomain pages. TLS reverse proxy for ${hostname}.\nserver {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  server_name ${hostname};\n  ssl_certificate ${certPath};\n  ssl_certificate_key ${keyPath};\n  include /etc/letsencrypt/options-ssl-nginx.conf;\n  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;\n  client_max_body_size 100m;\n  location / {\n    proxy_pass http://127.0.0.1:${upstreamPort};\n    proxy_http_version 1.1;\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n  }\n}\n`);
+  await execFileAsync('nginx', ['-t'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+  await execFileAsync('systemctl', ['reload', 'nginx'], { timeout: 30000, maxBuffer: 1024 * 1024 });
+  return { status: 'active', message: `HTTPS aktif di https://${hostname}` };
+}
+
+let isRetryingSalesCounterSsl = false;
+
+async function retryPendingSalesCounterSslJobs() {
+  if (isRetryingSalesCounterSsl) return;
+  isRetryingSalesCounterSsl = true;
+
+  try {
+    const db = readDb();
+    const pendingPageIds = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
+      .filter((page: any) => page.siteType === 'sales-counter'
+        && SALES_COUNTER_ROOT_DOMAINS.has(page.domainSuffix)
+        && page.sslStatus === 'pending'
+        && Number(page.sslAutoRetryCount || 0) < SALES_COUNTER_SSL_MAX_RETRIES)
+      .map((page: any) => page.id);
+
+    for (const pageId of pendingPageIds) {
+      const currentDb = readDb();
+      const page = (Array.isArray(currentDb.settings?.seoPages) ? currentDb.settings.seoPages : [])
+        .find((item: any) => item.id === pageId);
+      if (!page || page.siteType !== 'sales-counter' || !SALES_COUNTER_ROOT_DOMAINS.has(page.domainSuffix)
+        || page.sslStatus !== 'pending' || Number(page.sslAutoRetryCount || 0) >= SALES_COUNTER_SSL_MAX_RETRIES) continue;
+
+      page.sslAutoRetryCount = Number(page.sslAutoRetryCount || 0) + 1;
+      const retryCount = page.sslAutoRetryCount;
+      if (!writeDb(currentDb)) continue;
+
+      let result: { status: 'pending' | 'active' | 'failed'; message: string };
+      try {
+        result = await provisionSeoPageSsl(page, currentDb.settings || {});
+      } catch (error: any) {
+        result = { status: 'failed', message: String(error.message || 'Konfigurasi HTTPS gagal.').slice(0, 500) };
+      }
+
+      const updatedDb = readDb();
+      const updatedPage = (Array.isArray(updatedDb.settings?.seoPages) ? updatedDb.settings.seoPages : [])
+        .find((item: any) => item.id === pageId);
+      if (!updatedPage || updatedPage.sslStatus !== 'pending' || updatedPage.sslAutoRetryCount !== retryCount) continue;
+
+      const retriesExhausted = result.status === 'pending' && retryCount >= SALES_COUNTER_SSL_MAX_RETRIES;
+      updatedPage.sslStatus = retriesExhausted ? 'failed' : result.status;
+      updatedPage.sslError = result.status === 'active'
+        ? undefined
+        : retriesExhausted
+          ? `${result.message} Retry otomatis dihentikan setelah ${SALES_COUNTER_SSL_MAX_RETRIES} percobaan. Pastikan DNS A atau wildcard mengarah ke IP VPS, lalu coba lagi secara manual.`
+          : result.message;
+      updatedPage.updated_at = new Date().toISOString();
+      appendAudit(updatedDb, {
+        actor: 'server',
+        action: 'PROVISION_SALES_COUNTER_SSL',
+        resource: pageId,
+        details: `${updatedPage.subdomain}.${updatedPage.domainSuffix}: ${updatedPage.sslStatus} (retry ${retryCount}/${SALES_COUNTER_SSL_MAX_RETRIES})`,
+      });
+      if (!writeDb(updatedDb)) console.error(`Failed to save SSL retry status for Sales Counter ${pageId}.`);
+    }
+  } catch (error) {
+    console.error('Sales Counter SSL retry worker failed:', error);
+  } finally {
+    isRetryingSalesCounterSsl = false;
   }
 }
 
@@ -460,8 +922,10 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
 </html>`;
 }
 
-function renderDynamicSitemap(db: any) {
-  const origin = getSiteOrigin(db.settings || {});
+function renderDynamicSitemap(db: any, hostname = '') {
+  const post = getSeoPageForHost(db.settings || {}, hostname);
+  const rootDomain = getSalesCounterRootDomain(hostname);
+  const origin = post ? getSeoPageOrigin(post) : rootDomain ? `https://${rootDomain}` : getSiteOrigin(db.settings || {});
   const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
     { path: '/', changefreq: 'daily', priority: '1.0' },
     { path: '/dealer-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
@@ -480,11 +944,45 @@ function renderDynamicSitemap(db: any) {
     priority: '0.8',
     lastmod: motor.updated_at || motor.created_at,
   }));
+  const seoPostPages = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
+    .filter((page: any) => page.sslStatus === 'active'
+      && page.seoRobots !== 'noindex, follow'
+      && page.subdomain
+      && (!rootDomain || getSeoPageDomainSuffix(page) === rootDomain))
+    .flatMap((page: any) => [
+      {
+        path: `${getSeoPageOrigin(page)}/`,
+        changefreq: 'weekly',
+        priority: '0.7',
+        lastmod: page.updated_at,
+        absolute: true,
+      },
+      ...getSeoLandingPosts(page)
+        .filter((post) => post.id !== page.id)
+        .map((post) => ({
+          path: `${getSeoPageOrigin(page)}${getSeoLandingPostPath(page, post)}`,
+          changefreq: 'weekly',
+          priority: '0.7',
+          lastmod: post.updated_at || page.updated_at,
+          absolute: true,
+        })),
+    ]);
+  const hostPostPages = post
+    ? getSeoLandingPosts(post)
+        .filter((seoPost) => seoPost.id !== post.id)
+        .map((seoPost) => ({
+          path: getSeoLandingPostPath(post, seoPost),
+          changefreq: 'weekly',
+          priority: '0.8',
+          lastmod: seoPost.updated_at || post.updated_at,
+        }))
+    : [];
   const today = new Date().toISOString().slice(0, 10);
-  const urls = [...staticPages, ...motorPages].map((page) => {
+  const urls = (post ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...hostPostPages, ...motorPages] : [...staticPages, ...motorPages, ...seoPostPages]).map((page: any) => {
     const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
     const lastmod = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : today;
-    return `  <url><loc>${escapeHtmlAttribute(`${origin}${page.path}`)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`;
+    const url = page.absolute ? page.path : `${origin}${page.path}`;
+    return `  <url><loc>${escapeHtmlAttribute(url)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`;
   });
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
 }
@@ -716,14 +1214,48 @@ function ensureAdminUsers(db: any) {
   return db.adminUsers;
 }
 
-function publicAdminUser(user: any) {
+function publicAdminUser(user: any, db: any = readDb()) {
+  const assignedSeoPages = Array.isArray((db.settings || {}).seoPages)
+    ? (db.settings || {}).seoPages.filter((page: any) => page.adminUserId === user.id)
+    : [];
+  const assignedSeoPage = assignedSeoPages[0]
+    ? {
+        id: assignedSeoPages[0].id,
+        subdomain: assignedSeoPages[0].subdomain,
+        title: assignedSeoPages[0].title || assignedSeoPages[0].seoTitle || assignedSeoPages[0].subdomain,
+      }
+    : null;
+
   return {
     id: user.id,
     username: user.username,
     role: user.role,
     created_at: user.created_at,
     updated_at: user.updated_at,
+    assignedSeoPageId: assignedSeoPage?.id || null,
+    assignedSeoPage,
+    assignedSeoPages: assignedSeoPages.map((page: any) => ({
+      id: page.id,
+      subdomain: page.subdomain,
+      title: page.title || page.seoTitle || page.subdomain,
+    })),
   };
+}
+
+function syncAdminPostAssignment(db: any, adminUserId: string, nextSeoPageId: string | null | undefined) {
+  const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+  if (!adminUserId) return;
+
+  seoPages.forEach((page: any) => {
+    if (page.adminUserId === adminUserId && page.id !== nextSeoPageId) {
+      delete page.adminUserId;
+    }
+  });
+
+  if (nextSeoPageId) {
+    const targetPage = seoPages.find((page: any) => page.id === nextSeoPageId);
+    if (targetPage) targetPage.adminUserId = adminUserId;
+  }
 }
 
 function getSession(req: express.Request) {
@@ -741,6 +1273,21 @@ function appendAudit(db: any, entry: Record<string, unknown>) {
 function normalizeMotorImages(value: unknown, fallback: unknown = []): string[] {
   const source = Array.isArray(value) ? value : Array.isArray(fallback) ? fallback : [fallback];
   return source.map((image: unknown) => String(image || '').trim()).filter(Boolean);
+}
+
+function isSharedCatalogImageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const filename = url.pathname.slice('/uploads/'.length);
+    return url.origin === 'https://kreditmotorhonda.tech'
+      && url.pathname.startsWith('/uploads/')
+      && Boolean(filename)
+      && path.basename(filename) === filename
+      && !url.search
+      && !url.hash;
+  } catch {
+    return false;
+  }
 }
 
 const imageReferenceFields = new Set(['image', 'images', 'heroImage', 'heroImages', 'logo', 'avatar', 'photo', 'banner', 'thumbnail']);
@@ -793,8 +1340,38 @@ async function saveExternalImage(url: string): Promise<string> {
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+  const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
+  if (hostPost && session.role !== 'Super Admin') {
+    if (session.id !== hostPost.adminUserId) {
+      return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
+    }
+    const adminPath = req.originalUrl.split('?')[0].replace(/^\/api/, '');
+    const canSaveAssignedPostSettings = req.method === 'PUT' && adminPath === '/settings';
+    const isSalesCounterPage = hostPost.siteType === 'sales-counter';
+    const canReadAssignedSalesLeads = isSalesCounterPage && req.method === 'GET' && adminPath === '/interests';
+    const canManageAssignedSalesLead = isSalesCounterPage && (
+      req.method === 'PATCH' && /^\/interests\/[^/]+\/status$/.test(adminPath)
+      || req.method === 'DELETE' && /^\/interests\/[^/]+$/.test(adminPath)
+    );
+    if (!['/admin/me', '/admin/logout'].includes(adminPath)
+      && !canSaveAssignedPostSettings
+      && !canReadAssignedSalesLeads
+      && !canManageAssignedSalesLead) {
+      return res.status(403).json({ error: 'Admin post hanya dapat mengakses pengaturan post yang ditugaskan.' });
+    }
+  }
   (req as any).adminSession = session;
   next();
+}
+
+function requireSalesCounterAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+  if (session.role !== 'Super Admin' || !getSalesCounterRootDomain(req.hostname)) {
+    return res.status(403).json({ error: 'Website Sales Counter hanya dapat dibuat oleh Super Admin di domain utama yang didukung.' });
+  }
+  (req as any).adminSession = session;
+  return next();
 }
 
 async function startServer() {
@@ -840,6 +1417,15 @@ async function startServer() {
   });
 
   app.use((req, res, next) => {
+    const managedHost = getManagedSubdomainHost(req.hostname);
+    if (!managedHost) return next();
+    const page = getSeoPageForHost(readDb().settings || {}, req.hostname);
+    if (page) return next();
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+    return res.status(404).type('text').send('Sales Counter tidak ditemukan.');
+  });
+
+  app.use((req, res, next) => {
     if (!CATALOG_API_URL || !isSharedCatalogRequest(req)) return next();
     if (!CATALOG_SERVICE_TOKEN) {
       return res.status(503).json({ error: 'Shared catalog proxy belum dikonfigurasi.' });
@@ -854,13 +1440,6 @@ async function startServer() {
     if (needsAdmin && !session) {
       return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
     }
-    if (needsAdmin) {
-      return res.status(403).json({
-        error: 'Katalog dan price list dikelola dari satu panel pusat.',
-        adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
-      });
-    }
-
     let target: URL;
     try {
       target = new URL(req.originalUrl, CATALOG_API_URL);
@@ -870,11 +1449,19 @@ async function startServer() {
 
     const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
     delete headers['x-admin-token'];
+    delete headers['x-catalog-actor'];
     delete headers.connection;
     delete headers['proxy-connection'];
     delete headers['transfer-encoding'];
+    delete headers['content-length'];
+    const jsonBody = req.body === undefined ? undefined : Buffer.from(JSON.stringify(req.body));
+    if (jsonBody) {
+      headers['content-length'] = String(jsonBody.length);
+      if (session) headers['x-catalog-actor'] = session.username;
+    }
 
-    const upstream = httpRequest(target, { method: req.method, headers }, (upstreamResponse) => {
+    const request = target.protocol === 'https:' ? httpsRequest : httpRequest;
+    const upstream = request(target, { method: req.method, headers }, (upstreamResponse) => {
       res.statusCode = upstreamResponse.statusCode || 502;
       for (const [name, value] of Object.entries(upstreamResponse.headers)) {
         if (value && !['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) {
@@ -901,7 +1488,8 @@ async function startServer() {
       else res.destroy(error);
     });
     req.on('aborted', () => upstream.destroy());
-    req.pipe(upstream);
+    if (jsonBody) upstream.end(jsonBody);
+    else req.pipe(upstream);
   });
 
   app.use(express.json({ limit: '100mb' }));
@@ -915,7 +1503,7 @@ async function startServer() {
       if (req.method === 'GET' || req.method === 'HEAD') return next();
       const db = readDb();
       appendAudit(db, {
-        actor: 'shared-catalog-proxy',
+        actor: req.header('x-catalog-actor') || 'shared-catalog-proxy',
         action: `${req.method} ${fullPath}`,
         resource: fullPath,
         details: `Perubahan katalog dari ${req.header('x-forwarded-host') || 'situs lain'}`,
@@ -926,7 +1514,23 @@ async function startServer() {
 
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/search' || req.path === '/analytics/whatsapp' || req.path === '/owner-dashboard/analytics');
+    const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
+    if (hostPost && req.method !== 'GET' && !isPublicWrite) {
+      const session = getSession(req);
+      if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+      if (session.role !== 'Super Admin' && session.id !== hostPost.adminUserId) {
+        return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
+      }
+      const allowedPostWrite = req.method === 'PUT' && req.path === '/settings'
+        || req.method === 'POST' && (req.path === '/admin/logout' || req.path === '/upload')
+        || ['POST', 'PUT', 'DELETE'].includes(req.method) && /^\/promos(?:\/[^/]+)?$/.test(req.path)
+        || hostPost.siteType === 'sales-counter' && req.method === 'PATCH' && /^\/interests\/[^/]+\/status$/.test(req.path)
+        || hostPost.siteType === 'sales-counter' && req.method === 'DELETE' && /^\/interests\/[^/]+$/.test(req.path);
+      if (!allowedPostWrite) return res.status(403).json({ error: 'Admin post hanya dapat mengubah promo dan pengaturan situs post ini.' });
+      (req as any).adminSession = session;
+      return next();
+    }
     if (req.method === 'GET' || isPublicWrite) return next();
     return requireAdmin(req, res, () => {
       if (CATALOG_API_URL) {
@@ -1010,6 +1614,7 @@ async function startServer() {
   app.get('/api/catalog/status', (_req, res) => {
     res.json({
       owner: !CATALOG_API_URL,
+      canManageCatalog: !CATALOG_API_URL || Boolean(CATALOG_SERVICE_TOKEN),
       adminUrl: process.env.CATALOG_ADMIN_URL || 'https://kreditmotorhonda.tech/admin',
     });
   });
@@ -1017,7 +1622,12 @@ async function startServer() {
   // Settings
   app.get('/api/settings', (req, res) => {
     const db = readCatalogDb();
-    res.json(db.settings || {});
+    const settings = db.settings || {};
+    const page = getSeoPageForHost(settings, req.hostname);
+    if (page) return res.json(publicSettings(getSettingsForSeoPage(settings, page)));
+    const session = getSession(req);
+    if (req.hostname === 'kreditmotorhonda.tech' && session?.role === 'Super Admin') return res.json(settings);
+    return res.json(publicSettings(settings));
   });
 
   app.get('/api/fif-price-list', (req, res) => {
@@ -1060,21 +1670,63 @@ async function startServer() {
 
   app.put('/api/settings', (req, res) => {
     const db = readDb();
-    const settingsUpdate = { ...req.body };
-    if (Object.prototype.hasOwnProperty.call(settingsUpdate, 'phone')) {
-      if (typeof settingsUpdate.phone !== 'string' || !isValidWhatsAppNumber(settingsUpdate.phone)) {
-        return res.status(400).json({ error: 'Nomor WhatsApp tidak valid. Masukkan 8–15 digit.' });
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const settingsUpdates = { ...(req.body || {}) };
+    if (hostPage) {
+      const session = (req as any).adminSession || getSession(req);
+      if (!session || (session.role !== 'Super Admin' && session.id !== hostPage.adminUserId)) {
+        return res.status(403).json({ error: 'Akun ini tidak ditugaskan ke post subdomain tersebut.' });
       }
-      settingsUpdate.phone = normalizeWhatsAppNumber(settingsUpdate.phone, '');
+      if (session.role !== 'Super Admin') {
+        delete settingsUpdates.seoTitle;
+        delete settingsUpdates.seoDescription;
+        delete settingsUpdates.seoKeywords;
+        delete settingsUpdates.seoRobots;
+      }
+    }
+    if (!hostPage && Object.prototype.hasOwnProperty.call(settingsUpdates, 'seoPages')) {
+      const session = (req as any).adminSession || getSession(req);
+      if (req.hostname !== 'kreditmotorhonda.tech' || session?.role !== 'Super Admin') {
+        delete settingsUpdates.seoPages;
+        delete settingsUpdates.ownerDashboard;
+        if (Object.keys(settingsUpdates).length === 0) {
+          return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengelola post subdomain.' });
+        }
+      }
     }
     let hasExternalImage = false;
-    mapImageReferences(settingsUpdate, (url) => {
+    mapImageReferences(settingsUpdates, (url) => {
       if (/^https?:\/\//i.test(url)) hasExternalImage = true;
       return url;
     });
     if (hasExternalImage) return res.status(400).json({ error: 'Unggah gambar melalui panel admin agar tersimpan di server.' });
-    db.settings = { ...db.settings, ...settingsUpdate, updated_at: new Date().toISOString() };
-    writeDb(db);
+    if (hostPage) {
+      const siteSettingFields = [
+        'name', 'tagline', 'phone', 'address', 'email', 'workingHours', 'logo', 'heroImage', 'heroImages',
+        'heroTitle', 'heroMainTitle', 'heroTitleHighlight', 'heroSubtitle', 'heroBadge', 'heroCaption', 'footerText',
+        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'customization',
+      ];
+      const siteSettings = { ...(hostPage.siteSettings || {}) };
+      for (const field of siteSettingFields) {
+        if (Object.prototype.hasOwnProperty.call(settingsUpdates, field)) siteSettings[field] = settingsUpdates[field];
+      }
+      const nextPage = {
+        ...hostPage,
+        siteSettings,
+        ...(typeof settingsUpdates.seoTitle === 'string' ? { seoTitle: settingsUpdates.seoTitle.trim() } : {}),
+        ...(typeof settingsUpdates.seoDescription === 'string' ? { seoDescription: settingsUpdates.seoDescription.trim() } : {}),
+        ...(typeof settingsUpdates.seoKeywords === 'string' ? { seoKeywords: settingsUpdates.seoKeywords.trim() } : {}),
+        ...(typeof settingsUpdates.seoRobots === 'string' ? { seoRobots: settingsUpdates.seoRobots } : {}),
+        updated_at: new Date().toISOString(),
+      };
+      db.settings.seoPages = db.settings.seoPages.map((page: any) => page.id === hostPage.id ? nextPage : page);
+      if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan pengaturan post.' });
+      return res.json(publicSettings(getSettingsForSeoPage(db.settings, nextPage)));
+    }
+    db.settings = { ...db.settings, ...settingsUpdates, updated_at: new Date().toISOString() };
+    if (!writeDb(db)) {
+      return res.status(500).json({ error: 'Gagal menyimpan pengaturan dealer. Periksa ruang penyimpanan dan izin database server.' });
+    }
     res.json(db.settings);
   });
 
@@ -1274,7 +1926,7 @@ async function startServer() {
   app.post('/api/motors', (req, res) => {
     const db = readDb();
     const images = normalizeMotorImages(req.body.images, [req.body.image]);
-    if (images.some((image) => /^https?:\/\//i.test(image))) {
+    if (images.some((image) => /^https?:\/\//i.test(image) && !isSharedCatalogImageUrl(image))) {
       return res.status(400).json({ error: 'Unggah gambar motor melalui panel admin agar tersimpan di server.' });
     }
     if (images.length > MAX_MOTOR_IMAGES) {
@@ -1313,8 +1965,8 @@ async function startServer() {
     }
     const existingImages = Array.isArray(db.motors[index].images) ? db.motors[index].images : [db.motors[index].image];
     const images = normalizeMotorImages(req.body.images, existingImages);
-    if (images.some((image) => /^https?:\/\//i.test(image))) {
-      return res.status(400).json({ error: 'Pindahkan gambar lama ke penyimpanan server atau unggah ulang sebelum menyimpan.' });
+    if (images.some((image) => /^https?:\/\//i.test(image) && !isSharedCatalogImageUrl(image))) {
+      return res.status(400).json({ error: 'Unggah gambar motor melalui panel admin agar tersimpan di server.' });
     }
     if (images.length > MAX_MOTOR_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} foto per motor` });
@@ -1349,11 +2001,13 @@ async function startServer() {
   // Promos
   app.get('/api/promos', (req, res) => {
     const db = readDb();
-    res.json(db.promos || []);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    res.json(hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : db.promos || []);
   });
 
   app.post('/api/promos', (req, res) => {
     const db = readDb();
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const images = Array.isArray(req.body.images)
       ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
       : [];
@@ -1375,17 +2029,20 @@ async function startServer() {
       promoTemplate: req.body.promoTemplate || 'classic',
       created_at: new Date().toISOString()
     };
-    db.promos = [newPromo, ...(db.promos || [])];
+    if (hostPage) hostPage.promos = [newPromo, ...(Array.isArray(hostPage.promos) ? hostPage.promos : [])];
+    else db.promos = [newPromo, ...(db.promos || [])];
     writeDb(db);
     res.status(201).json(newPromo);
   });
 
   app.put('/api/promos/:id', (req, res) => {
     const db = readDb();
-    const index = (db.promos || []).findIndex((p: any) => p.id === req.params.id);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const promos = hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : (db.promos || []);
+    const index = promos.findIndex((p: any) => p.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Promo not found' });
     const images = req.body.images === undefined
-      ? db.promos[index].images || []
+      ? promos[index].images || []
       : Array.isArray(req.body.images)
         ? req.body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => image.trim())
         : [];
@@ -1395,14 +2052,18 @@ async function startServer() {
     if (images.length > MAX_PROMO_IMAGES) {
       return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo` });
     }
-    db.promos[index] = { ...db.promos[index], ...req.body, images };
+    promos[index] = { ...promos[index], ...req.body, images };
+    if (hostPage) hostPage.promos = promos;
+    else db.promos = promos;
     writeDb(db);
-    res.json(db.promos[index]);
+    res.json(promos[index]);
   });
 
   app.delete('/api/promos/:id', (req, res) => {
     const db = readDb();
-    db.promos = (db.promos || []).filter((p: any) => p.id !== req.params.id);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    if (hostPage) hostPage.promos = (Array.isArray(hostPage.promos) ? hostPage.promos : []).filter((p: any) => p.id !== req.params.id);
+    else db.promos = (db.promos || []).filter((p: any) => p.id !== req.params.id);
     writeDb(db);
     res.json({ success: true });
   });
@@ -1489,15 +2150,22 @@ async function startServer() {
   });
 
   // Leads / Interests (Peminat & Konsultasi)
-  app.get('/api/interests', (req, res) => {
+  app.get('/api/interests', requireAdmin, (req, res) => {
     const db = readDb();
-    res.json(db.interests || []);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const interests = Array.isArray(db.interests) ? db.interests : [];
+    res.json(hostPage?.siteType === 'sales-counter'
+      ? interests.filter((lead: any) => lead.salesCounterSiteId === hostPage.id)
+      : interests);
   });
 
   app.post('/api/interests', (req, res) => {
     const db = readDb();
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const newLead = {
       id: `lead-${Date.now()}`,
+      host: normalizeAnalyticsHost(req.hostname),
+      ...(hostPage?.siteType === 'sales-counter' ? { salesCounterSiteId: hostPage.id } : {}),
       motor_id: req.body.motor_id || '',
       motor_name: req.body.motor_name || 'Umum',
       customer_name: req.body.customer_name || 'Calon Pembeli',
@@ -1521,18 +2189,22 @@ async function startServer() {
     res.status(201).json(newLead);
   });
 
-  app.patch('/api/interests/:id/status', (req, res) => {
+  app.patch('/api/interests/:id/status', requireAdmin, (req, res) => {
     const db = readDb();
-    const index = (db.interests || []).findIndex((i: any) => i.id === req.params.id);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const index = (db.interests || []).findIndex((lead: any) => lead.id === req.params.id
+      && (hostPage?.siteType !== 'sales-counter' || lead.salesCounterSiteId === hostPage.id));
     if (index === -1) return res.status(404).json({ error: 'Lead not found' });
     db.interests[index].status = req.body.status || 'Dihubungi';
     writeDb(db);
     res.json(db.interests[index]);
   });
 
-  app.delete('/api/interests/:id', (req, res) => {
+  app.delete('/api/interests/:id', requireAdmin, (req, res) => {
     const db = readDb();
-    db.interests = (db.interests || []).filter((i: any) => i.id !== req.params.id);
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    db.interests = (db.interests || []).filter((lead: any) => lead.id !== req.params.id
+      || (hostPage?.siteType === 'sales-counter' && lead.salesCounterSiteId !== hostPage.id));
     writeDb(db);
     res.json({ success: true });
   });
@@ -1541,24 +2213,333 @@ async function startServer() {
   app.post('/api/analytics/visit', (req, res) => {
     const sessionId = String(req.body?.sessionId || '');
     const pagePath = String(req.body?.path || '/');
+    const host = normalizeAnalyticsHost(req.hostname);
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !pagePath.startsWith('/') || pagePath.length > 200 || pagePath.startsWith('/admin')) {
       return res.status(400).json({ error: 'Data kunjungan tidak valid.' });
     }
 
     const db = readDb();
     db.visitorLogs = Array.isArray(db.visitorLogs) ? db.visitorLogs : [];
-    const existing = db.visitorLogs.find((entry: any) => entry.sessionId === sessionId);
+    const existing = db.visitorLogs.find((entry: any) => entry.sessionId === sessionId && (entry.host || 'kreditmotorhonda.tech') === host);
     if (existing) return res.status(200).json({ recorded: false });
 
     const visit = {
       id: `visit-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
       sessionId,
+      host,
       timestamp: new Date().toISOString(),
       path: pagePath,
     };
     db.visitorLogs.push(visit);
     if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan log pengunjung.' });
     return res.status(201).json({ recorded: true });
+  });
+
+  app.post('/api/analytics/search', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const eventId = String(req.body?.eventId || '');
+    const keyword = String(req.body?.keyword ?? req.body?.query ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ');
+    const normalizedKeyword = normalizeSearchKeyword(keyword);
+    const host = normalizeAnalyticsHost(req.hostname);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || (eventId && !/^[a-zA-Z0-9_-]{8,100}$/.test(eventId)) || keyword.length < 2 || keyword.length > 100 || /[\u0000-\u001f]/.test(keyword)) {
+      return res.status(400).json({ error: 'Kata kunci pencarian tidak valid.' });
+    }
+
+    const db = readDb();
+    db.searchLogs = Array.isArray(db.searchLogs) ? db.searchLogs : [];
+    const existing = db.searchLogs.find((entry: any) =>
+      normalizeAnalyticsHost(entry.host || 'kreditmotorhonda.tech') === host
+      && (eventId
+        ? entry.sessionId === sessionId && entry.eventId === eventId
+        : entry.sessionId === sessionId && normalizeSearchKeyword(entry.keyword) === normalizedKeyword)
+    );
+    if (existing) return res.status(200).json({ recorded: false });
+
+    db.searchLogs.push({
+      id: `search-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      ...(eventId ? { eventId } : {}),
+      sessionId,
+      host,
+      timestamp: new Date().toISOString(),
+      keyword,
+    });
+    if (db.searchLogs.length > 20_000) db.searchLogs.splice(0, db.searchLogs.length - 20_000);
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan kata kunci pencarian.' });
+    return res.status(201).json({ recorded: true });
+  });
+
+  app.post('/api/analytics/whatsapp', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const eventId = String(req.body?.eventId || '');
+    const pagePath = String(req.body?.path || '/');
+    const menu = String(req.body?.menu || '').trim().replace(/[\u0000-\u001f]/g, ' ');
+    const registerSalesCounterLead = req.body?.registerSalesCounterLead === true;
+    const host = normalizeAnalyticsHost(req.hostname);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId)
+      || (eventId && !/^[a-zA-Z0-9_-]{8,100}$/.test(eventId))
+      || !pagePath.startsWith('/') || pagePath.length > 200
+      || pagePath.startsWith('/admin') || pagePath.startsWith('/owner-dashboard')
+      || !menu || menu.length > 120
+      || (registerSalesCounterLead && !eventId)) {
+      return res.status(400).json({ error: 'Data klik WhatsApp tidak valid.' });
+    }
+
+    const db = readDb();
+    db.whatsappLogs = Array.isArray(db.whatsappLogs) ? db.whatsappLogs : [];
+    if (eventId && db.whatsappLogs.some((entry: any) => entry.eventId === eventId && entry.sessionId === sessionId)) {
+      return res.status(200).json({ recorded: false });
+    }
+
+    db.whatsappLogs.push({
+      id: `whatsapp-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      eventId,
+      sessionId,
+      host,
+      timestamp: new Date().toISOString(),
+      path: pagePath,
+      menu,
+    });
+    const hostPage = registerSalesCounterLead ? getSeoPageForHost(db.settings || {}, req.hostname) : undefined;
+    if (hostPage?.siteType === 'sales-counter') {
+      const createdAt = new Date().toISOString();
+      const lead = {
+        id: `lead-whatsapp-${eventId}`,
+        salesCounterSiteId: hostPage.id,
+        host,
+        motor_name: 'Kontak WhatsApp',
+        customer_name: 'Peminat via WhatsApp',
+        phone: '',
+        note: `Menghubungi nomor Sales Counter dari: ${menu}. Nama dan nomor pengunjung belum tersedia.`,
+        source: 'whatsapp-click',
+        status: 'Baru',
+        created_at: createdAt,
+      };
+      db.interests = [lead, ...(Array.isArray(db.interests) ? db.interests : [])];
+    }
+    if (db.whatsappLogs.length > 20_000) db.whatsappLogs.splice(0, db.whatsappLogs.length - 20_000);
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan klik WhatsApp.' });
+    return res.status(201).json({ recorded: true });
+  });
+
+  app.get('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    }
+    const db = readDb();
+    const config = db.settings?.ownerDashboard || {};
+    const token = String(config.token || '');
+    return res.json({
+      selectedHosts: Array.isArray(config.hosts) ? config.hosts : [],
+      dashboardUrl: token ? `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}` : '',
+    });
+  });
+
+  app.put('/api/admin/owner-dashboard', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (req.hostname !== 'kreditmotorhonda.tech' || session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin di domain utama yang dapat mengatur dashboard owner.' });
+    }
+
+    const db = readDb();
+    const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const allowedHosts = new Set([
+      'kreditmotorhonda.tech',
+      ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
+      ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech`),
+    ]);
+    const requestedHosts = Array.isArray(req.body?.hosts) ? req.body.hosts : [];
+    const hosts = [...new Set(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
+      .filter((host) => allowedHosts.has(host));
+    if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
+
+    const token = String(db.settings?.ownerDashboard?.token || crypto.randomBytes(32).toString('base64url'));
+    db.settings = { ...db.settings, ownerDashboard: { token, hosts }, updated_at: new Date().toISOString() };
+    appendAudit(db, { actor: session.username, action: 'UPDATE_OWNER_DASHBOARD', resource: 'owner-dashboard', details: `Website owner: ${hosts.join(', ')}` });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan konfigurasi dashboard owner.' });
+
+    return res.json({
+      selectedHosts: hosts,
+      dashboardUrl: `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}`,
+    });
+  });
+
+  app.post('/api/owner-dashboard/analytics', async (req, res) => {
+    const db = readDb();
+    const config = db.settings?.ownerDashboard || {};
+    const providedToken = Buffer.from(String(req.body?.key || ''));
+    const expectedToken = Buffer.from(String(config.token || ''));
+    if (!expectedToken.length || providedToken.length !== expectedToken.length || !crypto.timingSafeEqual(providedToken, expectedToken)) {
+      return res.status(404).json({ error: 'Tautan dashboard tidak valid atau sudah dinonaktifkan.' });
+    }
+
+    const validHosts = new Set<string>(Array.isArray(config.hosts) ? config.hosts.map(String) : []);
+    const validStart = isValidDateKey(req.body?.startDate) ? req.body.startDate : '';
+    const validEnd = isValidDateKey(req.body?.endDate) ? req.body.endDate : '';
+    let startDate = validStart;
+    let endDate = validEnd;
+    if (startDate && endDate && startDate > endDate) [startDate, endDate] = [endDate, startDate];
+
+    const databaseSources = new Map<string, string>();
+    for (const host of validHosts) {
+      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
+      if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, OWNER_ANALYTICS_SITE_DB_FILES[host] ? host : 'kreditmotorhonda.tech');
+    }
+    const databaseContents = new Map<string, any>();
+    const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
+    const allSearchLogs: Array<{ timestamp: string; keyword?: string; host?: string; sessionId?: string }> = [];
+    const allWhatsappLogs: Array<{ timestamp: string; path?: string; menu?: string; host?: string; sessionId?: string }> = [];
+    for (const [sourceFile, legacyHost] of databaseSources) {
+      try {
+        const sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
+        databaseContents.set(sourceFile, sourceDb);
+        const sourceLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
+        const sourceSearchLogs = Array.isArray(sourceDb.searchLogs) ? sourceDb.searchLogs : [];
+        const sourceWhatsappLogs = Array.isArray(sourceDb.whatsappLogs) ? sourceDb.whatsappLogs : [];
+        allLogs.push(...sourceLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+        allSearchLogs.push(...sourceSearchLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+        allWhatsappLogs.push(...sourceWhatsappLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') console.error(`Owner analytics could not read ${sourceFile}:`, error.message);
+      }
+    }
+    const siteAdmins = [...validHosts].map((host) => {
+      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
+      const sourceDb = databaseContents.get(sourceFile) || {};
+      const assignedSeoPage = (Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : [])
+        .find((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech` === host);
+      const hasSeoPost = assignedSeoPage && getSeoLandingPosts(assignedSeoPage).length > 0;
+      const admins = (hasSeoPost ? (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : []) : [])
+        .filter((user: any) => user.role !== 'Super Admin' && user.id === assignedSeoPage.adminUserId)
+        .map((user: any) => ({ username: String(user.username || ''), role: String(user.role || 'Admin') }))
+        .filter((user: any) => user.username);
+      return { host, dataAvailable: databaseContents.has(sourceFile), admins };
+    });
+    const allSiteLeads = [...databaseSources.entries()].flatMap(([sourceFile, legacyHost]) => {
+      const sourceDb = databaseContents.get(sourceFile) || {};
+      const interests = Array.isArray(sourceDb.interests) ? sourceDb.interests : [];
+      return interests.map((lead: any) => ({
+        id: String(lead.id || ''),
+        host: normalizeAnalyticsHost(lead.host || legacyHost),
+        customerName: String(lead.customer_name || 'Calon Pembeli'),
+        motorName: String(lead.motor_name || 'Umum'),
+        status: String(lead.status || 'Baru'),
+        createdAt: String(lead.created_at || ''),
+      })).filter((lead: any) => lead.id && validHosts.has(lead.host));
+    }).sort((left: any, right: any) => right.createdAt.localeCompare(left.createdAt));
+    const filteredSiteLeads = allSiteLeads.filter((lead: any) => {
+      if (!startDate && !endDate) return true;
+      if (!Number.isFinite(Date.parse(lead.createdAt))) return false;
+      const date = getJakartaDateParts(lead.createdAt).date;
+      return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+    });
+    const siteLeads = req.body?.includeAllLeads === true ? filteredSiteLeads : filteredSiteLeads.slice(0, 20);
+    const logs = allLogs
+      .filter((log) => validHosts.has(log.host || ''))
+      .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const countsByHost = new Map<string, number>();
+    const countsByDate = new Map<string, number>();
+    const countsByPage = new Map<string, number>();
+    logs.forEach((log) => {
+      countsByHost.set(log.host, (countsByHost.get(log.host) || 0) + 1);
+      countsByDate.set(log.date, (countsByDate.get(log.date) || 0) + 1);
+      const pageKey = `${log.host}${log.path || '/'}`;
+      countsByPage.set(pageKey, (countsByPage.get(pageKey) || 0) + 1);
+    });
+
+    const recordedDates = [...countsByDate.keys()].sort();
+    const rangeStart = startDate || recordedDates[0];
+    const rangeEnd = endDate || recordedDates.at(-1);
+    const dateKeys = rangeStart && rangeEnd ? buildDateKeys(rangeStart, rangeEnd) : [];
+    const dailyVisitors = dateKeys.map((date) => ({
+      date,
+      label: new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(`${date}T12:00:00+07:00`)),
+      visits: countsByDate.get(date) || 0,
+    }));
+    const sites = [...validHosts].map((host) => ({ host, visits: countsByHost.get(host) || 0 }))
+      .sort((left, right) => right.visits - left.visits);
+    const allTopPages = [...countsByPage.entries()]
+      .map(([page, visits]) => ({ page, visits }))
+      .sort((left, right) => right.visits - left.visits);
+    const topPages = req.body?.includeAllPages === true ? allTopPages : allTopPages.slice(0, 10);
+    const filteredSearchLogs = allSearchLogs
+      .filter((log) => validHosts.has(log.host || ''))
+      .map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const searchTermsByKeyword = new Map<string, { keyword: string; searches: number; sessions: Set<string> }>();
+    filteredSearchLogs.forEach((log) => {
+      const normalizedKeyword = normalizeSearchKeyword(log.keyword);
+      if (!normalizedKeyword) return;
+      const current = searchTermsByKeyword.get(normalizedKeyword) || {
+        keyword: String(log.keyword).trim(),
+        searches: 0,
+        sessions: new Set<string>(),
+      };
+      current.searches += 1;
+      if (log.sessionId) current.sessions.add(log.sessionId);
+      searchTermsByKeyword.set(normalizedKeyword, current);
+    });
+    const allSearchTerms = [...searchTermsByKeyword.values()]
+      .map(({ keyword, searches, sessions }) => ({ keyword, searches, uniqueVisitors: sessions.size }))
+      .sort((left, right) => right.searches - left.searches || left.keyword.localeCompare(right.keyword, 'id'));
+    const searchTerms = req.body?.includeAllSearchTerms === true ? allSearchTerms : allSearchTerms.slice(0, 50);
+    const filteredWhatsappLogs = allWhatsappLogs
+      .filter((log) => validHosts.has(log.host || ''))
+      .map((log) => ({ ...log, ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const whatsappClicksByMenu = new Map<string, { host: string; path: string; menu: string; clicks: number; sessions: Set<string> }>();
+    filteredWhatsappLogs.forEach((log) => {
+      const host = normalizeAnalyticsHost(log.host);
+      const path = String(log.path || '/');
+      const menu = String(log.menu || 'WhatsApp');
+      const key = `${host}\u0000${path}\u0000${normalizeSearchKeyword(menu)}`;
+      const current = whatsappClicksByMenu.get(key) || { host, path, menu, clicks: 0, sessions: new Set<string>() };
+      current.clicks += 1;
+      if (log.sessionId) current.sessions.add(log.sessionId);
+      whatsappClicksByMenu.set(key, current);
+    });
+    const whatsappClicks = [...whatsappClicksByMenu.values()]
+      .map(({ sessions, ...item }) => ({ ...item, uniqueVisitors: sessions.size }))
+      .sort((left, right) => right.clicks - left.clicks || left.host.localeCompare(right.host, 'en'))
+      .slice(0, 100);
+    let googleSearchConsole;
+    try {
+      googleSearchConsole = await getGoogleSearchConsoleKeywords(startDate || undefined, endDate || undefined);
+    } catch (error: any) {
+      googleSearchConsole = {
+        configured: true,
+        rows: [],
+        sites: [],
+        errors: [String(error?.message || 'Gagal mengambil data Google Search Console.')],
+      };
+    }
+
+    return res.json({
+      totalVisits: logs.length,
+      siteCount: validHosts.size,
+      sites,
+      siteAdmins,
+      siteLeads,
+      siteLeadsTotal: filteredSiteLeads.length,
+      dailyVisitors,
+      topPages,
+      topPagesTotal: allTopPages.length,
+      searchTerms,
+      searchTermsTotal: allSearchTerms.length,
+      googleSearchConsole,
+      whatsappClicks,
+      timeZone: 'Asia/Jakarta',
+    });
   });
 
   // Analytics & Stats
@@ -1676,7 +2657,9 @@ async function startServer() {
       const targetPath = path.join(UPLOADS_DIR, safeName);
       fs.writeFileSync(targetPath, buffer);
 
-      const fileUrl = `/uploads/${safeName}`;
+      const fileUrl = req.header('x-catalog-upload') === 'true'
+        ? `https://kreditmotorhonda.tech/uploads/${safeName}`
+        : `/uploads/${safeName}`;
       res.json({ url: fileUrl, filename: safeName, success: true });
     } catch (err: any) {
       console.error('Upload failed:', err);
@@ -1759,9 +2742,247 @@ async function startServer() {
     res.json((req as any).adminSession);
   });
 
+  app.post('/api/admin/seo-pages/:id/provision-ssl', requireAdmin, async (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    const page = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : []).find((item: any) => item.id === req.params.id);
+    if (!page) return res.status(404).json({ error: 'Post subdomain tidak ditemukan.' });
+    const requestRootDomain = getSalesCounterRootDomain(req.hostname);
+    const pageDomainSuffix = getSeoPageDomainSuffix(page);
+    if (session.role !== 'Super Admin' || requestRootDomain !== pageDomainSuffix) {
+      return res.status(403).json({ error: 'Super Admin harus membuka domain utama yang sesuai untuk mengaktifkan SSL website.' });
+    }
+
+    page.sslStatus = 'provisioning';
+    page.sslError = undefined;
+    if (page.siteType === 'sales-counter') page.sslAutoRetryCount = 0;
+    page.updated_at = new Date().toISOString();
+    writeDb(db);
+
+    let result: { status: 'pending' | 'active' | 'failed'; message: string };
+    try {
+      result = await provisionSeoPageSsl(page, db.settings || {});
+    } catch (error: any) {
+      result = { status: 'failed', message: String(error.message || 'Konfigurasi HTTPS gagal.').slice(0, 500) };
+    }
+
+    page.sslStatus = result.status;
+    page.sslError = result.status === 'active' ? undefined : result.message;
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: session.username,
+      action: 'PROVISION_SEO_POST_SSL',
+      resource: page.id,
+      details: `${page.subdomain}.${page.domainSuffix || 'kreditmotorhonda.tech'}: ${result.status}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Status SSL gagal disimpan.' });
+
+    return res.status(result.status === 'active' ? 200 : 202).json({
+      status: result.status,
+      message: result.message,
+      seoPages: db.settings.seoPages.map(publicSeoPage),
+    });
+  });
+
   app.get('/api/admin/users', requireAdmin, (req, res) => {
     const db = readDb();
-    res.json(ensureAdminUsers(db).map(publicAdminUser));
+    res.json(ensureAdminUsers(db).map((user: any) => publicAdminUser(user, db)));
+  });
+
+  app.get('/api/admin/sales-counters', requireSalesCounterAdmin, (req, res) => {
+    const db = readDb();
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const pages = Array.isArray(db.settings?.seoPages)
+      ? db.settings.seoPages.filter((page: any) => page.siteType === 'sales-counter'
+        && (page.domainSuffix || domainSuffix) === domainSuffix)
+      : [];
+    const users = ensureAdminUsers(db);
+    res.json(pages.map((page: any) => {
+      const user = users.find((item: any) => item.id === page.adminUserId);
+      return {
+        id: page.id,
+        subdomain: page.subdomain,
+        domainSuffix,
+        name: page.siteSettings?.name || page.title || page.subdomain,
+        phone: page.siteSettings?.phone || '',
+        seoTitle: page.seoTitle || '',
+        seoDescription: page.seoDescription || '',
+        seoKeywords: page.seoKeywords || '',
+        seoRobots: page.seoRobots || 'index, follow',
+        username: user?.username || '',
+        adminUserId: page.adminUserId,
+        sslStatus: page.sslStatus || 'pending',
+        sslError: page.sslError,
+        updated_at: page.updated_at,
+      };
+    }));
+  });
+
+  app.put('/api/admin/sales-counters/:id/seo', requireSalesCounterAdmin, (req, res) => {
+    const db = readDb();
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const page = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
+      .find((item: any) => item.id === req.params.id
+        && item.siteType === 'sales-counter'
+        && (item.domainSuffix || domainSuffix) === domainSuffix);
+    if (!page) return res.status(404).json({ error: 'Sales Counter tidak ditemukan pada domain ini.' });
+
+    page.seoTitle = String(req.body?.seoTitle || '').trim().slice(0, 70);
+    page.seoDescription = String(req.body?.seoDescription || '').trim().slice(0, 160);
+    page.seoKeywords = String(req.body?.seoKeywords || '').trim().slice(0, 300);
+    page.seoRobots = ['index, follow', 'noindex, follow', 'index, nofollow', 'noindex, nofollow']
+      .includes(req.body?.seoRobots) ? req.body.seoRobots : 'index, follow';
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: (req as any).adminSession.username,
+      action: 'UPDATE_SALES_COUNTER_SEO',
+      resource: page.id,
+      details: `Memperbarui SEO ${page.subdomain}.${domainSuffix}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'SEO Sales Counter gagal disimpan.' });
+    return res.json({
+      id: page.id,
+      seoTitle: page.seoTitle,
+      seoDescription: page.seoDescription,
+      seoKeywords: page.seoKeywords,
+      seoRobots: page.seoRobots,
+      updated_at: page.updated_at,
+    });
+  });
+
+  app.post('/api/admin/sales-counters', requireSalesCounterAdmin, async (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    const users = ensureAdminUsers(db);
+    const sourceSettings = db.settings || {};
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const name = String(req.body?.name || '').trim();
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    const phone = String(req.body?.phone || '').replace(/[^0-9]/g, '');
+    const subdomain = String(req.body?.subdomain || '').trim().toLocaleLowerCase('en-US');
+    const seoTitle = String(req.body?.seoTitle || '').trim().slice(0, 70);
+    const seoDescription = String(req.body?.seoDescription || '').trim().slice(0, 160);
+    const seoKeywords = String(req.body?.seoKeywords || '').trim().slice(0, 300);
+    const reservedSubdomains = new Set([...RESERVED_SEO_SUBDOMAINS, 'kreditmotorhonda', 'solusi', 'sales']);
+
+    if (!name || !username || password.length < 8 || phone.length < 8) {
+      return res.status(400).json({ error: 'Nama, username, nomor WhatsApp valid, dan password minimal 8 karakter wajib diisi.' });
+    }
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || reservedSubdomains.has(subdomain)) {
+      return res.status(400).json({ error: 'Subdomain tidak valid atau menggunakan nama yang dicadangkan.' });
+    }
+    if (users.some((user: any) => user.username.toLowerCase() === username.toLowerCase())) {
+      return res.status(409).json({ error: 'Username admin sudah digunakan.' });
+    }
+    if ((sourceSettings.seoPages || []).some((page: any) => page.subdomain === subdomain)) {
+      return res.status(409).json({ error: 'Subdomain sudah digunakan.' });
+    }
+
+    const now = new Date().toISOString();
+    const suffix = crypto.randomBytes(4).toString('hex');
+    const adminUserId = `admin-${Date.now()}-${suffix}`;
+    const pageId = `sales-site-${Date.now()}-${suffix}`;
+    const normalizedPhone = phone.startsWith('0') ? `62${phone.slice(1)}` : phone;
+    const page: any = {
+      id: pageId,
+      siteType: 'sales-counter',
+      subdomain,
+      domainSuffix,
+      adminUserId,
+      title: `${name} | Sales Counter Honda`,
+      content: '',
+      seoTitle: seoTitle || `${name} | Sales Counter Honda Bandung`.slice(0, 70),
+      seoDescription: seoDescription || `Hubungi ${name}, Sales Counter Honda Bandung. Konsultasi motor, harga, promo, dan simulasi kredit Honda melalui WhatsApp.`.slice(0, 160),
+      seoKeywords: seoKeywords || `${name}, sales Honda Bandung, kredit motor Honda Bandung`.slice(0, 300),
+      seoRobots: 'index, follow',
+      siteSettings: {
+        name,
+        tagline: 'Sales Counter Resmi Honda Bandung',
+        phone: normalizedPhone,
+        address: sourceSettings.address,
+        email: sourceSettings.email,
+        workingHours: sourceSettings.workingHours,
+        logo: sourceSettings.logo,
+        heroImage: sourceSettings.heroImage,
+        heroImages: sourceSettings.heroImages,
+        customization: sourceSettings.customization,
+        heroBadge: 'SALES COUNTER HONDA',
+        heroMainTitle: 'Konsultasi &',
+        heroTitleHighlight: 'Pengajuan Kredit Motor Honda',
+        heroSubtitle: `Konsultasikan kebutuhan motor Honda, harga, promo, dan simulasi kredit bersama ${name}.`,
+        footerText: `Hubungi ${name}, Sales Counter Honda Wijaya Abadi, untuk konsultasi motor dan pengajuan kredit.`,
+        websiteTemplate: 'wijaya-enerjik',
+      },
+      sslStatus: 'pending',
+      updated_at: now,
+    };
+    const newUser = {
+      id: adminUserId,
+      username,
+      passwordHash: hashPassword(password),
+      role: 'Staff Admin',
+      created_at: now,
+    };
+
+    db.adminUsers.push(newUser);
+    db.settings.seoPages = [page, ...(Array.isArray(sourceSettings.seoPages) ? sourceSettings.seoPages : [])];
+    appendAudit(db, { actor: session.username, action: 'CREATE_SALES_COUNTER', resource: pageId, details: `Membuat website Sales Counter ${name} (${subdomain})` });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Data Sales Counter gagal disimpan.' });
+
+    let sslResult: { status: 'pending' | 'active' | 'failed'; message: string };
+    try {
+      sslResult = await provisionSeoPageSsl(page, db.settings || {});
+    } catch (error: any) {
+      sslResult = { status: 'failed', message: String(error.message || 'Konfigurasi HTTPS gagal.').slice(0, 500) };
+    }
+    page.sslStatus = sslResult.status;
+    page.sslError = sslResult.status === 'active' ? undefined : sslResult.message;
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: session.username,
+      action: 'PROVISION_SALES_COUNTER_SSL',
+      resource: pageId,
+      details: `${subdomain}.kreditmotorhonda.id: ${sslResult.status}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Website dibuat, tetapi status SSL gagal disimpan.' });
+
+    return res.status(201).json({
+      id: page.id,
+      subdomain: page.subdomain,
+      domainSuffix,
+      name,
+      phone: normalizedPhone,
+      username,
+      adminUserId,
+      sslStatus: page.sslStatus,
+      sslError: page.sslError,
+      updated_at: page.updated_at,
+    });
+  });
+
+  app.delete('/api/admin/sales-counters/:id', requireSalesCounterAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    const pages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const page = pages.find((item: any) => item.id === req.params.id && item.siteType === 'sales-counter');
+    if (!page || page.domainSuffix !== getSalesCounterRootDomain(req.hostname)) {
+      return res.status(404).json({ error: 'Sales Counter tidak ditemukan pada domain ini.' });
+    }
+
+    db.settings.seoPages = pages.filter((item: any) => item.id !== page.id);
+    db.adminUsers = (Array.isArray(db.adminUsers) ? db.adminUsers : []).filter((user: any) => user.id !== page.adminUserId);
+    for (const [token, activeSession] of sessions) {
+      if (activeSession.id === page.adminUserId) sessions.delete(token);
+    }
+    appendAudit(db, {
+      actor: session.username,
+      action: 'DELETE_SALES_COUNTER',
+      resource: page.id,
+      details: `Menghapus ${page.subdomain}.${page.domainSuffix} dan akun admin terkait`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Sales Counter gagal dihapus.' });
+    return res.json({ success: true });
   });
 
   app.post('/api/admin/users', requireAdmin, (req, res) => {
@@ -1771,15 +2992,19 @@ async function startServer() {
     const users = ensureAdminUsers(db);
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '');
+    const assignedSeoPageId = req.body && Object.prototype.hasOwnProperty.call(req.body, 'assignedSeoPageId')
+      ? String(req.body.assignedSeoPageId || '').trim()
+      : '';
     if (!username || password.length < 8) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
     if (users.some((item: any) => item.username.toLowerCase() === username.toLowerCase())) {
       return res.status(409).json({ error: 'Username sudah digunakan' });
     }
     const newUser = { id: `admin-${Date.now()}`, username, passwordHash: hashPassword(password), role: req.body?.role === 'Super Admin' ? 'Super Admin' : 'Staff Admin', created_at: new Date().toISOString() };
     db.adminUsers.push(newUser);
+    syncAdminPostAssignment(db, newUser.id, assignedSeoPageId || null);
     appendAudit(db, { actor: session.username, action: 'CREATE_ADMIN', resource: newUser.id, details: `Membuat admin ${username}` });
     writeDb(db);
-    res.status(201).json(publicAdminUser(newUser));
+    res.status(201).json(publicAdminUser(newUser, db));
   });
 
   app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
@@ -1792,11 +3017,14 @@ async function startServer() {
     const current = users[index];
     const username = String(req.body?.username ?? current.username).trim();
     const password = req.body?.password ? String(req.body.password) : '';
+    const hasAssignmentUpdate = Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedSeoPageId');
+    const assignedSeoPageId = hasAssignmentUpdate ? String(req.body.assignedSeoPageId || '').trim() : undefined;
     if (!username || (password && password.length < 8)) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
     users[index] = { ...current, username, ...(password ? { passwordHash: hashPassword(password) } : {}), ...(session.role === 'Super Admin' && req.body?.role ? { role: req.body.role } : {}), updated_at: new Date().toISOString() };
+    if (hasAssignmentUpdate) syncAdminPostAssignment(db, users[index].id, assignedSeoPageId || null);
     appendAudit(db, { actor: session.username, action: 'UPDATE_ADMIN', resource: current.id, details: `Mengubah akun ${current.username}` });
     writeDb(db);
-    res.json(publicAdminUser(users[index]));
+    res.json(publicAdminUser(users[index], db));
   });
 
   app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
@@ -1807,6 +3035,7 @@ async function startServer() {
     if (users.length <= 1) return res.status(400).json({ error: 'Minimal harus ada satu admin' });
     const deleted = users.find((item: any) => item.id === req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Admin tidak ditemukan' });
+    syncAdminPostAssignment(db, deleted.id, null);
     db.adminUsers = users.filter((item: any) => item.id !== req.params.id);
     appendAudit(db, { actor: session.username, action: 'DELETE_ADMIN', resource: deleted.id, details: `Menghapus akun ${deleted.username}` });
     writeDb(db);
@@ -1974,9 +3203,19 @@ async function startServer() {
     }
   });
 
-  app.get('/sitemap.xml', (_req, res) => {
+  app.get('/sitemap.xml', (req, res) => {
     res.set('Cache-Control', 'no-cache');
-    res.type('application/xml').send(renderDynamicSitemap(readDb()));
+    res.type('application/xml').send(renderDynamicSitemap(readDb(), req.hostname));
+  });
+
+  app.get('/robots.txt', (req, res, next) => {
+    const db = readDb();
+    const page = getSeoPageForHost(db.settings || {}, req.hostname);
+    const rootDomain = getSalesCounterRootDomain(req.hostname);
+    if (!page && !rootDomain) return next();
+    const indexRule = !page || (page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow') ? 'Allow: /' : 'Disallow: /';
+    const sitemapOrigin = page ? getSeoPageOrigin(page) : `https://${rootDomain}`;
+    return res.type('text/plain').send(`User-agent: *\n${indexRule}\nDisallow: /admin\nDisallow: /api\n\nSitemap: ${sitemapOrigin}/sitemap.xml\n`);
   });
 
   app.get('/motor/:slug', (req, res) => {
@@ -1987,7 +3226,9 @@ async function startServer() {
     }
 
     res.set('Cache-Control', 'public, max-age=300');
-    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, db.settings || {}));
+    const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
+    const hostSettings = hostPage ? getSettingsForSeoPage(db.settings || {}, hostPage) : db.settings || {};
+    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, hostSettings));
   });
 
   // Vite middleware in dev or static files in production
@@ -2017,8 +3258,9 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
+        const initialData = await createSsrInitialData(db, req.hostname);
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, createPublicInitialData(db)));
+        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, initialData, req.hostname));
       } catch (error) {
         next(error);
       }
@@ -2042,7 +3284,7 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
         const db = readDb();
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
+        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
       } catch (error) {
         next(error);
       }
@@ -2071,12 +3313,15 @@ async function startServer() {
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       const db = readDb();
       res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db)));
+      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
     });
   }
 
   app.listen(PORT, HOST, () => {
     console.log(`Honda Wijaya Abadi Server running on http://${HOST}:${PORT}`);
+    setInterval(() => {
+      void retryPendingSalesCounterSslJobs();
+    }, SALES_COUNTER_SSL_RETRY_INTERVAL_MS);
   });
 }
 

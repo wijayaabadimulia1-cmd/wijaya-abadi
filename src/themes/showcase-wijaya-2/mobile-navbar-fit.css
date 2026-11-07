@@ -1,0 +1,34 @@
+@media (max-width: 640px) {
+  .site-navbar > div > div:first-child {
+    gap: 0.5rem;
+  }
+
+  .site-navbar > div > div:first-child > a {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+
+  .site-navbar > div > div:first-child > a > div:last-child {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+
+  .site-navbar > div > div:first-child > a > div:last-child > div:first-child {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .site-navbar > div > div:first-child > a > div:last-child > div:first-child > span:first-child {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 360px) {
+  .site-navbar .site-accent-label {
+    display: none;
+  }
+}

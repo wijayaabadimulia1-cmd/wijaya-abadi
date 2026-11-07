@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+.hwa-auto-hide-scrollbar {
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
+
+.hwa-auto-hide-scrollbar:hover,
+.hwa-auto-hide-scrollbar:focus-within,
+.hwa-auto-hide-scrollbar:active {
+  scrollbar-color: rgba(148, 163, 184, 0.65) transparent;
+}
+
+.hwa-auto-hide-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.hwa-auto-hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hwa-auto-hide-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.hwa-auto-hide-scrollbar:hover::-webkit-scrollbar-thumb,
+.hwa-auto-hide-scrollbar:focus-within::-webkit-scrollbar-thumb,
+.hwa-auto-hide-scrollbar:active::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.65);
+}
+
 :root {
   --site-bg: #0f172a;
   --site-panel: #172033;

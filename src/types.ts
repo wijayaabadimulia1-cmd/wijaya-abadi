@@ -69,7 +69,78 @@ export interface ManifestoItem {
   created_at?: string;
 }
 
-export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban' | 'mulia-cerah' | 'honda-wijaya' | 'wijaya-cool' | 'wijaya-meriah' | 'showcase-wijaya-2';
+export interface SeoLandingPage {
+  id: string;
+  subdomain: string;
+  domainSuffix?: 'kreditmotorhonda.id' | 'kreditmotorhonda.tech' | 'solusikreditmotor.cloud';
+  siteType?: 'sales-counter';
+  adminUserId: string;
+  title: string;
+  content: string;
+  posts?: SeoLandingPost[];
+  promos?: Promo[];
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
+  seoRobots: string;
+  siteSettings?: Partial<SeoPostSiteSettings>;
+  sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
+  sslError?: string;
+  updated_at?: string;
+}
+
+export interface SalesCounterSite {
+  id: string;
+  subdomain: string;
+  domainSuffix: 'kreditmotorhonda.id' | 'kreditmotorhonda.tech' | 'solusikreditmotor.cloud';
+  name: string;
+  phone: string;
+  username: string;
+  adminUserId: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoRobots?: string;
+  sslStatus?: 'pending' | 'provisioning' | 'active' | 'failed';
+  sslError?: string;
+  updated_at?: string;
+}
+
+export interface SeoLandingPost {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  authorUsername?: string;
+  authorRole?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SeoPostSiteSettings {
+  name?: string;
+  tagline?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+  workingHours?: string;
+  logo?: string;
+  heroImage?: string;
+  heroImages?: string[];
+  heroTitle?: string;
+  heroMainTitle?: string;
+  heroTitleHighlight?: string;
+  heroSubtitle?: string;
+  heroBadge?: string;
+  heroCaption?: string;
+  footerText?: string;
+  websiteTemplate?: WebsiteTemplate;
+  catalogAnimation?: CatalogAnimation;
+  catalogAnimationSpeed?: number;
+  customization?: WebsiteCustomization;
+}
+
+export type WebsiteTemplate = 'classic' | 'premium' | 'minimal' | 'luxury' | 'sport' | 'showroom' | 'signature' | 'urban' | 'mulia-cerah' | 'honda-wijaya' | 'wijaya-cool' | 'wijaya-meriah' | 'showcase-wijaya-2' | 'astra-honda-red-white' | 'honda-tokyo-racing-edition' | 'astra-honda-november-edition' | 'astra-honda-electric-flame-edition' | 'wijaya-enerjik';
 export type HeroAlignment = 'left' | 'center' | 'right';
 export type SiteFont = 'jakarta' | 'serif' | 'mono' | 'system' | 'outfit' | 'inter' | 'montserrat';
 export type ThemeMode = 'light' | 'dark';
@@ -150,9 +221,12 @@ export interface DealerSettings {
   seoKeywords?: string;
   seoCanonicalUrl?: string;
   seoRobots?: string;
+  seoPages?: SeoLandingPage[];
+  seoPostHost?: boolean;
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
   catalogAnimationSpeed?: number;
+  featuredMotorRotationInterval?: number;
   customization?: WebsiteCustomization;
   updated_at?: string;
 }
@@ -170,6 +244,17 @@ export interface AdminUser {
   role: string;
   created_at?: string;
   updated_at?: string;
+  assignedSeoPageId?: string | null;
+  assignedSeoPage?: {
+    id: string;
+    subdomain: string;
+    title?: string;
+  } | null;
+  assignedSeoPages?: Array<{
+    id: string;
+    subdomain: string;
+    title?: string;
+  }>;
 }
 
 export interface AuditLog {
@@ -183,6 +268,8 @@ export interface AuditLog {
 
 export interface LeadInterest {
   id: string;
+  salesCounterSiteId?: string;
+  host?: string;
   motor_id?: string;
   motor_name?: string;
   customer_name: string;
@@ -190,6 +277,7 @@ export interface LeadInterest {
   payment_method?: 'Cash' | 'Kredit';
   dp_estimate?: string;
   note?: string;
+  source?: 'form' | 'whatsapp-click';
   status: 'Baru' | 'Dihubungi' | 'Selesai' | 'Ditolak';
   created_at: string;
 }

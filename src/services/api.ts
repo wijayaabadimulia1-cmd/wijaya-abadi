@@ -1,4 +1,4 @@
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite } from '../types';
 
 interface MotorSaveData extends Partial<Motor> {
   fifPriceListModel?: {
@@ -35,7 +35,7 @@ async function downloadAdminFile(url: string, fallbackName: string): Promise<voi
 }
 
 export const api = {
-  async getCatalogStatus(): Promise<{ owner: boolean; adminUrl: string }> {
+  async getCatalogStatus(): Promise<{ owner: boolean; canManageCatalog: boolean; adminUrl: string }> {
     const res = await fetch('/api/catalog/status', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal memeriksa panel katalog pusat');
     return res.json();
@@ -79,14 +79,52 @@ export const api = {
     return res.json();
   },
 
-  async createAdminUser(data: { username: string; password: string; role?: string }): Promise<AdminUser> {
+  async getSalesCounters(): Promise<SalesCounterSite[]> {
+    const res = await fetch('/api/admin/sales-counters', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => []);
+    if (!res.ok) throw new Error(result.error || 'Gagal mengambil daftar Sales Counter');
+    return result;
+  },
+
+  async createSalesCounter(data: { name: string; phone: string; username: string; password: string; subdomain: string; seoTitle?: string; seoDescription?: string; seoKeywords?: string }): Promise<SalesCounterSite> {
+    const res = await fetch('/api/admin/sales-counters', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal membuat website Sales Counter');
+    return result;
+  },
+
+  async deleteSalesCounter(id: string): Promise<void> {
+    const res = await fetch(`/api/admin/sales-counters/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menghapus Sales Counter');
+  },
+
+  async updateSalesCounterSeo(id: string, data: Pick<SalesCounterSite, 'seoTitle' | 'seoDescription' | 'seoKeywords' | 'seoRobots'>): Promise<Pick<SalesCounterSite, 'id' | 'seoTitle' | 'seoDescription' | 'seoKeywords' | 'seoRobots' | 'updated_at'>> {
+    const res = await fetch(`/api/admin/sales-counters/${encodeURIComponent(id)}/seo`, {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menyimpan SEO Sales Counter');
+    return result;
+  },
+
+  async createAdminUser(data: { username: string; password: string; role?: string; assignedSeoPageId?: string }): Promise<AdminUser> {
     const res = await fetch('/api/admin/users', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(data) });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Gagal membuat admin');
     return result;
   },
 
-  async updateAdminUser(id: string, data: { username?: string; password?: string; role?: string }): Promise<AdminUser> {
+  async updateAdminUser(id: string, data: { username?: string; password?: string; role?: string; assignedSeoPageId?: string }): Promise<AdminUser> {
     const res = await fetch(`/api/admin/users/${id}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify(data) });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Gagal mengubah admin');
@@ -107,8 +145,50 @@ export const api = {
     return res.json();
   },
 
+  async getOwnerDashboardConfig(): Promise<{ selectedHosts: string[]; dashboardUrl: string }> {
+    const res = await fetch('/api/admin/owner-dashboard', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengambil konfigurasi dashboard owner');
+    return result;
+  },
+
+  async saveOwnerDashboardConfig(hosts: string[]): Promise<{ selectedHosts: string[]; dashboardUrl: string }> {
+    const res = await fetch('/api/admin/owner-dashboard', {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ hosts }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menyimpan konfigurasi dashboard owner');
+    return result;
+  },
+
+  async getOwnerDashboardAnalytics(
+    key: string,
+    startDate?: string,
+    endDate?: string,
+    includeAll?: { pages?: boolean; searchTerms?: boolean; leads?: boolean },
+  ): Promise<any> {
+    const res = await fetch('/api/owner-dashboard/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        key,
+        startDate,
+        endDate,
+        includeAllPages: includeAll?.pages === true,
+        includeAllSearchTerms: includeAll?.searchTerms === true,
+        includeAllLeads: includeAll?.leads === true,
+      }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Tautan dashboard tidak valid atau sudah dinonaktifkan');
+    return result;
+  },
+
   async getFifPriceList(): Promise<FIFPriceList> {
-    const res = await fetch('/api/fif-price-list');
+    const res = await fetch('/api/fif-price-list', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil price list cicilan FIF');
     return res.json();
   },
@@ -139,20 +219,45 @@ export const api = {
     return res.json();
   },
 
+  async getAdminSettings(): Promise<DealerSettings> {
+    const res = await fetch('/api/settings', { headers: adminHeaders(), cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal mengambil pengaturan admin');
+    return res.json();
+  },
+
   async updateSettings(data: Partial<DealerSettings>): Promise<DealerSettings> {
     const res = await fetch('/api/settings', {
       method: 'PUT',
       headers: adminHeaders(),
       body: JSON.stringify(data),
     });
+    const responseText = await res.text();
+    let result: Partial<DealerSettings> & { error?: string } = {};
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      if (res.ok) throw new Error(`Respons server tidak valid (HTTP ${res.status})`);
+    }
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type')?.split(';')[0] || 'unknown response type';
+      throw new Error(result.error || `Gagal memperbarui pengaturan dealer (HTTP ${res.status}, ${contentType})`);
+    }
+    return result as DealerSettings;
+  },
+
+  async provisionSeoPageSsl(id: string): Promise<{ status: 'pending' | 'active' | 'failed'; message: string; seoPages: DealerSettings['seoPages'] }> {
+    const res = await fetch(`/api/admin/seo-pages/${encodeURIComponent(id)}/provision-ssl`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    });
     const result = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(result.error || 'Gagal memperbarui pengaturan dealer');
+    if (!res.ok) throw new Error(result.error || 'Gagal mengaktifkan SSL subdomain');
     return result;
   },
 
   // Motors
   async getMotors(): Promise<Motor[]> {
-    const res = await fetch('/api/motors');
+    const res = await fetch('/api/motors', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil katalog motor');
     return res.json();
   },
@@ -324,6 +429,26 @@ export const api = {
       keepalive: true,
     });
     if (!res.ok) throw new Error('Gagal menyimpan kunjungan website');
+  },
+
+  async trackSearch(sessionId: string, keyword: string, eventId: string): Promise<void> {
+    const res = await fetch('/api/analytics/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, keyword, eventId }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error('Gagal menyimpan kata kunci pencarian');
+  },
+
+  async trackWhatsAppClick(sessionId: string, path: string, menu: string, eventId: string, registerSalesCounterLead = false): Promise<void> {
+    const res = await fetch('/api/analytics/whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, path, menu, eventId, registerSalesCounterLead }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error('Gagal menyimpan klik WhatsApp');
   },
 
   // Upload image

@@ -14,6 +14,7 @@ import {
   Star,
   Users,
   Settings as SettingsIcon,
+  MessageCircle,
   MessageSquare,
   ArrowLeft,
   RotateCcw,
@@ -33,11 +34,18 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList } from '../types';
+import { Motor, Promo, Testimonial, DealerSettings, LeadInterest, ManifestoItem, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite, SeoLandingPage, SeoLandingPost } from '../types';
 import { api, formatRupiah } from '../services/api';
 import { DEFAULT_FIF_PRICE_LIST, FIF_DP_PERCENTAGES, FIF_TENORS, getFIFPriceListModel, normalizeMotorOtrPrice } from '../services/fifPriceList';
-import { MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from '../constants';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from '../constants';
+import {
+  DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL,
+  MAX_FEATURED_MOTOR_ROTATION_INTERVAL,
+  MAX_MOTOR_IMAGES,
+  MAX_PROMO_IMAGES,
+  MIN_FEATURED_MOTOR_ROTATION_INTERVAL,
+  normalizeFeaturedMotorRotationInterval,
+} from '../constants';
+import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_FOCUS_KEYWORD, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES, WIJAYA_ENERJIK_COLOR_PALETTES } from '../constants';
 import {
   CATALOG_ANIMATION_OPTIONS,
   DEFAULT_CATALOG_ANIMATION,
@@ -46,13 +54,23 @@ import {
   MIN_CATALOG_ANIMATION_SPEED,
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
-import { createWhatsAppUrl, isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp';
+import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
+import { getSeoLandingPosts, getSeoLandingPostPath, slugifySeoPost } from '../utils/seoPosts';
 import { CustomizationPanel } from './CustomizationPanel';
 
 interface AdminPanelProps {
   onBackToWebsite: () => void;
   onRefreshData: () => void;
 }
+
+type SeoPostEditor = SeoLandingPost & {
+  subdomain: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoRobots?: string;
+  slugManuallyEdited?: boolean;
+};
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -75,6 +93,17 @@ function seoKeywordTokens(value: string) {
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('id-ID')
     .match(/[a-z0-9]+/g) || [];
+}
+
+function slugifySubdomain(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('id-ID')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 63)
+    .replace(/-+$/g, '');
 }
 
 function seoKeywordConcept(term: string) {
@@ -123,15 +152,27 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
   };
 }
 
+const getSalesCounterDomainSuffix = (hostname: string) => {
+  const normalized = hostname.toLocaleLowerCase('en-US').replace(/^www\./, '');
+  return ['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud'].find((domain) => domain === normalized);
+};
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'security' | 'credit' | 'export'>('dashboard');
+  const isSolusiSite = window.location.hostname.toLowerCase().endsWith('solusikreditmotor.cloud');
+  const adminBrand = isSolusiSite
+    ? { loginLabel: 'Solusi Kredit Motor Honda', panelTitle: 'Panel CMS Solusi Kredit Motor Honda' }
+    : { loginLabel: 'Honda Wijaya Abadi', panelTitle: 'Panel CMS Honda Wijaya Abadi Motor' };
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [securityForm, setSecurityForm] = useState({ username: '', password: '', role: 'Staff Admin' });
+  const [securityForm, setSecurityForm] = useState({ username: '', password: '', role: 'Staff Admin', assignedSeoPageId: '' });
+  const [ownerDashboardHosts, setOwnerDashboardHosts] = useState<string[]>([]);
+  const [ownerDashboardUrl, setOwnerDashboardUrl] = useState('');
+  const [isSavingOwnerDashboard, setIsSavingOwnerDashboard] = useState(false);
 
   // Local state for all dynamic data
   const [motors, setMotors] = useState<Motor[]>([]);
@@ -139,7 +180,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [promos, setPromos] = useState<Promo[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [settings, setSettings] = useState<DealerSettings | null>(null);
-  const [isCatalogOwner, setIsCatalogOwner] = useState<boolean | null>(null);
+  const isSeoPostAdmin = Boolean(settings?.seoPostHost && adminSession?.role !== 'Super Admin');
+  const isSalesCounterWebsite = Boolean(settings?.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
+  const isSalesCounterAdmin = isSeoPostAdmin && isSalesCounterWebsite;
+  const salesCounterDomainSuffix = getSalesCounterDomainSuffix(window.location.hostname) || 'kreditmotorhonda.id';
+  const canManageSalesCounters = adminSession?.role === 'Super Admin' && Boolean(getSalesCounterDomainSuffix(window.location.hostname));
+  const [salesCounters, setSalesCounters] = useState<SalesCounterSite[]>([]);
+  const [editingSalesCounterSeoId, setEditingSalesCounterSeoId] = useState<string | null>(null);
+  const [salesCounterSeoForm, setSalesCounterSeoForm] = useState({ seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
+  const [isSavingSalesCounterSeo, setIsSavingSalesCounterSeo] = useState(false);
+  const [salesCounterForm, setSalesCounterForm] = useState({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
+  const [isSavingSalesCounter, setIsSavingSalesCounter] = useState(false);
+  const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
+  const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
+  const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
+  const [isCatalogOwner, setIsCatalogOwner] = useState(true);
+  const [canManageCatalog, setCanManageCatalog] = useState(true);
   const [catalogAdminUrl, setCatalogAdminUrl] = useState('https://kreditmotorhonda.tech/admin');
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -192,11 +248,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       || Boolean(motor.is_bestseller) === (motorBestsellerFilter === 'bestseller');
     return matchesSearch && matchesCategory && matchesBestseller;
   });
+  const seoPostEntries = (settings?.seoPages || []).flatMap((page) => getSeoLandingPosts(page).map((post) => ({ page, post })));
   const hasMotorFilters = Boolean(normalizedMotorSearch)
     || motorCategoryFilter !== 'all'
     || motorBestsellerFilter !== 'all';
   const [isImportingMotors, setIsImportingMotors] = useState(false);
   const motorCsvInputRef = useRef<HTMLInputElement>(null);
+  const hasDuplicateSeoSubdomain = Boolean(seoSubdomainEditor && settings?.seoPages?.some((page) => (
+    page.subdomain === slugifySubdomain(seoSubdomainEditor.subdomain)
+    && page.id !== seoSubdomainEditor.id
+  )));
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -211,10 +272,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     api.getCatalogStatus()
       .then((status) => {
         setIsCatalogOwner(status.owner);
+        setCanManageCatalog(status.canManageCatalog);
         setCatalogAdminUrl(status.adminUrl);
-        if (!status.owner) {
-          setActiveTab((current) => ['promos', 'settings', 'theme'].includes(current) ? current : 'settings');
-        }
+        if (!status.canManageCatalog) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
       })
       .catch(() => {
         setIsCatalogOwner(false);
@@ -227,6 +287,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     window.dispatchEvent(new CustomEvent('hwa-admin-settings-update', { detail: settings }));
   }, [settings]);
 
+  useEffect(() => {
+    if (!isSeoPostAdmin) return;
+    const allowedTabs = isSalesCounterAdmin
+      ? ['sales-counter', 'leads', 'promos', 'settings', 'theme']
+      : ['promos', 'settings', 'theme'];
+    if (!allowedTabs.includes(activeTab)) setActiveTab(isSalesCounterAdmin ? 'sales-counter' : 'theme');
+  }, [activeTab, isSalesCounterAdmin, isSeoPostAdmin]);
+
   const toggleAdminTheme = () => {
     setAdminTheme((mode) => mode === 'dark' ? 'light' : 'dark');
   };
@@ -234,11 +302,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [motorsRes, promosRes, testiRes, settingsRes, leadsRes, priceListRes] = await Promise.all([
+      const settingsRes = await api.getAdminSettings();
+      if (settingsRes.seoPostHost) {
+        setSettings(settingsRes);
+        const isSalesSite = settingsRes.seoPages?.some((page) => page.siteType === 'sales-counter');
+        const [motorsRes, promosRes, leadsRes, priceListRes] = await Promise.all([
+          isSalesSite ? api.getMotors().catch(() => []) : Promise.resolve([]),
+          api.getPromos().catch(() => []),
+          isSalesSite ? api.getInterests().catch(() => []) : Promise.resolve([]),
+          isSalesSite ? api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST) : Promise.resolve(DEFAULT_FIF_PRICE_LIST),
+        ]);
+        setMotors(motorsRes.map((motor) => normalizeMotorOtrPrice(motor, priceListRes)));
+        setPromos(promosRes);
+        setTestimonials([]);
+        setLeads(leadsRes);
+        setFifPriceList(priceListRes);
+        return;
+      }
+
+      const [motorsRes, promosRes, testiRes, leadsRes, priceListRes] = await Promise.all([
         api.getMotors(),
         api.getPromos(),
         api.getTestimonials(),
-        api.getSettings(),
         api.getInterests(),
         api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
       ]);
@@ -277,6 +362,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     loadAllData();
     api.getAdminUsers().then(setAdminUsers).catch(() => undefined);
     api.getAuditLogs().then(setAuditLogs).catch(() => undefined);
+    if (adminSession.role === 'Super Admin' && getSalesCounterDomainSuffix(window.location.hostname)) {
+      api.getSalesCounters().then(setSalesCounters).catch(() => setSalesCounters([]));
+    }
+  }, [adminSession]);
+
+  useEffect(() => {
+    if (adminSession?.role !== 'Super Admin' || window.location.hostname !== 'kreditmotorhonda.tech') return;
+    api.getOwnerDashboardConfig()
+      .then((config) => {
+        setOwnerDashboardHosts(config.selectedHosts);
+        setOwnerDashboardUrl(config.dashboardUrl);
+      })
+      .catch(() => undefined);
   }, [adminSession]);
 
   useEffect(() => {
@@ -319,11 +417,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     event.preventDefault();
     try {
       await api.createAdminUser(securityForm);
-      setSecurityForm({ username: '', password: '', role: 'Staff Admin' });
+      setSecurityForm({ username: '', password: '', role: 'Staff Admin', assignedSeoPageId: '' });
       await refreshSecurityData();
       showToast('Admin baru berhasil dibuat');
     } catch (error: any) {
       alert(error.message || 'Gagal membuat admin');
+    }
+  };
+
+  const handleCreateSalesCounter = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSavingSalesCounter(true);
+    try {
+      const created = await api.createSalesCounter({
+        ...salesCounterForm,
+        subdomain: salesCounterForm.subdomain.trim().toLocaleLowerCase('id-ID'),
+      });
+      setSalesCounters((current) => [created, ...current.filter((counter) => counter.id !== created.id)]);
+      setSalesCounterForm({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
+      showToast(`Sales Counter ${created.subdomain}.${created.domainSuffix} berhasil dibuat`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal membuat Sales Counter');
+    } finally {
+      setIsSavingSalesCounter(false);
+    }
+  };
+
+  const handleDeleteSalesCounter = async (counter: SalesCounterSite) => {
+    const hostname = `${counter.subdomain}.${counter.domainSuffix}`;
+    if (!window.confirm(`Hapus Sales Counter ${hostname}? Akun admin akan dinonaktifkan dan alamat lama akan menampilkan 404.`)) return;
+    try {
+      await api.deleteSalesCounter(counter.id);
+      setSalesCounters((current) => current.filter((item) => item.id !== counter.id));
+      showToast(`Sales Counter ${hostname} dihapus`);
+    } catch (error: any) {
+      alert(error.message || 'Gagal menghapus Sales Counter');
+    }
+  };
+
+  const handleEditSalesCounterSeo = (counter: SalesCounterSite) => {
+    setEditingSalesCounterSeoId(counter.id);
+    setSalesCounterSeoForm({
+      seoTitle: counter.seoTitle || '',
+      seoDescription: counter.seoDescription || '',
+      seoKeywords: counter.seoKeywords || '',
+      seoRobots: counter.seoRobots || 'index, follow',
+    });
+  };
+
+  const handleSaveSalesCounterSeo = async () => {
+    if (!editingSalesCounterSeoId) return;
+    if (!salesCounterSeoForm.seoTitle.trim() || !salesCounterSeoForm.seoDescription.trim()) {
+      alert('Judul dan deskripsi SEO wajib diisi.');
+      return;
+    }
+    setIsSavingSalesCounterSeo(true);
+    try {
+      const saved = await api.updateSalesCounterSeo(editingSalesCounterSeoId, salesCounterSeoForm);
+      setSalesCounters((current) => current.map((counter) => counter.id === saved.id ? { ...counter, ...saved } : counter));
+      setEditingSalesCounterSeoId(null);
+      showToast('SEO Sales Counter berhasil diperbarui');
+    } catch (error: any) {
+      alert(error.message || 'Gagal menyimpan SEO Sales Counter');
+    } finally {
+      setIsSavingSalesCounterSeo(false);
+    }
+  };
+
+  const handleSaveOwnerDashboard = async () => {
+    setIsSavingOwnerDashboard(true);
+    try {
+      const result = await api.saveOwnerDashboardConfig(ownerDashboardHosts);
+      setOwnerDashboardHosts(result.selectedHosts);
+      setOwnerDashboardUrl(result.dashboardUrl);
+      showToast('Dashboard owner berhasil diperbarui');
+    } catch (error: any) {
+      alert(error.message || 'Gagal menyimpan dashboard owner');
+    } finally {
+      setIsSavingOwnerDashboard(false);
     }
   };
 
@@ -524,7 +695,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         </button>
         <form onSubmit={handleAdminLogin} className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900/80 p-7 shadow-2xl">
           <div className="mb-7">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-400">Honda Wijaya Abadi</p>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-400">{adminBrand.loginLabel}</p>
             <h1 className="mt-2 text-2xl font-black text-white">Login Admin Panel</h1>
             <p className="mt-2 text-sm text-zinc-400">Masuk untuk mengelola website dan melihat histori perubahan.</p>
           </div>
@@ -831,9 +1002,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     { value: 'urban', label: 'Urban', accent: 'bg-gradient-to-r from-slate-700 to-zinc-900', description: 'Modern urban untuk tampilan dealer yang lebih fresh dan stylish.' },
     { value: 'mulia-cerah', label: 'Mulia Cerah', accent: 'bg-gradient-to-r from-blue-600 to-cyan-400', description: 'Tema otomotif modern dengan palette biru-cyan yang konsisten di mode terang dan gelap.' },
     { value: 'honda-wijaya', label: 'Honda Wijaya', accent: 'bg-red-600', description: 'Showroom Honda dengan tampilan merah-putih yang tegas dan elegan.' },
+    { value: 'wijaya-enerjik', label: 'Wijaya Enerjik', accent: 'bg-gradient-to-r from-red-600 via-zinc-950 to-white', description: 'Showroom Honda sporty dengan hero produk besar, aksen balap merah-hitam, katalog tegas, promo dan simulasi kredit.' },
     { value: 'wijaya-cool', label: 'Wijaya Cool', accent: 'bg-gradient-to-r from-emerald-600 to-sky-400', description: 'Nuansa sejuk pegunungan Bandung, kabut lembut, cahaya berkilau, dan daun jatuh.' },
     { value: 'wijaya-meriah', label: 'Wijaya Meriah', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Tema Honda yang cerah dan dinamis dengan aksen merah, putih, charcoal, dan langit biru.' },
     { value: 'showcase-wijaya-2', label: 'Showcase Wijaya 2', accent: 'bg-gradient-to-r from-red-600 via-white to-sky-400', description: 'Showcase Honda merah-putih dengan hero langit pegunungan, CTA tegas, dan katalog bersih.' },
+    { value: 'astra-honda-red-white', label: 'Astra Honda Motor Red & White', accent: 'bg-gradient-to-r from-red-600 via-white to-red-600', description: 'Tema merah-putih Astra Honda yang mengikuti referensi, dengan katalog dan simulasi kredit dealer.' },
+    { value: 'honda-tokyo-racing-edition', label: 'Honda Tokyo Racing Edition', accent: 'bg-gradient-to-r from-red-600 via-zinc-950 to-cyan-400', description: 'Gaya Tokyo Racing terang dengan pola Jepang, aksen merah-sian, katalog dealer, dan simulasi kredit.' },
+    { value: 'astra-honda-november-edition', label: 'Astra Honda November Edition', accent: 'bg-gradient-to-r from-red-600 via-white to-amber-500', description: 'Tema November dengan suasana hujan dan pegunungan berkabut, aksen merah Honda dan amber.' },
+    { value: 'astra-honda-electric-flame-edition', label: 'Astra Honda Electric Flame Edition', accent: 'bg-gradient-to-r from-red-600 via-black to-orange-500', description: 'Aksen Honda merah menyala dengan glow, siluet sirkuit, dan gaya pegunungan misty.' },
   ];
 
   const currentTemplate = templateOptions.find((item) => item.value === (settings?.websiteTemplate || 'classic')) || templateOptions[0];
@@ -900,10 +1076,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
     const isMuliaCerah = template === 'mulia-cerah';
     const isHondaWijaya = template === 'honda-wijaya';
+    const isWijayaEnerjik = template === 'wijaya-enerjik';
     const isWijayaMeriah = template === 'wijaya-meriah';
     const isShowcaseWijaya2 = template === 'showcase-wijaya-2';
-    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2';
-    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaMeriah && !isShowcaseWijaya2;
+    const isAstraHondaRedWhite = template === 'astra-honda-red-white';
+    const isTokyoRacingEdition = template === 'honda-tokyo-racing-edition';
+    const isNovemberEdition = template === 'astra-honda-november-edition';
+    const isElectricFlameEdition = template === 'astra-honda-electric-flame-edition';
+    const hasManagedPalette = settings.websiteTemplate === 'mulia-cerah' || settings.websiteTemplate === 'honda-wijaya' || settings.websiteTemplate === 'wijaya-enerjik' || settings.websiteTemplate === 'wijaya-meriah' || settings.websiteTemplate === 'showcase-wijaya-2' || settings.websiteTemplate === 'astra-honda-red-white' || settings.websiteTemplate === 'honda-tokyo-racing-edition' || settings.websiteTemplate === 'astra-honda-november-edition' || settings.websiteTemplate === 'astra-honda-electric-flame-edition';
+    const isLeavingManagedPalette = hasManagedPalette && !isMuliaCerah && !isHondaWijaya && !isWijayaEnerjik && !isWijayaMeriah && !isShowcaseWijaya2 && !isAstraHondaRedWhite && !isTokyoRacingEdition && !isNovemberEdition && !isElectricFlameEdition;
     const { colorPalettes, templatePaletteBackup, themeBackgroundAnimation, ...baseCustomization } = settings.customization || {};
     const previousColorPalettes = hasManagedPalette
       ? templatePaletteBackup
@@ -1017,6 +1198,159 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               },
             },
           }
+      : isAstraHondaRedWhite
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              light: {
+                primaryColor: '#e60012',
+                secondaryColor: '#111827',
+                accentColor: '#cc0010',
+                backgroundColor: '#ffffff',
+                panelColor: '#f8f9fa',
+                cardColor: '#ffffff',
+                elevatedColor: '#ffffff',
+                borderColor: '#e5e7eb',
+                textColor: '#111827',
+                mutedColor: '#6b7280',
+                heroTextColor: '#111827',
+                heroTitleHighlightColor: '#e60012',
+              },
+              dark: {
+                primaryColor: '#e60012',
+                secondaryColor: '#f9fafb',
+                accentColor: '#ff4b57',
+                backgroundColor: '#17191d',
+                panelColor: '#22262c',
+                cardColor: '#292e35',
+                elevatedColor: '#343a42',
+                borderColor: '#414750',
+                textColor: '#f9fafb',
+                mutedColor: '#c4c8ce',
+                heroTextColor: '#f9fafb',
+                heroTitleHighlightColor: '#ff4b57',
+              },
+            },
+          }
+        : isTokyoRacingEdition
+          ? {
+              ...baseCustomization,
+              templatePaletteBackup: previousColorPalettes,
+              colorPalettes: {
+                ...(previousColorPalettes || {}),
+                light: {
+                  primaryColor: '#e60012',
+                  secondaryColor: '#0d1117',
+                  accentColor: '#00c8ff',
+                  backgroundColor: '#f4f6fb',
+                  panelColor: '#ffffff',
+                  cardColor: '#ffffff',
+                  elevatedColor: '#ffffff',
+                  borderColor: '#e2e8f0',
+                  textColor: '#0d1117',
+                  mutedColor: '#6e7681',
+                  heroTextColor: '#0d1117',
+                  heroTitleHighlightColor: '#e60012',
+                },
+                dark: {
+                  primaryColor: '#ff3548',
+                  secondaryColor: '#f4f6fb',
+                  accentColor: '#00f0ff',
+                  backgroundColor: '#0d1117',
+                  panelColor: '#151a22',
+                  cardColor: '#1b222c',
+                  elevatedColor: '#232d39',
+                  borderColor: '#34404e',
+                  textColor: '#f4f6fb',
+                  mutedColor: '#b4bfcc',
+                  heroTextColor: '#f4f6fb',
+                  heroTitleHighlightColor: '#ff4653',
+                },
+              },
+            }
+        : isNovemberEdition
+          ? {
+              ...baseCustomization,
+              templatePaletteBackup: previousColorPalettes,
+              colorPalettes: {
+                ...(previousColorPalettes || {}),
+                light: {
+                  primaryColor: '#e60012',
+                  secondaryColor: '#0f172a',
+                  accentColor: '#d97706',
+                  backgroundColor: '#fafafa',
+                  panelColor: '#ffffff',
+                  cardColor: '#ffffff',
+                  elevatedColor: '#ffffff',
+                  borderColor: '#e2e8f0',
+                  textColor: '#0f172a',
+                  mutedColor: '#64748b',
+                  heroTextColor: '#0f172a',
+                  heroTitleHighlightColor: '#e60012',
+                },
+                dark: {
+                  primaryColor: '#ff3548',
+                  secondaryColor: '#e2e8f0',
+                  accentColor: '#fbbf24',
+                  backgroundColor: '#111827',
+                  panelColor: '#1e293b',
+                  cardColor: '#253247',
+                  elevatedColor: '#334155',
+                  borderColor: '#475569',
+                  textColor: '#f8fafc',
+                  mutedColor: '#cbd5e1',
+                  heroTextColor: '#f8fafc',
+                  heroTitleHighlightColor: '#ff4653',
+                },
+              },
+            }
+        : isElectricFlameEdition
+          ? {
+              ...baseCustomization,
+              templatePaletteBackup: previousColorPalettes,
+              colorPalettes: {
+                ...(previousColorPalettes || {}),
+                light: {
+                  primaryColor: '#e60012',
+                  secondaryColor: '#0b0f17',
+                  accentColor: '#ff512f',
+                  backgroundColor: '#ffffff',
+                  panelColor: '#f8f9fa',
+                  cardColor: '#ffffff',
+                  elevatedColor: '#ffffff',
+                  borderColor: '#ffccd0',
+                  textColor: '#111827',
+                  mutedColor: '#6b7280',
+                  heroTextColor: '#111827',
+                  heroTitleHighlightColor: '#e60012',
+                },
+                dark: {
+                  primaryColor: '#ff3945',
+                  secondaryColor: '#f8fafc',
+                  accentColor: '#ff7043',
+                  backgroundColor: '#0b0f17',
+                  panelColor: '#131824',
+                  cardColor: '#1a2230',
+                  elevatedColor: '#252f40',
+                  borderColor: '#3d495b',
+                  textColor: '#f8fafc',
+                  mutedColor: '#cbd5e1',
+                  heroTextColor: '#f8fafc',
+                  heroTitleHighlightColor: '#ff4653',
+                },
+              },
+            }
+      : isWijayaEnerjik
+        ? {
+            ...baseCustomization,
+            templatePaletteBackup: previousColorPalettes,
+            colorPalettes: {
+              ...(previousColorPalettes || {}),
+              ...WIJAYA_ENERJIK_COLOR_PALETTES,
+            },
+          }
       : isHondaWijaya
         ? {
             ...baseCustomization,
@@ -1038,12 +1372,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           heroTitleHighlight: 'Sepeda Motor Impian',
           heroSubtitle: 'Melayani pembelian cash dan kredit. Dapatkan motor Honda impian Anda dengan harga terbaik, promo menarik, dan proses kredit yang mudah.',
         }
+      : isWijayaEnerjik
+        ? {
+            heroBadge: 'HONDA MOTORCYCLE',
+            heroMainTitle: 'Satu Klik Dapat',
+            heroTitleHighlight: 'Sepeda Motor Impian!',
+            heroSubtitle: 'Bersama Honda Wijaya Abadi, wujudkan impian Anda memiliki motor Honda dengan mudah dan cepat.',
+          }
       : isHondaWijaya
         ? {
             heroTitle: 'Dealer Resmi Sepeda Motor Honda Bandung',
             heroMainTitle: 'Saatnya Punya',
             heroTitleHighlight: 'Motor Honda Impian Anda',
             heroSubtitle: 'Proses mudah, cepat dan aman. Dapatkan motor Honda favorit Anda dengan harga terbaik, promo menarik, dan proses kredit tanpa ribet.',
+          }
+      : isTokyoRacingEdition
+        ? {
+            heroBadge: 'TOKYO RACING & STREETWEAR CREDIT 2026',
+            heroMainTitle: 'STREET RIDE.',
+            heroTitleHighlight: 'LOW DP. NO DRAMA.',
+            heroSubtitle: 'Nikmati cicilan kredit motor Honda resmi dengan proses mudah, berkas dibantu, dan pilihan pembayaran yang jelas.',
+          }
+      : isNovemberEdition
+        ? {
+            heroBadge: 'PROMO NOVEMBER WARM RIDE EDITION 2026',
+            heroMainTitle: 'Nikmati Perjalanan Musim Hujan',
+            heroTitleHighlight: 'Dengan Kredit Motor Honda',
+            heroSubtitle: 'Sambut November dengan motor Honda baru, DP terjangkau, bonus perlengkapan musim hujan, dan proses pengajuan yang praktis.',
+          }
+      : isElectricFlameEdition
+        ? {
+            heroBadge: 'PROMO SPESIAL HUJAN NOVEMBER 2026',
+            heroMainTitle: 'KREDIT MOTOR',
+            heroTitleHighlight: 'HONDA DP MURAH',
+            heroSubtitle: 'Nikmati pengajuan kredit motor Honda tanpa ribet. Berkas dibantu, proses cepat, dan DP dibayar saat unit tiba di rumah.',
           }
       : isShowcaseWijaya2
         ? {
@@ -1059,7 +1421,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const saved = await api.updateSettings({
         websiteTemplate: template,
         ...headlineSettings,
-        ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isLeavingManagedPalette ? { customization } : {}),
+        ...(isMuliaCerah || isHondaWijaya || isWijayaEnerjik || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);
@@ -1078,15 +1440,226 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       return;
     }
     try {
-      const savedSettings = await api.updateSettings({
-        ...settings,
-        phone: normalizeWhatsAppNumber(settings.phone, ''),
-      });
+      const settingsToSave = Object.fromEntries(
+        Object.entries(settings).filter(([key]) => key !== 'seoPages' && key !== 'ownerDashboard'),
+      ) as Partial<DealerSettings>;
+      const savedSettings = await api.updateSettings(settingsToSave);
       setSettings(savedSettings);
       showToast('Pengaturan dealer berhasil disimpan ke database!');
       onRefreshData();
     } catch (err: any) {
       alert('Gagal menyimpan pengaturan: ' + err.message);
+    }
+  };
+
+  const handleSaveSeoPage = async () => {
+    if (!settings || !seoPageEditor) return;
+    const title = seoPageEditor.title.trim();
+    const subdomain = slugifySubdomain(seoPageEditor.subdomain);
+    const slug = slugifySeoPost(seoPageEditor.slug || title);
+    const content = seoPageEditor.content.trim();
+    const seoTitle = (seoPageEditor.seoTitle || title).trim();
+    const seoDescription = (seoPageEditor.seoDescription || '').trim();
+    const seoKeywords = (seoPageEditor.seoKeywords || '').trim();
+    const seoRobots = seoPageEditor.seoRobots || 'index, follow';
+    if (!title || !content || !subdomain || !slug || !seoTitle) {
+      alert('Subdomain SEO, judul SEO, judul pos, dan isi post wajib diisi.');
+      return;
+    }
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(slug)) {
+      alert('Slug post tidak valid.');
+      return;
+    }
+
+    const currentPages = settings.seoPages || [];
+    const subdomainPage = currentPages.find((page) => page.subdomain === subdomain);
+    const currentPosts = subdomainPage ? getSeoLandingPosts(subdomainPage) : [];
+    if (subdomainPage && currentPosts.some((post) => post.slug === slug && post.id !== seoPageEditor.id)) {
+      alert('Slug tersebut sudah digunakan pada subdomain ini. Pilih judul atau slug lain.');
+      return;
+    }
+
+    const post: SeoLandingPost = {
+      id: seoPageEditor.id || `seo-post-${Date.now()}`,
+      slug,
+      title,
+      content,
+      authorUsername: currentPosts.find((item) => item.id === seoPageEditor.id)?.authorUsername || (seoPageEditor.id ? 'Abadi' : adminSession.username),
+      authorRole: currentPosts.find((item) => item.id === seoPageEditor.id)?.authorRole || (seoPageEditor.id ? 'Super Admin' : adminSession.role),
+    };
+
+    const generatedPage: SeoLandingPage = {
+      id: subdomainPage?.id || `seo-page-${Date.now()}`,
+      subdomain,
+      adminUserId: subdomainPage?.adminUserId || adminSession.id,
+      title: seoTitle,
+      content: subdomainPage?.content || '',
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      seoRobots,
+      posts: subdomainPage ? currentPosts.filter((item) => item.id !== subdomainPage.id && item.id !== post.id).concat(post) : [post],
+      updated_at: new Date().toISOString(),
+    };
+
+    const nextPages = subdomainPage
+      ? currentPages.map((item) => item.id === subdomainPage.id ? { ...item, ...generatedPage, posts: generatedPage.posts } : item)
+      : [generatedPage, ...currentPages];
+
+    setIsSavingSeoPage(true);
+    try {
+      const saved = await api.updateSettings({ seoPages: nextPages });
+      setSettings(saved);
+      setActiveTab('seo-posts');
+      setSeoSubdomainEditor({
+        id: '',
+        subdomain: '',
+        adminUserId: adminSession.id,
+        title: '',
+        content: '',
+        seoTitle: '',
+        seoDescription: '',
+        seoKeywords: '',
+        seoRobots: 'index, follow',
+      });
+      setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '', seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
+      window.setTimeout(() => document.getElementById('seo-post-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      showToast('Pos dan SEO subdomain berhasil disimpan dalam satu form.');
+      onRefreshData();
+    } catch (error: any) {
+      if (String(error?.message || '').includes('Sesi admin tidak valid')) {
+        localStorage.removeItem('hwa-admin-token');
+        setLoginError('Sesi admin berakhir setelah server diperbarui. Silakan login kembali; isi form tetap tersimpan.');
+        setAdminSession(null);
+        return;
+      }
+      alert(`Gagal menyimpan post: ${error.message || 'Silakan coba lagi.'}`);
+    } finally {
+      setIsSavingSeoPage(false);
+    }
+  };
+
+  const handleSaveSeoSubdomain = async () => {
+    if (!settings || !seoSubdomainEditor) return;
+    const continuePostCreation = activeTab === 'seo-posts' && Boolean(seoPageEditor && !seoPageEditor.id);
+    const subdomain = slugifySubdomain(seoSubdomainEditor.subdomain);
+    const seoTitle = seoSubdomainEditor.seoTitle.trim();
+    const adminUser = adminUsers.find((user) => user.id === seoSubdomainEditor.adminUserId);
+    if (!subdomain || !seoTitle || !adminUser) {
+      alert('Subdomain, judul SEO, dan admin penanggung jawab wajib diisi.');
+      return;
+    }
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)
+      || ['www', 'admin', 'api', 'wijaya', 'kreditmotorhonda'].includes(subdomain)) {
+      alert('Format atau nama subdomain SEO tidak dapat digunakan.');
+      return;
+    }
+
+    const currentPages = settings.seoPages || [];
+    if (currentPages.some((page) => page.subdomain === subdomain && page.id !== seoSubdomainEditor.id)) {
+      alert('Subdomain tersebut sudah digunakan. Pilih subdomain lain.');
+      return;
+    }
+
+    const existingPage = currentPages.find((page) => page.id === seoSubdomainEditor.id);
+    const now = new Date().toISOString();
+    const page: SeoLandingPage = {
+      ...seoSubdomainEditor,
+      id: existingPage?.id || `seo-page-${Date.now()}`,
+      subdomain,
+      adminUserId: adminUser.id,
+      title: existingPage?.content.trim() ? existingPage.title : seoTitle,
+      content: existingPage?.content || '',
+      seoTitle,
+      seoDescription: seoSubdomainEditor.seoDescription.trim(),
+      seoKeywords: seoSubdomainEditor.seoKeywords.trim(),
+      seoRobots: seoSubdomainEditor.seoRobots || 'index, follow',
+      updated_at: now,
+    };
+    const nextPages = existingPage
+      ? currentPages.map((item) => item.id === page.id ? page : item)
+      : [page, ...currentPages];
+
+    try {
+      const saved = await api.updateSettings({ seoPages: nextPages });
+      let updatedSettings = saved;
+      setSettings(saved);
+      setSeoSubdomainEditor({ ...page, sslStatus: page.sslStatus || 'provisioning' });
+      let sslResult: Awaited<ReturnType<typeof api.provisionSeoPageSsl>> | null = null;
+      if (page.sslStatus !== 'active') {
+        sslResult = await api.provisionSeoPageSsl(page.id);
+        updatedSettings = await api.getAdminSettings();
+      }
+      setSettings(updatedSettings);
+      setSeoSubdomainEditor(null);
+      if (continuePostCreation && seoPageEditor) {
+        setSeoPageEditor({
+          ...seoPageEditor,
+          subdomain: page.subdomain,
+          ...(!seoPageEditor.slugManuallyEdited
+            ? { slug: slugifySeoPost(seoPageEditor.title) }
+            : {}),
+        });
+      }
+      onRefreshData();
+      if (sslResult && sslResult.status !== 'active') {
+        setSeoSubdomainEditor({ ...page, sslStatus: sslResult.status, sslError: sslResult.message });
+        showToast(continuePostCreation
+          ? `Subdomain tersimpan dan sudah dipilih untuk pos. SSL belum aktif: ${sslResult.message}`
+          : `Subdomain tersimpan, tetapi belum aktif: ${sslResult.message}`);
+        return;
+      }
+      if (!continuePostCreation) setSeoPageEditor(null);
+      showToast(continuePostCreation
+        ? `Subdomain tersimpan. Lanjutkan membuat pos di ${page.subdomain}.kreditmotorhonda.tech.`
+        : sslResult?.message || `Post diperbarui: ${page.subdomain}.kreditmotorhonda.tech`);
+    } catch (error: any) {
+      alert(`Gagal menyimpan SEO subdomain: ${error.message || 'Silakan coba lagi.'}`);
+    }
+  };
+
+  const handleDeleteSeoPage = async (page: SeoLandingPage) => {
+    if (!settings || !window.confirm(`Hapus konfigurasi SEO subdomain ${page.subdomain}.kreditmotorhonda.tech beserta post-nya?`)) return;
+    try {
+      const nextPages = (settings.seoPages || []).filter((item) => item.id !== page.id);
+      const saved = await api.updateSettings({ seoPages: nextPages });
+      setSettings(saved);
+      if (seoSubdomainEditor?.id === page.id) setSeoSubdomainEditor(null);
+      if (seoPageEditor?.id === page.id) setSeoPageEditor(null);
+      showToast('SEO subdomain dan post dihapus');
+      onRefreshData();
+    } catch (error: any) {
+      alert(`Gagal menghapus post: ${error.message || 'Silakan coba lagi.'}`);
+    }
+  };
+
+  const handleDeleteSeoPost = async (page: SeoLandingPage, post: SeoLandingPost) => {
+    if (!settings || !window.confirm(`Hapus post "${post.title}"? Tindakan ini tidak menyimpan histori versi.`)) return;
+    try {
+      const nextPages = (settings.seoPages || []).map((item) => item.id === page.id
+        ? post.id === page.id
+          ? { ...item, title: item.seoTitle || item.subdomain, content: '' }
+          : { ...item, posts: (item.posts || []).filter((savedPost) => savedPost.id !== post.id) }
+        : item);
+      const saved = await api.updateSettings({ seoPages: nextPages });
+      setSettings(saved);
+      if (seoPageEditor?.id === post.id) setSeoPageEditor(null);
+      showToast('Post dihapus. Konfigurasi SEO subdomain tetap tersimpan.');
+      onRefreshData();
+    } catch (error: any) {
+      alert(`Gagal menghapus post: ${error.message || 'Silakan coba lagi.'}`);
+    }
+  };
+
+  const handleProvisionSeoPageSsl = async (page: Pick<SeoLandingPage, 'id'>) => {
+    try {
+      const result = await api.provisionSeoPageSsl(page.id);
+      const saved = await api.getAdminSettings();
+      setSettings(saved);
+      showToast(result.message);
+      onRefreshData();
+    } catch (error: any) {
+      alert(`Gagal mengaktifkan SSL: ${error.message || 'Silakan coba lagi.'}`);
     }
   };
 
@@ -1377,7 +1950,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
-              <span>Panel CMS Honda Wijaya Abadi Motor</span>
+              <span>{adminBrand.panelTitle}</span>
               <span className="bg-red-600/30 text-red-400 text-xs px-2.5 py-0.5 rounded-full border border-red-500/40">
                 Database CRUD
               </span>
@@ -1399,10 +1972,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
               { id: 'theme', label: 'Template View Website', icon: Palette },
               { id: 'seo', label: 'Dashboard SEO', icon: Search },
+              ...(window.location.hostname === 'kreditmotorhonda.tech' && adminSession.role === 'Super Admin'
+                ? [
+                    { id: 'seo-subdomains', label: 'SEO Subdomain', icon: Search },
+                    { id: 'seo-posts', label: 'Buat Pos', icon: FileText },
+                  ]
+                : []),
               { id: 'security', label: 'Admin & Histori', icon: Shield },
               { id: 'credit', label: 'Cicilan Motor', icon: FileSpreadsheet },
               { id: 'export', label: 'Download & Backup Data', icon: Download },
-            ].filter((tab) => isCatalogOwner === true || ['leads', 'promos', 'settings', 'theme', 'sales-counter'].includes(tab.id)).map((tab) => {
+            ].filter((tab) => isSeoPostAdmin
+              ? ['promos', 'settings', 'theme'].includes(tab.id)
+              : canManageCatalog || !['motors', 'credit'].includes(tab.id)).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -1411,7 +1992,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     <span aria-hidden="true" className="mx-1 hidden h-8 w-px bg-white/15 sm:block" />
                   )}
                   <button
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => {
+                      setActiveTab(tab.id as any);
+                      if (tab.id === 'seo-posts') {
+                        setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '', seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
+                      }
+                      if (tab.id === 'seo-subdomains' || tab.id === 'seo-posts') {
+                        const targetId = tab.id === 'seo-subdomains' ? 'seo-subdomain-manager' : 'seo-post-manager';
+                        window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                      }
+                    }}
                     aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                       isActive
@@ -1442,21 +2032,64 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           <>
             {activeTab === 'sales-counter' && (
               <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-white">Sales Counter</h2>
-                    <p className="mt-1 text-xs text-zinc-400">Ringkasan prospek dan tindak lanjut berdasarkan data masuk.</p>
-                  </div>
-                  {isCatalogOwner === true && (
-                    <button
-                      onClick={() => setActiveTab('leads')}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-red-500"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      Kelola semua peminat
-                    </button>
-                  )}
+                <div>
+                  <h2 className="text-lg font-bold text-white">Sales Counter</h2>
+                  <p className="mt-1 text-xs text-zinc-400">Ringkasan prospek dan tindak lanjut berdasarkan data masuk.</p>
                 </div>
+
+                {canManageSalesCounters && (
+                  <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Website Sales Counter</h3>
+                      <p className="mt-1 text-xs text-zinc-400">Buat subdomain dan akun admin untuk masing-masing sales counter.</p>
+                    </div>
+                    <form onSubmit={handleCreateSalesCounter} className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <input required value={salesCounterForm.name} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, name: event.target.value })} placeholder="Nama sales counter" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="tel" value={salesCounterForm.phone} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, phone: event.target.value })} placeholder="Nomor WhatsApp (62...)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <div className="flex min-w-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-950 focus-within:border-red-500">
+                        <input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={63} value={salesCounterForm.subdomain} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, subdomain: event.target.value.toLocaleLowerCase('id-ID').replace(/[^a-z0-9-]/g, '') })} placeholder="Subdomain" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none" />
+                        <span className="flex items-center border-l border-white/10 px-2 text-[10px] text-zinc-500">.{salesCounterDomainSuffix}</span>
+                      </div>
+                      <input required value={salesCounterForm.username} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, username: event.target.value })} placeholder="Username admin" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input required type="password" minLength={8} value={salesCounterForm.password} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, password: event.target.value })} placeholder="Password admin (min. 8 karakter)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                      <input value={salesCounterForm.seoTitle} maxLength={70} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoTitle: event.target.value })} placeholder="Judul SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
+                      <textarea value={salesCounterForm.seoDescription} maxLength={160} rows={2} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoDescription: event.target.value })} placeholder="Deskripsi SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
+                      <input value={salesCounterForm.seoKeywords} maxLength={300} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoKeywords: event.target.value })} placeholder="Kata kunci SEO (otomatis jika kosong)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none xl:col-span-3" />
+                      <p className="text-[11px] text-zinc-500 xl:col-span-3">Buat satu A record untuk tiap subdomain, tanpa wildcard, ke IP VPS yang sama dengan domain utama. SSL otomatis dicoba setelah DNS tersedia; halaman mulai diindeks setelah SSL aktif.</p>
+                      <button type="submit" disabled={isSavingSalesCounter} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-60">
+                        <Plus className="h-4 w-4" />
+                        {isSavingSalesCounter ? 'Membuat website...' : 'Tambah Sales Counter'}
+                      </button>
+                    </form>
+
+                    <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                      {salesCounters.length ? salesCounters.map((counter) => (
+                        <div key={counter.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white">{counter.name}</p>
+                            <p className="mt-1 break-all text-[11px] text-zinc-400">{counter.subdomain}.{counter.domainSuffix} · {counter.phone}</p>
+                            <p className="mt-1 text-[10px] text-zinc-500">Admin: {counter.username}</p>
+                            {counter.sslStatus !== 'active' && counter.sslError && (
+                              <p className="mt-2 max-w-2xl break-words text-[11px] text-amber-300">{counter.sslError}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-[10px] font-semibold ${counter.sslStatus === 'active' ? 'text-emerald-300' : counter.sslStatus === 'failed' ? 'text-rose-300' : 'text-amber-300'}`}>
+                              SSL: {counter.sslStatus || 'pending'}
+                            </span>
+                            {counter.sslStatus !== 'active' && (
+                              <button type="button" onClick={() => void handleProvisionSeoPageSsl(counter)} className="text-[11px] font-semibold text-amber-200 hover:text-amber-100">Coba SSL</button>
+                            )}
+                            <a href={`https://${counter.subdomain}.${counter.domainSuffix}/admin`} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-sky-300 hover:text-sky-200">Buka Admin</a>
+                            <button type="button" onClick={() => void handleDeleteSalesCounter(counter)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-300 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" />Hapus</button>
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="px-4 py-5 text-center text-xs text-zinc-500">Belum ada website Sales Counter.</p>
+                      )}
+                    </div>
+                  </section>
+                )}
 
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                   {[
@@ -1510,19 +2143,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 <td className="px-4 py-3.5 font-semibold text-white">
                                   {lead.customer_name}
                                   <div className="mt-1 text-[10px] font-normal text-zinc-500">
+                                    {lead.source === 'whatsapp-click' ? 'Klik WhatsApp · ' : ''}
                                     {new Date(lead.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3.5 text-zinc-300">{lead.motor_name || 'Belum dipilih'}</td>
                                 <td className="px-4 py-3.5">
-                                  <a
-                                    href={createWhatsAppUrl(lead.phone, `Halo Kak ${lead.customer_name}, kami dari dealer Honda Wijaya Abadi. Kami siap membantu kebutuhan motor Anda.`)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-medium text-emerald-400 hover:underline"
-                                  >
-                                    {lead.phone}
-                                  </a>
+                                  {lead.phone ? (
+                                    <a
+                                      href={createWhatsAppUrl(lead.phone, `Halo Kak ${lead.customer_name}, kami dari dealer Honda Wijaya Abadi. Kami siap membantu kebutuhan motor Anda.`)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-medium text-emerald-400 hover:underline"
+                                    >
+                                      {lead.phone}
+                                    </a>
+                                  ) : lead.source === 'whatsapp-click' ? 'Nomor belum tersedia' : '-'}
                                 </td>
                                 <td className="px-4 py-3.5">
                                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
@@ -1550,7 +2186,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <section className="flex flex-col gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h2 className="text-sm font-bold text-white">Katalog motor dikelola bersama</h2>
-                      <p className="mt-1 text-xs text-zinc-400">Perubahan katalog dan price list dilakukan dari satu panel pusat, lalu tampil di ketiga website.</p>
+                      <p className="mt-1 text-xs text-zinc-400">Perubahan katalog dan price list dari panel ini disimpan ke layanan pusat dan langsung berlaku di seluruh website.</p>
                     </div>
                     <a href={catalogAdminUrl} className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
                       Buka Admin Katalog Pusat
@@ -2130,16 +2766,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {leads.map((lead) => {
-                            const waUrl = createWhatsAppUrl(
+                            const waUrl = lead.phone ? createWhatsAppUrl(
                               lead.phone,
                               `Halo Kak ${lead.customer_name}, kami dari dealer resmi Honda Wijaya Abadi. Terkait pemesanan motor ${lead.motor_name}, ada yang ingin ditanyakan mengenai promo dan sistem kredit.`
-                            );
+                            ) : undefined;
 
                             return (
                               <tr key={lead.id} className="hover:bg-white/[0.02]">
                                 <td className="py-3.5 px-4 font-bold text-white">
                                   {lead.customer_name}
                                   <div className="text-[10px] text-zinc-500 font-normal">
+                                    {lead.source === 'whatsapp-click' ? 'Klik WhatsApp · ' : ''}
                                     {new Date(lead.created_at).toLocaleDateString('id-ID', {
                                       day: 'numeric',
                                       month: 'short',
@@ -2150,15 +2787,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 </td>
 
                                 <td className="py-3.5 px-4">
-                                  <a
-                                    href={waUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-emerald-400 hover:underline font-medium flex items-center gap-1"
-                                  >
-                                    <MessageSquare className="w-3 h-3" />
-                                    <span>Kirim WhatsApp ({lead.phone})</span>
-                                  </a>
+                                  <span className="font-medium text-zinc-300">{lead.phone || (lead.source === 'whatsapp-click' ? 'Nomor belum tersedia' : '-')}</span>
                                 </td>
 
                                 <td className="py-3.5 px-4 font-semibold text-red-400">
@@ -2191,15 +2820,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                                 <td className="py-3.5 px-4 text-right">
                                   <div className="flex items-center justify-end gap-2">
-                                    <a
-                                      href={waUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg transition-colors"
-                                      title={`Kirim WhatsApp ke ${lead.customer_name}`}
-                                    >
-                                      <MessageSquare className="w-4 h-4" />
-                                    </a>
+                                    {waUrl && (
+                                      <a
+                                        href={waUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-2.5 py-1.5 font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                                        title={`Balas langsung via WhatsApp ke ${lead.customer_name}`}
+                                      >
+                                        <MessageCircle className="w-4 h-4" />
+                                        <span>Balas langsung</span>
+                                      </a>
+                                    )}
                                     <button
                                       onClick={() => handleDeleteLead(lead.id)}
                                       className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
@@ -2494,6 +3126,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     </div>
                   </section>
                   )}
+                  {activeTab === 'theme' && settings.websiteTemplate === 'astra-honda-red-white' && (
+                    <section className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4 sm:p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <label htmlFor="featured-motor-rotation-interval" className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-200">
+                            Jeda pergantian motor unggulan
+                          </label>
+                          <p className="mt-1 text-[11px] text-zinc-500">Mengatur berapa lama tiap motor bestseller ditampilkan pada hero.</p>
+                        </div>
+                        <span className="shrink-0 text-sm font-bold text-red-400">
+                          {normalizeFeaturedMotorRotationInterval(settings.featuredMotorRotationInterval ?? DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL)} detik
+                        </span>
+                      </div>
+                      <input
+                        id="featured-motor-rotation-interval"
+                        type="range"
+                        min={MIN_FEATURED_MOTOR_ROTATION_INTERVAL}
+                        max={MAX_FEATURED_MOTOR_ROTATION_INTERVAL}
+                        step="1"
+                        value={normalizeFeaturedMotorRotationInterval(settings.featuredMotorRotationInterval ?? DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL)}
+                        onChange={(event) => setSettings({ ...settings, featuredMotorRotationInterval: Number(event.target.value) })}
+                        className="w-full accent-red-600"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-500">
+                        <span>{MIN_FEATURED_MOTOR_ROTATION_INTERVAL} detik</span>
+                        <span>{MAX_FEATURED_MOTOR_ROTATION_INTERVAL} detik</span>
+                      </div>
+                    </section>
+                  )}
                   {activeTab === 'settings' && (
                   <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2526,6 +3187,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                   {activeTab === 'theme' && (
                   <div className="space-y-3">
+                    <label className="block text-xs font-bold text-zinc-300 uppercase">
+                      Tulisan badge di foto hero
+                      <input
+                        type="text"
+                        value={settings.heroBadge ?? 'Showroom Resmi Bandung'}
+                        onChange={(event) => setSettings({ ...settings, heroBadge: event.target.value })}
+                        placeholder="Kosongkan untuk menyembunyikan badge"
+                        className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs font-normal normal-case text-white focus:border-red-500 focus:outline-none"
+                      />
+                    </label>
                     <label className="block text-xs font-bold text-zinc-300 uppercase mb-1">
                       Template View Website
                     </label>
@@ -2805,9 +3476,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               </div>
             )}
 
-            {activeTab === 'seo' && settings && (
+            {(['seo', 'seo-subdomains', 'seo-posts'].includes(activeTab)) && settings && (
               <form onSubmit={handleSaveSettings} className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className={`flex flex-wrap items-start justify-between gap-4 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                   <div>
                     <h2 className="text-lg font-bold text-white">Dashboard SEO</h2>
                     <p className="mt-1 text-xs text-zinc-400">Pantau kesiapan halaman utama dan kelola metadata pencarian.</p>
@@ -2851,7 +3522,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                   <section className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
                     <p className="text-xs text-zinc-400">SEO Score</p>
                     <p className="mt-2 text-2xl font-bold text-white">{seoScore}<span className="ml-1 text-sm font-medium text-zinc-500">/ 100</span></p>
@@ -2882,7 +3553,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                   <div className="space-y-5">
-                    <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section id="seo-main-metadata" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <h3 className="text-sm font-bold text-white">Metadata halaman utama</h3>
                       <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                         Judul SEO
@@ -2923,7 +3594,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       </div>
                     </section>
 
-                    <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section className={`rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <h3 className="mb-3 text-sm font-bold text-white">Pratinjau hasil pencarian</h3>
                       <div className="max-w-2xl rounded-lg border border-white/10 bg-zinc-950 p-4">
                         <p className="truncate text-xs text-emerald-400">{seoCanonicalUrl}</p>
@@ -2935,10 +3606,313 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         Simpan metadata SEO
                       </button>
                     </section>
+
+                    {activeTab === 'seo' && canManageSalesCounters && (
+                      <section className="space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">SEO Sales Counter</h3>
+                          <p className="mt-1 text-xs text-zinc-400">Edit metadata counter pada domain {salesCounterDomainSuffix}.</p>
+                        </div>
+                        {salesCounters.length ? (
+                          <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                            {salesCounters.map((counter) => (
+                              <div key={counter.id} className="p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-white">{counter.name}</p>
+                                    <p className="mt-1 break-all text-[11px] text-zinc-400">{counter.subdomain}.{counter.domainSuffix}</p>
+                                    <p className="mt-1 truncate text-[11px] text-zinc-500">{counter.seoTitle || 'Judul SEO belum diatur'}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditSalesCounterSeo(counter)}
+                                    className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+                                  >
+                                    Edit SEO
+                                  </button>
+                                </div>
+                                {editingSalesCounterSeoId === counter.id && (
+                                  <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Judul SEO
+                                      <input
+                                        value={salesCounterSeoForm.seoTitle}
+                                        maxLength={70}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoTitle: event.target.value })}
+                                        className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      />
+                                    </label>
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Deskripsi SEO
+                                      <textarea
+                                        value={salesCounterSeoForm.seoDescription}
+                                        maxLength={160}
+                                        rows={3}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoDescription: event.target.value })}
+                                        className="w-full resize-y rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      />
+                                    </label>
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Kata kunci
+                                      <input
+                                        value={salesCounterSeoForm.seoKeywords}
+                                        maxLength={300}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoKeywords: event.target.value })}
+                                        className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      />
+                                    </label>
+                                    <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                                      Robots
+                                      <select
+                                        value={salesCounterSeoForm.seoRobots}
+                                        onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoRobots: event.target.value })}
+                                        className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                                      >
+                                        <option value="index, follow">Index, follow</option>
+                                        <option value="noindex, follow">Noindex, follow</option>
+                                        <option value="index, nofollow">Index, nofollow</option>
+                                        <option value="noindex, nofollow">Noindex, nofollow</option>
+                                      </select>
+                                    </label>
+                                    <div className="flex justify-end gap-2">
+                                      <button type="button" onClick={() => setEditingSalesCounterSeoId(null)} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Batal</button>
+                                      <button type="button" onClick={() => void handleSaveSalesCounterSeo()} disabled={isSavingSalesCounterSeo} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50">
+                                        <Save className="h-3.5 w-3.5" />{isSavingSalesCounterSeo ? 'Menyimpan...' : 'Simpan SEO'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada Sales Counter pada domain ini.</p>
+                        )}
+                      </section>
+                    )}
+
+                    <section id="seo-subdomain-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">{activeTab === 'seo-posts' ? 'SEO Subdomain untuk Pos Baru' : 'Pengaturan SEO Subdomain'}</h3>
+                          <p className="mt-1 text-xs text-zinc-400">{activeTab === 'seo-posts' ? 'Isi subdomain dan metadata SEO, simpan, lalu lanjutkan menulis pos pada subdomain tersebut.' : 'Atur alamat subdomain, metadata pencarian, dan admin. Konten post dikelola terpisah.'}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSeoSubdomainEditor({
+                            id: '',
+                            subdomain: '',
+                            adminUserId: adminSession.id,
+                            title: '',
+                            content: '',
+                            seoTitle: '',
+                            seoDescription: '',
+                            seoKeywords: '',
+                            seoRobots: 'index, follow',
+                          })}
+                          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> {activeTab === 'seo-posts' ? 'Subdomain baru' : 'Tambah SEO subdomain'}
+                        </button>
+                      </div>
+                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200">
+                        Subdomain baru memerlukan wildcard DNS dan sertifikat HTTPS wildcard sebelum link dapat dibuka publik.
+                      </div>
+                      {activeTab !== 'seo-posts' && settings.seoPages?.length ? (
+                        <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                          {settings.seoPages.map((page) => (
+                            <div key={page.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-white">{page.seoTitle || page.title || page.subdomain}</p>
+                                {page.sslStatus === 'active' ? (
+                                  <a href={`https://${page.subdomain}.kreditmotorhonda.tech`} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-sky-300 hover:text-sky-200">{page.subdomain}.kreditmotorhonda.tech</a>
+                                ) : (
+                                  <span className="mt-1 block break-all text-xs text-zinc-500">{page.subdomain}.kreditmotorhonda.tech</span>
+                                )}
+                                <p className="mt-1 text-[11px] text-zinc-500">Admin: {adminUsers.find((user) => user.id === page.adminUserId)?.username || 'Admin belum ditemukan'}</p>
+                                <p className={`mt-1 text-[11px] ${page.sslStatus === 'active' ? 'text-emerald-400' : 'text-amber-300'}`}>SSL: {page.sslStatus === 'active' ? 'Aktif' : page.sslError || 'Menunggu DNS dan verifikasi ACME'}</p>
+                                <p className="mt-1 text-[11px] text-zinc-500">Post: {page.content.trim() ? 'Sudah dibuat' : 'Belum dibuat'}</p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                {page.sslStatus !== 'active' && (
+                                  <button type="button" onClick={() => void handleProvisionSeoPageSsl(page)} className="rounded-lg border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/10">Coba SSL lagi</button>
+                                )}
+                                <button type="button" onClick={() => setSeoSubdomainEditor({ ...page, adminUserId: page.adminUserId || adminSession.id })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit SEO</button>
+                                <button type="button" onClick={() => void handleDeleteSeoPage(page)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"><Trash2 className="h-3.5 w-3.5" />Hapus SEO</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : activeTab !== 'seo-posts' ? (
+                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada konfigurasi SEO subdomain.</p>
+                      ) : null}
+                      {seoSubdomainEditor && (
+                        <div className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <h4 className="text-sm font-bold text-white">{seoSubdomainEditor.id ? 'Edit SEO subdomain' : 'SEO subdomain baru'}</h4>
+                            <button type="button" onClick={() => setSeoSubdomainEditor(null)} aria-label="Tutup editor SEO subdomain" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"><X className="h-4 w-4" /></button>
+                          </div>
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Subdomain
+                            <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-zinc-900 focus-within:border-red-500">
+                              <input value={seoSubdomainEditor.subdomain} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, subdomain: slugifySubdomain(event.target.value) })} maxLength={63} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
+                              <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-500">.kreditmotorhonda.tech</span>
+                            </div>
+                            <span className="block break-all text-[10px] text-sky-300">https://{seoSubdomainEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
+                            {hasDuplicateSeoSubdomain && <span className="block text-[11px] font-semibold text-red-300">Website ini sudah memiliki SEO subdomain.</span>}
+                          </label>
+                          <label className="block max-w-xl space-y-1 text-xs font-medium text-zinc-300">
+                            Admin penanggung jawab SEO
+                            <select value={seoSubdomainEditor.adminUserId} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, adminUserId: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+                              {adminUsers.map((user) => <option key={user.id} value={user.id}>{user.username} · {user.role}</option>)}
+                            </select>
+                          </label>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="space-y-1 text-xs font-medium text-zinc-300">SEO title<input value={seoSubdomainEditor.seoTitle} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoTitle: event.target.value, ...(!seoSubdomainEditor.content.trim() ? { title: event.target.value } : {}) })} maxLength={70} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Judul yang tampil di Google" /></label>
+                            <label className="space-y-1 text-xs font-medium text-zinc-300">Kata kunci SEO<input value={seoSubdomainEditor.seoKeywords} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan dengan koma" /></label>
+                          </div>
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">SEO description<textarea value={seoSubdomainEditor.seoDescription} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoDescription: event.target.value })} rows={3} maxLength={200} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Ringkasan untuk hasil pencarian" /></label>
+                          <label className="block max-w-xs space-y-1 text-xs font-medium text-zinc-300">Robots<select value={seoSubdomainEditor.seoRobots || 'index, follow'} onChange={(event) => setSeoSubdomainEditor({ ...seoSubdomainEditor, seoRobots: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"><option value="index, follow">Index, follow</option><option value="noindex, follow">Noindex, follow</option></select></label>
+                          <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
+                            <button type="button" onClick={() => setSeoSubdomainEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
+                            <button type="button" onClick={() => void handleSaveSeoSubdomain()} disabled={hasDuplicateSeoSubdomain} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-300"><Save className="h-3.5 w-3.5" /> Simpan SEO subdomain</button>
+                          </div>
+                        </div>
+                      )}
+                    </section>
+
+                    <section id="seo-post-manager" className={`space-y-4 rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo-posts' || activeTab === 'seo-subdomains' ? '' : 'hidden'}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">{activeTab === 'seo-posts' ? 'Tambah SEO Baru' : 'Pos tersimpan'}</h3>
+                          <p className="mt-1 text-xs text-zinc-400">{activeTab === 'seo-posts' ? 'Isi subdomain, metadata SEO, dan konten pos dalam satu form lalu simpan sekaligus.' : 'Edit atau hapus pos pada subdomain yang sudah dibuat.'}</p>
+                        </div>
+                      </div>
+
+                      {activeTab === 'seo-subdomains' && seoPostEntries.length ? (
+                        <div className="divide-y divide-white/10 rounded-xl border border-white/10">
+                          {seoPostEntries.map(({ page, post }) => (
+                            <div key={`${page.id}-${post.id}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-white">{post.title}</p>
+                                <p className="mt-1 text-[11px] text-zinc-300">@{post.authorUsername || 'Abadi'} · {post.authorRole || 'Super Admin'}</p>
+                                <a href={`https://${page.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(page, post)}`} target="_blank" rel="noreferrer" className="mt-1 block break-all text-xs text-sky-300 hover:text-sky-200">{page.subdomain}.kreditmotorhonda.tech{getSeoLandingPostPath(page, post)}</a>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button type="button" onClick={() => void handleDeleteSeoPost(page, post)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"><Trash2 className="h-3.5 w-3.5" />Hapus pos</button>
+                                <button type="button" onClick={() => {
+                                  setSeoPageEditor({ ...post, subdomain: page.subdomain, seoTitle: page.seoTitle, seoDescription: page.seoDescription, seoKeywords: page.seoKeywords, seoRobots: page.seoRobots, slugManuallyEdited: true });
+                                  window.setTimeout(() => document.getElementById('seo-post-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                                }} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit pos</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : activeTab === 'seo-subdomains' ? (
+                        <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-xs text-zinc-500">Belum ada pos tersimpan.</p>
+                      ) : null}
+
+                      {seoPageEditor && (activeTab === 'seo-posts' || (activeTab === 'seo-subdomains' && Boolean(seoPageEditor.id))) && (
+                        <div id="seo-post-editor" className="space-y-4 rounded-xl border border-red-500/20 bg-zinc-950/70 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <h4 className="text-sm font-bold text-white">{seoPageEditor.id ? 'Edit pos' : 'SEO dan Pos Baru'}</h4>
+                            <button type="button" onClick={() => setSeoPageEditor(null)} aria-label="Tutup editor post" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"><X className="h-4 w-4" /></button>
+                          </div>
+
+                          <div className="space-y-3 rounded-lg border border-white/10 bg-zinc-900/70 p-3">
+                            <div>
+                              <p className="text-[11px] font-medium text-zinc-400">Domain utama tersedia</p>
+                              <p className="mt-1 text-sm font-semibold text-white">kreditmotorhonda.tech</p>
+                            </div>
+                            <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                              Tentukan subdomain
+                              <div className="flex items-center overflow-hidden rounded-lg border border-white/10 bg-zinc-950 focus-within:border-red-500">
+                                <input value={seoPageEditor.subdomain} onChange={(event) => {
+                                  const updatedSubdomain = slugifySubdomain(event.target.value);
+                                  setSeoPageEditor({
+                                    ...seoPageEditor,
+                                    subdomain: updatedSubdomain,
+                                    ...(!seoPageEditor.slugManuallyEdited
+                                      ? { slug: slugifySeoPost(seoPageEditor.title) }
+                                      : {}),
+                                  });
+                                }} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none" placeholder="promo-vario" />
+                                <span className="shrink-0 border-l border-white/10 px-2.5 py-2.5 text-[10px] text-zinc-400">.kreditmotorhonda.tech</span>
+                              </div>
+                              <span className="block break-all text-[10px] text-sky-300">Alamat subdomain: https://{seoPageEditor.subdomain || 'subdomain'}.kreditmotorhonda.tech</span>
+                            </label>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                              Judul SEO
+                              <input value={seoPageEditor.seoTitle || ''} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoTitle: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Judul yang tampil di Google" />
+                            </label>
+                          </div>
+
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Deskripsi SEO
+                            <textarea value={seoPageEditor.seoDescription || ''} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoDescription: event.target.value })} rows={3} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Ringkasan untuk hasil pencarian" />
+                          </label>
+
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                              Kata kunci SEO
+                              <input value={seoPageEditor.seoKeywords || ''} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoKeywords: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Pisahkan dengan koma" />
+                            </label>
+                            <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                              Robots
+                              <select value={seoPageEditor.seoRobots || 'index, follow'} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, seoRobots: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+                                <option value="index, follow">Index, follow</option>
+                                <option value="noindex, follow">Noindex, follow</option>
+                                <option value="index, nofollow">Index, nofollow</option>
+                                <option value="noindex, nofollow">Noindex, nofollow</option>
+                              </select>
+                            </label>
+                          </div>
+
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Judul pos
+                            <input value={seoPageEditor.title} onChange={(event) => {
+                              const updatedTitle = event.target.value;
+                              setSeoPageEditor({
+                                ...seoPageEditor,
+                                title: updatedTitle,
+                                ...(!seoPageEditor.slugManuallyEdited
+                                  ? { slug: slugifySeoPost(updatedTitle) }
+                                  : {}),
+                              });
+                            }} maxLength={120} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Promo Honda Vario Bandung" />
+                          </label>
+
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Slug URL
+                            <input value={seoPageEditor.slug || slugifySeoPost(seoPageEditor.title)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, slug: slugifySeoPost(event.target.value), slugManuallyEdited: true })} maxLength={63} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
+                            <span className="block break-all text-[10px] text-sky-300">
+                              {seoPageEditor.subdomain
+                                ? `https://${seoPageEditor.subdomain}.kreditmotorhonda.tech${seoPageEditor.slug || slugifySeoPost(seoPageEditor.title) ? `/${seoPageEditor.slug || slugifySeoPost(seoPageEditor.title)}/` : ''}`
+                                : 'Tentukan subdomain di atas untuk membuat URL pos otomatis.'}
+                            </span>
+                            <span className="block text-[10px] text-zinc-500">Slug otomatis hanya mengikuti judul pos; kosong sampai judul diisi dan dapat diubah manual.</span>
+                          </label>
+
+                          <label className="block space-y-1 text-xs font-medium text-zinc-300">
+                            Isi pos
+                            <textarea value={seoPageEditor.content} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, content: event.target.value })} rows={8} maxLength={20000} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-relaxed text-white focus:border-red-500 focus:outline-none" placeholder="Tulis isi post. Gunakan baris baru untuk memisahkan paragraf." />
+                          </label>
+
+                          <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
+                            <button type="button" onClick={() => setSeoPageEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
+                            <button type="button" onClick={() => void handleSaveSeoPage()} disabled={isSavingSeoPage} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {isSavingSeoPage ? 'Menyimpan...' : 'Simpan sekali'}</button>
+                          </div>
+                        </div>
+                      )}
+
+                    </section>
                   </div>
 
                   <aside className="space-y-4">
-                    <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5">
+                    <section className={`rounded-2xl border border-white/10 bg-zinc-900/50 p-5 ${activeTab === 'seo' ? '' : 'hidden'}`}>
                       <div className="flex items-center gap-4">
                         <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-1" style={{ background: `conic-gradient(#ef4444 ${seoScore * 3.6}deg, #27272a 0deg)` }}>
                           <div className="grid h-full w-full place-items-center rounded-full bg-zinc-950 text-xl font-black text-white">{seoScore}</div>
@@ -3027,20 +4001,124 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         <option>Staff Admin</option>
                         <option>Super Admin</option>
                       </select>
-                      <button className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20">Tambah Admin</button>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Admin Pos</label>
+                        <select
+                          value={securityForm.assignedSeoPageId}
+                          onChange={(event) => setSecurityForm({ ...securityForm, assignedSeoPageId: event.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white focus:border-red-500 focus:outline-none"
+                        >
+                          <option value="">Tanpa admin pos</option>
+                          {(settings?.seoPages || []).map((page) => (
+                            <option key={page.id} value={page.id}>{page.subdomain}.kreditmotorhonda.tech</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button className="rounded-xl border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:border-emerald-800 hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">Tambah Admin</button>
                     </form>
                   )}
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-6">
+                  {adminSession.role === 'Super Admin' && window.location.hostname === 'kreditmotorhonda.tech' && (
+                    <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 sm:p-5">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h3 className="font-bold text-white">Dashboard Owner</h3>
+                          <p className="mt-1 max-w-2xl text-[11px] text-zinc-400">Pilih website yang dapat dipantau owner. Link bersifat rahasia, siapa pun yang memilikinya dapat melihat ringkasan kunjungan.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSaveOwnerDashboard}
+                          disabled={isSavingOwnerDashboard || ownerDashboardHosts.length === 0}
+                          className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isSavingOwnerDashboard ? 'Menyimpan...' : 'Simpan & buat link'}
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {[
+                          { host: 'kreditmotorhonda.tech', label: 'Website utama' },
+                          { host: 'wijaya.kreditmotorhonda.tech', label: 'Wijaya Kredit Motor' },
+                          { host: 'solusikreditmotor.cloud', label: 'Solusi Kredit Motor' },
+                          ...(settings?.seoPages || []).map((page) => ({
+                            host: `${page.subdomain}.kreditmotorhonda.tech`,
+                            label: page.title || page.subdomain,
+                          })),
+                        ].map((site) => (
+                          <label key={site.host} className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-zinc-950/60 px-3 py-2.5 text-xs text-zinc-200">
+                            <input
+                              type="checkbox"
+                              checked={ownerDashboardHosts.includes(site.host)}
+                              onChange={(event) => setOwnerDashboardHosts((current) => event.target.checked
+                                ? [...current, site.host]
+                                : current.filter((host) => host !== site.host))}
+                              className="h-4 w-4 shrink-0 accent-emerald-500"
+                            />
+                            <span className="min-w-0">
+                              <span className="block truncate font-semibold">{site.label}</span>
+                              <span className="mt-0.5 block truncate text-[10px] text-zinc-500">{site.host}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+
+                      {ownerDashboardUrl && (
+                        <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row">
+                          <input readOnly value={ownerDashboardUrl} aria-label="Link dashboard owner" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-300" />
+                          <button type="button" onClick={async () => { await navigator.clipboard.writeText(ownerDashboardUrl); showToast('Link dashboard owner disalin'); }} className="rounded-lg border border-white/15 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-white/5">Salin link</button>
+                        </div>
+                      )}
+                    </section>
+                  )}
                   <h3 className="mb-4 font-bold text-white">Daftar Admin</h3>
                   <div className="space-y-2">
-                    {adminUsers.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-zinc-950/70 px-4 py-3">
-                        <div><div className="text-sm font-bold text-white">{user.username}</div><div className="text-[11px] text-zinc-400">{user.role}</div></div>
-                        {adminSession.role === 'Super Admin' && user.id !== adminSession.id && <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); setAdminUsers((prev) => prev.filter((item) => item.id !== user.id)); showToast(`Admin ${user.username} berhasil dihapus`); }} className="text-[10px] text-red-400 hover:text-red-300">Hapus</button>}
-                      </div>
-                    ))}
+                    {adminUsers.map((user) => {
+                      const assignedPage = (settings?.seoPages || []).find((page) => page.adminUserId === user.id);
+
+                      return (
+                        <div key={user.id} className="rounded-xl border border-white/5 bg-zinc-950/70 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-bold text-white">{user.username}</div>
+                              <div className="text-[11px] text-zinc-400">{user.role}</div>
+                            </div>
+                            {adminSession.role === 'Super Admin' && user.id !== adminSession.id && (
+                              <button onClick={async () => { if (!window.confirm(`Hapus admin ${user.username}?`)) return; await api.deleteAdminUser(user.id); setAdminUsers((prev) => prev.filter((item) => item.id !== user.id)); showToast(`Admin ${user.username} berhasil dihapus`); }} className="text-[10px] text-red-400 hover:text-red-300">Hapus</button>
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <div className="text-[11px] text-zinc-400">
+                              {assignedPage ? `Admin Pos: ${assignedPage.subdomain}.kreditmotorhonda.tech` : 'Belum ditugaskan ke admin pos'}
+                            </div>
+
+                            {adminSession.role === 'Super Admin' && (
+                              <select
+                                value={assignedPage?.id || ''}
+                                onChange={async (event) => {
+                                  const selectedPageId = event.target.value;
+                                  try {
+                                    await api.updateAdminUser(user.id, { assignedSeoPageId: selectedPageId });
+                                    await refreshSecurityData();
+                                    showToast(`Admin ${user.username} diperbarui ke pos ${selectedPageId ? 'terpilih' : 'umum'}`);
+                                  } catch (error: any) {
+                                    alert(error.message || 'Gagal memperbarui admin pos');
+                                  }
+                                }}
+                                className="w-full max-w-xs rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-[11px] text-white focus:border-red-500 focus:outline-none"
+                              >
+                                <option value="">Tanpa admin pos</option>
+                                {(settings?.seoPages || []).map((page) => (
+                                  <option key={page.id} value={page.id}>{page.subdomain}.kreditmotorhonda.tech</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

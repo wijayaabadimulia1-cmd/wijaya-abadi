@@ -135,9 +135,7 @@ export const PromoSection: React.FC<PromoSectionProps> = ({ promos, settings, sh
             {visiblePromos.map((promo, idx) => {
               const promoImages = (promo.images || []).slice(0, MAX_PROMO_IMAGES);
               const promoTemplate = promo.promoTemplate || 'classic';
-              const waUrl = createWhatsAppUrl(settings.phone,
-                `Halo Honda Wijaya Abadi, saya ingin klaim penawaran "${promo.title} - ${promo.description}". Mohon informasi syarat dan ketentuannya.`
-              );
+              const waUrl = createWhatsAppUrl(settings.phone, `Halo Honda Wijaya Abadi, saya ingin klaim penawaran "${promo.title} - ${promo.description}". Mohon informasi syarat dan ketentuannya.`);
 
               return (
                 <article

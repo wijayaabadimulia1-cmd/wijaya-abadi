@@ -23,20 +23,29 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const whatsappUrl = createWhatsAppUrl(settings.phone,
-    'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.'
-  );
+  const whatsappUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya ingin konsultasi mengenai pembelian motor Honda terbaru.');
   const anchorPrefix = window.location.pathname.replace(/\/+$/, '') === '/promo' ? '/' : '';
+  const isWijayaEnerjik = settings.websiteTemplate === 'wijaya-enerjik';
 
-  const navLinks = [
-    { label: 'Beranda', href: `${anchorPrefix}#home` },
-    { label: 'Katalog Motor', href: `${anchorPrefix}#katalog` },
-    { label: 'Promo', href: `${anchorPrefix}#promo` },
-    { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
-    { label: 'Nilai Kami', href: `${anchorPrefix}#manifesto` },
-    { label: 'Testimoni', href: `${anchorPrefix}#testimoni` },
-    { label: 'Kontak', href: `${anchorPrefix}#kontak` },
-  ];
+  const navLinks = isWijayaEnerjik
+    ? [
+        { label: 'Beranda', href: `${anchorPrefix}#home` },
+        { label: 'Motor', href: `${anchorPrefix}#katalog` },
+        { label: 'Promo', href: `${anchorPrefix}#promo` },
+        { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
+        { label: 'Artikel', href: `${anchorPrefix}#testimoni` },
+        { label: 'Tentang Kami', href: `${anchorPrefix}#manifesto` },
+        { label: 'Kontak', href: `${anchorPrefix}#kontak` },
+      ]
+    : [
+        { label: 'Beranda', href: `${anchorPrefix}#home` },
+        { label: 'Katalog Motor', href: `${anchorPrefix}#katalog` },
+        { label: 'Promo', href: `${anchorPrefix}#promo` },
+        { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
+        { label: 'Nilai Kami', href: `${anchorPrefix}#manifesto` },
+        { label: 'Testimoni', href: `${anchorPrefix}#testimoni` },
+        { label: 'Kontak', href: `${anchorPrefix}#kontak` },
+      ];
 
   return (
     <header
@@ -130,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-semibold rounded-xl transition-colors"
             >
               <MessageSquare className="w-4 h-4 text-emerald-400" />
-              <span>WhatsApp Sales</span>
+                <span>{isWijayaEnerjik ? 'Chat Sales' : 'WhatsApp Sales'}</span>
             </a>
 
           </div>
@@ -168,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-zinc-800 bg-zinc-950/95 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="site-navbar-mobile-menu lg:hidden py-4 border-t border-zinc-800 bg-zinc-950/95 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex flex-col space-y-2">
               {navLinks.map((link) => (
                 <a

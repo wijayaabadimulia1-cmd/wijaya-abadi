@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, MessageSquare, CheckCircle, Bike, ShieldCheck } from 'lucide-react';
 import { Motor, DealerSettings } from '../types';
 import { api, formatRupiah } from '../services/api';
-import { createWhatsAppUrl } from '../utils/whatsapp';
+import { createWhatsAppUrl, trackWhatsAppClick } from '../utils/whatsapp';
 
 interface InterestModalProps {
   isOpen: boolean;
@@ -82,6 +82,7 @@ ${note ? `• Catatan: ${note}` : ''}
 Mohon informasi ketersediaan unit dan proses pengajuannya. Terima kasih!`;
 
       const waUrl = createWhatsAppUrl(settings.phone, textMsg);
+      trackWhatsAppClick('Form minat / Kirim WhatsApp');
       if (whatsappWindow) {
         whatsappWindow.location.href = waUrl;
       } else {
@@ -91,6 +92,7 @@ Mohon informasi ketersediaan unit dan proses pengajuannya. Terima kasih!`;
       console.error('Error submitting interest:', err);
       alert('Terjadi kesalahan saat menyimpan data. Anda akan langsung dialihkan ke WhatsApp.');
       const waUrl = createWhatsAppUrl(settings.phone);
+      trackWhatsAppClick('Form minat / WhatsApp langsung');
       if (whatsappWindow) {
         whatsappWindow.location.href = waUrl;
       } else {

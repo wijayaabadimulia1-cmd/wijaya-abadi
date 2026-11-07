@@ -1,0 +1,300 @@
+.website-template-honda-tokyo-racing-edition {
+  --site-bg: #f4f6fb;
+  --site-panel: #ffffff;
+  --site-card: #ffffff;
+  --site-text: #0d1117;
+  --site-muted: #6e7681;
+  --site-accent: #e60012;
+  --site-accent-soft: rgba(230, 0, 18, 0.08);
+  --site-border: #e2e8f0;
+  --tokyo-red: var(--custom-primary, #e60012);
+  --tokyo-cyan: var(--custom-accent, #00c8ff);
+  --tokyo-ink: #0d1117;
+  --tokyo-muted: #6e7681;
+  --tokyo-surface: #ffffff;
+  --tokyo-bg: #f4f6fb;
+}
+
+.website-template-honda-tokyo-racing-edition.site-mode-dark {
+  --site-bg: #0d1117;
+  --site-panel: #151a22;
+  --site-card: #1b222c;
+  --site-text: #f4f6fb;
+  --site-muted: #b4bfcc;
+  --site-accent: #ff3548;
+  --site-accent-soft: rgba(255, 53, 72, 0.12);
+  --site-border: #34404e;
+  --tokyo-ink: #f4f6fb;
+  --tokyo-muted: #b4bfcc;
+  --tokyo-surface: #151a22;
+  --tokyo-bg: #0d1117;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition,
+.website-shell.website-template-honda-tokyo-racing-edition.site-mode-light,
+.website-shell.website-template-honda-tokyo-racing-edition.site-mode-dark {
+  --site-bg-effective: var(--custom-bg, var(--site-bg));
+  --site-panel-effective: var(--custom-panel, var(--site-panel));
+  --site-card-effective: var(--custom-card, var(--site-card));
+  --site-text-effective: var(--custom-text, var(--site-text));
+  --site-muted-effective: var(--custom-muted, var(--site-muted));
+  --site-accent-effective: var(--custom-primary, var(--site-accent));
+  background: var(--site-bg-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-topbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0d1117;
+  color: #f4f6fb;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-topbar__item svg,
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-topbar__official svg {
+  color: var(--tokyo-cyan);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-topbar__official {
+  border-color: rgba(0, 240, 255, 0.35);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar {
+  border-bottom: 1px solid var(--site-border);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 5px 20px rgba(13, 17, 23, 0.06);
+  color: #0d1117;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition.site-mode-dark .site-navbar {
+  background: rgba(13, 17, 23, 0.92);
+  color: #f4f6fb;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar a,
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar button {
+  border-radius: 999px;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar nav a:first-child {
+  border: 1px solid rgba(230, 0, 18, 0.2);
+  background: #fff0f1;
+  color: #e60012 !important;
+  padding: 9px 16px;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition.site-mode-dark .site-navbar nav a:first-child {
+  border-color: rgba(255, 53, 72, 0.35);
+  background: rgba(255, 53, 72, 0.12);
+  color: #ff6977 !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar .site-accent-label {
+  border-color: rgba(230, 0, 18, 0.2);
+  background: #fff0f1;
+  color: #e60012;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar .bg-emerald-600 {
+  background: #0d1117 !important;
+  color: #ffffff;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .site-navbar-mobile-menu {
+  border-color: var(--site-border) !important;
+  background: var(--tokyo-surface) !important;
+  box-shadow: 0 16px 30px rgba(13, 17, 23, 0.1);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #home.astra-honda-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #f4f6fb !important;
+  background-image: radial-gradient(#e60012 0.75px, transparent 0.75px), radial-gradient(#0d1117 0.75px, #f4f6fb 0.75px) !important;
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+  color: #0d1117;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition.site-mode-dark #home.astra-honda-hero {
+  background-color: #0d1117 !important;
+  background-image: radial-gradient(rgba(255, 53, 72, 0.7) 0.75px, transparent 0.75px), radial-gradient(#34404e 0.75px, #0d1117 0.75px) !important;
+  color: #f4f6fb;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-hero__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-hero__badge {
+  border-color: var(--site-border);
+  color: var(--tokyo-red);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-hero__copy h1 {
+  color: var(--tokyo-ink);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-hero__copy h1 span {
+  color: var(--tokyo-red);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-hero__description,
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-benefits small {
+  color: var(--tokyo-muted);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-benefits > div {
+  min-height: 76px;
+  align-items: center;
+  border: 1px solid var(--site-border);
+  border-radius: 14px;
+  background: var(--tokyo-surface);
+  box-shadow: 0 10px 28px rgba(13, 17, 23, 0.06);
+  padding: 12px;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-benefits strong {
+  color: var(--tokyo-ink);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-benefits__icon {
+  background: #fff0f1;
+  color: var(--tokyo-red);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-button {
+  min-height: 48px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-button--primary {
+  background: var(--tokyo-red);
+  box-shadow: 0 8px 26px rgba(230, 0, 18, 0.22);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-button--outline {
+  border-color: #0d1117;
+  color: #0d1117 !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition.site-mode-dark .astra-honda-button--outline {
+  border-color: #f4f6fb;
+  background: #151a22;
+  color: #f4f6fb !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured {
+  border-color: #0d1117;
+  background: var(--tokyo-surface);
+  box-shadow: 0 18px 42px rgba(13, 17, 23, 0.1);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured__ribbon {
+  background: #0d1117;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured__image-wrap {
+  border-color: var(--site-border);
+  background: var(--tokyo-bg);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured__details h2 {
+  color: var(--tokyo-ink);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured__details p,
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured__price span {
+  color: var(--tokyo-muted);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .astra-honda-featured__price {
+  border-color: var(--site-border);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #katalog,
+.website-shell.website-template-honda-tokyo-racing-edition #promo,
+.website-shell.website-template-honda-tokyo-racing-edition #manifesto,
+.website-shell.website-template-honda-tokyo-racing-edition #testimoni,
+.website-shell.website-template-honda-tokyo-racing-edition #simulasi,
+.website-shell.website-template-honda-tokyo-racing-edition #kontak {
+  background-color: var(--site-bg-effective) !important;
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #katalog,
+.website-shell.website-template-honda-tokyo-racing-edition #manifesto,
+.website-shell.website-template-honda-tokyo-racing-edition #kontak {
+  background-color: var(--site-panel-effective) !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #katalog h2,
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-product-title,
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-price-value {
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #katalog p,
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-product-description,
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-compare-button {
+  color: var(--site-muted-effective);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .catalog-card,
+.website-shell.website-template-honda-tokyo-racing-edition .simulator-container {
+  border-color: var(--site-border) !important;
+  background: var(--site-card-effective);
+  box-shadow: 0 10px 30px rgba(13, 17, 23, 0.07);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-spec-tag,
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-cta-secondary {
+  border-color: var(--site-border);
+  background: var(--site-panel-effective);
+  color: var(--site-text-effective);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition #katalog .catalog-cta-primary,
+.website-shell.website-template-honda-tokyo-racing-edition .bg-red-600,
+.website-shell.website-template-honda-tokyo-racing-edition .hover\:bg-red-500:hover {
+  background-color: var(--tokyo-red) !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .text-red-400,
+.website-shell.website-template-honda-tokyo-racing-edition .text-red-500,
+.website-shell.website-template-honda-tokyo-racing-edition .text-red-600 {
+  color: var(--tokyo-red) !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition .border-red-500,
+.website-shell.website-template-honda-tokyo-racing-edition .border-red-600 {
+  border-color: var(--tokyo-red) !important;
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition input[type='range'] {
+  accent-color: var(--tokyo-red);
+}
+
+.website-shell.website-template-honda-tokyo-racing-edition footer {
+  border-top: 3px solid var(--tokyo-red);
+}
+
+@media (max-width: 640px) {
+  .website-shell.website-template-honda-tokyo-racing-edition .astra-honda-benefits > div {
+    min-height: 66px;
+    padding: 9px;
+  }
+
+  .website-shell.website-template-honda-tokyo-racing-edition .astra-honda-hero__badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

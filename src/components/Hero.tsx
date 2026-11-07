@@ -25,9 +25,7 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
   const animation = settings.heroAnimation || DEFAULT_CATALOG_ANIMATION;
   const animationSpeed = normalizeCatalogAnimationSpeed(settings.heroAnimationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED);
   const [activeSlide, setActiveSlide] = useState(0);
-  const whatsappUrl = createWhatsAppUrl(settings.phone,
-    'Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.'
-  );
+  const whatsappUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya tertarik untuk mengetahui promo dan simulasi kredit motor Honda terbaru.');
 
   useEffect(() => {
     setActiveSlide(0);

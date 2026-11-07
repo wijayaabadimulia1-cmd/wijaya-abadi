@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-ubuntu-vps
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -32,25 +36,76 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URLS: ${{ vars.GSC_SITE_URLS || 'sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud' }}
         run: |
           test -n "$VPS_HOST"
           test -n "$VPS_USER"
-          ssh "${VPS_USER}@${VPS_HOST}" <<'SSH'
-          set -euo pipefail
-          APP_DIR="/opt/wijaya-abadi-deploy-src"
-          APP_REPO="https://github.com/wijayaabadimulia1-cmd/wijaya-abadi.git"
-          APP_BRANCH="main"
-          if [ ! -d "$APP_DIR/.git" ]; then
-            sudo install -d -o "$USER" -g "$(id -gn)" "$APP_DIR"
-            git clone --branch "$APP_BRANCH" --single-branch "$APP_REPO" "$APP_DIR"
-          fi
-          cd "$APP_DIR"
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "Deployment checkout has local changes; refusing to overwrite it." >&2
+          if [[ ! "$GSC_SITE_URLS" =~ ^[A-Za-z0-9:.,/_-]+$ ]]; then
+            echo "GSC_SITE_URLS contains unsupported characters." >&2
             exit 1
           fi
-          git fetch origin "$APP_BRANCH"
-          git checkout "$APP_BRANCH"
-          git pull --ff-only origin "$APP_BRANCH"
-          bash ./deploy-vps-safe.sh
+          ssh "${VPS_USER}@${VPS_HOST}" 'bash -s' <<'CLEANUP'
+          set -euo pipefail
+          RELEASE_ROOT="/opt/wijaya-abadi/releases"
+          for release in "$RELEASE_ROOT"/*; do
+            [ -d "$release" ] || continue
+            [[ "$release" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]] || continue
+            [ -f "$release/dist/server.cjs" ] && continue
+            referenced=0
+            for service in kreditmotorhonda-tech.service kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+              if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
+                referenced=1
+                break
+              fi
+            done
+            if [ "$referenced" -eq 0 ]; then
+              echo "Removing incomplete deployment release: $release"
+              sudo rm -rf -- "$release"
+            fi
+          done
+          mapfile -t releases < <(find "$RELEASE_ROOT" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
+          retained_backups=0
+          for release in "${releases[@]}"; do
+            [ -f "$release/dist/server.cjs" ] || continue
+            referenced=0
+            for service in kreditmotorhonda-tech.service kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+              if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
+                referenced=1
+                break
+              fi
+            done
+            [ "$referenced" -eq 0 ] || continue
+            if [ "$retained_backups" -lt 2 ]; then
+              retained_backups=$((retained_backups + 1))
+              continue
+            fi
+            echo "Removing inactive old deployment release: $release"
+            sudo rm -rf -- "$release"
+          done
+          find /tmp -maxdepth 1 -type f -name 'wijaya-abadi-*.tar' -print -delete
+          df -h / /tmp /opt
+          df -i / /tmp /opt
+          CLEANUP
+          if [ -n "$GSC_SERVICE_ACCOUNT_JSON" ]; then
+            printf '%s' "$GSC_SERVICE_ACCOUNT_JSON" | ssh "${VPS_USER}@${VPS_HOST}" 'sudo install -d -m 700 /etc/wijaya-abadi && sudo tee /etc/wijaya-abadi/gsc-service-account.json >/dev/null && sudo chmod 600 /etc/wijaya-abadi/gsc-service-account.json'
+          fi
+          ARCHIVE_PATH="$(mktemp)"
+          trap 'rm -f "$ARCHIVE_PATH"' EXIT
+          git archive --format=tar HEAD > "$ARCHIVE_PATH"
+          REMOTE_ARCHIVE="/tmp/wijaya-abadi-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar"
+          scp "$ARCHIVE_PATH" "${VPS_USER}@${VPS_HOST}:${REMOTE_ARCHIVE}"
+          ssh "${VPS_USER}@${VPS_HOST}" "DEPLOY_COMMIT='$GITHUB_SHA' GSC_SITE_URLS='$GSC_SITE_URLS' REMOTE_ARCHIVE='$REMOTE_ARCHIVE' bash -s" <<'SSH'
+          set -euo pipefail
+          SOURCE_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy-src.XXXXXX)"
+          cleanup() {
+            rm -rf "$SOURCE_DIR"
+            rm -f "$REMOTE_ARCHIVE"
+          }
+          trap cleanup EXIT
+          tar -xf "$REMOTE_ARCHIVE" -C "$SOURCE_DIR"
+          bash "$SOURCE_DIR/deploy-vps-safe.sh"
           SSH

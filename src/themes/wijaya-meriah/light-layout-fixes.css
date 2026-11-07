@@ -96,6 +96,10 @@
     background-image: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
   }
 
+  .website-shell.website-template-wijaya-meriah.site-mode-light #home {
+    background-image: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+  }
+
   .website-shell.website-template-wijaya-meriah #home .hero-content-shell {
     position: relative;
     inset: auto;

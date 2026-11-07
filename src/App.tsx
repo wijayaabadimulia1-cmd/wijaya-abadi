@@ -1,10 +1,11 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ArrowRight, Bike, Calculator, MapPin, MessageSquare, Phone, Scale, Search, Shield, Sparkles } from 'lucide-react';
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList } from './types';
+import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList, SeoLandingPage } from './types';
 import { api } from './services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from './services/fifPriceList';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
+import { AstraHondaHero, AstraHondaTopBar } from './components/AstraHondaHero';
 import { CatalogSection } from './components/CatalogSection';
 import { CreditSimulator } from './components/CreditSimulator';
 import { CompareModal } from './components/CompareModal';
@@ -14,8 +15,9 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
-import { DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES } from './constants';
-import { createWhatsAppUrl } from './utils/whatsapp';
+import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES, WIJAYA_ENERJIK_COLOR_PALETTES } from './constants';
+import { createWhatsAppUrl, trackWhatsAppClick } from './utils/whatsapp';
+import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './utils/seoPosts';
 
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel: panel }) => ({ default: panel })));
 
@@ -59,8 +61,9 @@ export default function App() {
     seoRobots: DEFAULT_SEO_ROBOTS,
     catalogAnimation: DEFAULT_CATALOG_ANIMATION,
     catalogAnimationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
+    featuredMotorRotationInterval: DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL,
     ...initialSettings,
-    websiteTemplate: initialSettings?.websiteTemplate || 'honda-wijaya',
+    websiteTemplate: initialSettings?.websiteTemplate || 'wijaya-enerjik',
     customization: {
       primaryColor: '#e60012',
       accentColor: '#ff2638',
@@ -103,6 +106,15 @@ export default function App() {
     return 'light';
   });
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  const hostname = window.location.hostname.toLocaleLowerCase('en-US');
+  const subdomain = hostname.endsWith('.kreditmotorhonda.tech')
+    ? hostname.slice(0, -'.kreditmotorhonda.tech'.length)
+    : '';
+  const hostSeoPage: SeoLandingPage | undefined = subdomain && !['www', 'wijaya'].includes(subdomain)
+    ? settings.seoPages?.find((page) => page.subdomain === subdomain)
+    : undefined;
+  const isSalesCounterSite = Boolean(settings.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
+  const hostSeoPost = hostSeoPage ? findSeoLandingPost(hostSeoPage, currentPath) : undefined;
 
   // Fetch initial data from dynamic database
   const loadData = async () => {
@@ -206,6 +218,38 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isAdminOpen) return;
+
+    let isCurrent = true;
+    const refreshCatalog = async () => {
+      try {
+        const [motorsData, priceListData] = await Promise.all([
+          api.getMotors(),
+          api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
+        ]);
+        if (!isCurrent) return;
+
+        setFifPriceList(priceListData);
+        setMotors(motorsData.map((motor) => normalizeMotorOtrPrice(motor, priceListData)));
+      } catch (err) {
+        console.error('Failed to refresh shared catalog:', err);
+      }
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshCatalog();
+    };
+
+    const intervalId = window.setInterval(refreshWhenVisible, 30_000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      isCurrent = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [isAdminOpen]);
+
+  useEffect(() => {
     const handleAdminSettingsUpdate = (event: Event) => {
       const detail = (event as CustomEvent<DealerSettings>).detail;
       if (!detail) return;
@@ -226,6 +270,7 @@ export default function App() {
     window.addEventListener('hwa-admin-settings-update', handleAdminSettingsUpdate);
     return () => window.removeEventListener('hwa-admin-settings-update', handleAdminSettingsUpdate);
   }, []);
+
 
   useEffect(() => {
     if (isAdminRoute || /bot|crawler|spider|slurp/i.test(navigator.userAgent)) return;
@@ -260,6 +305,34 @@ export default function App() {
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
   }, [isAdminRoute]);
+
+  useEffect(() => {
+    if (isAdminRoute) return;
+
+    const handleWhatsAppClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest<HTMLAnchorElement>('a[href]');
+      if (!link) return;
+
+      let destination: URL;
+      try {
+        destination = new URL(link.href);
+      } catch {
+        return;
+      }
+      if (!['wa.me', 'api.whatsapp.com'].includes(destination.hostname.toLowerCase())) return;
+
+      const section = link.closest<HTMLElement>('nav, header, footer, section, [role="region"]');
+      const heading = section?.querySelector<HTMLElement>('h1, h2, h3')?.innerText.trim();
+      const area = section?.getAttribute('aria-label') || heading || section?.tagName;
+      const label = link.getAttribute('aria-label') || link.title || link.innerText.trim() || 'WhatsApp';
+      trackWhatsAppClick(area ? `${area} / ${label}` : label, isSalesCounterSite);
+    };
+
+    document.addEventListener('click', handleWhatsAppClick, true);
+    return () => document.removeEventListener('click', handleWhatsAppClick, true);
+  }, [isAdminRoute, isSalesCounterSite]);
 
   useEffect(() => {
     localStorage.setItem('hwa-color-mode', colorMode);
@@ -335,13 +408,19 @@ export default function App() {
     } as const;
 
     const activeLandingSeo = landingSeo[currentPath as keyof typeof landingSeo];
-    const title = activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
-    const description = activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
-    const keywords = activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
-    const canonicalUrl = activeLandingSeo
+    const title = hostSeoPost && hostSeoPost.id !== hostSeoPage?.id
+      ? hostSeoPost.title
+      : hostSeoPage?.seoTitle?.trim() || activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
+    const description = hostSeoPost && hostSeoPost.id !== hostSeoPage?.id
+      ? hostSeoPost.content.trim().slice(0, 160)
+      : hostSeoPage?.seoDescription?.trim() || activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
+    const keywords = hostSeoPage?.seoKeywords?.trim() || activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
+    const canonicalUrl = hostSeoPage
+      ? `https://${hostSeoPage.subdomain}.kreditmotorhonda.tech${hostSeoPost ? getSeoLandingPostPath(hostSeoPage, hostSeoPost) : '/'}`
+      : activeLandingSeo
       ? `https://kreditmotorhonda.tech${currentPath}`
       : settings.seoCanonicalUrl?.trim() || DEFAULT_SEO_CANONICAL_URL;
-    const robots = settings.seoRobots?.trim() || DEFAULT_SEO_ROBOTS;
+    const robots = hostSeoPage?.seoRobots?.trim() || settings.seoRobots?.trim() || DEFAULT_SEO_ROBOTS;
     document.title = title;
 
     const setMeta = (attribute: 'name' | 'property', key: string, content: string) => {
@@ -370,7 +449,7 @@ export default function App() {
       document.head.appendChild(canonical);
     }
     canonical.href = canonicalUrl;
-  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath]);
+  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath, hostSeoPage, hostSeoPost]);
 
   // Comparison toggle handler
   const handleToggleCompare = (motor: Motor) => {
@@ -417,10 +496,38 @@ export default function App() {
   };
 
   const templateClass = `website-template-${settings.websiteTemplate || 'classic'}`;
+  const isWijayaEnerjik = settings.websiteTemplate === 'wijaya-enerjik';
+  const isTokyoRacingEdition = settings.websiteTemplate === 'honda-tokyo-racing-edition';
+  const isNovemberEdition = settings.websiteTemplate === 'astra-honda-november-edition';
+  const isElectricFlameEdition = settings.websiteTemplate === 'astra-honda-electric-flame-edition';
+  const usesAstraHondaHero = settings.websiteTemplate === 'astra-honda-red-white' || isWijayaEnerjik || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition;
+  const campaignHeroContent = isWijayaEnerjik ? {
+    badge: settings.heroBadge || 'HONDA MOTORCYCLE',
+    headline: settings.heroMainTitle || 'Satu Klik Dapat',
+    highlight: settings.heroTitleHighlight || 'Sepeda Motor Impian!',
+    subtitle: settings.heroSubtitle || 'Bersama Honda Wijaya Abadi, wujudkan impian Anda memiliki motor Honda dengan mudah dan cepat.',
+  } : isTokyoRacingEdition ? {
+    badge: settings.heroBadge || 'TOKYO RACING & STREETWEAR CREDIT 2026',
+    headline: settings.heroMainTitle || 'STREET RIDE.',
+    highlight: settings.heroTitleHighlight || 'LOW DP. NO DRAMA.',
+    subtitle: settings.heroSubtitle,
+  } : isNovemberEdition ? {
+    badge: settings.heroBadge || 'PROMO NOVEMBER WARM RIDE EDITION 2026',
+    headline: settings.heroMainTitle || 'Nikmati Perjalanan Musim Hujan',
+    highlight: settings.heroTitleHighlight || 'Dengan Kredit Motor Honda',
+    subtitle: settings.heroSubtitle,
+  } : isElectricFlameEdition ? {
+    badge: settings.heroBadge || 'PROMO SPESIAL HUJAN NOVEMBER 2026',
+    headline: settings.heroMainTitle || 'KREDIT MOTOR',
+    highlight: settings.heroTitleHighlight || 'HONDA DP MURAH',
+    subtitle: settings.heroSubtitle,
+  } : undefined;
   const customization = settings.customization || {};
   const templatePalette = settings.websiteTemplate === 'honda-wijaya'
     ? HONDA_WIJAYA_COLOR_PALETTES[colorMode]
-    : {};
+    : isWijayaEnerjik
+      ? WIJAYA_ENERJIK_COLOR_PALETTES[colorMode]
+      : {};
   const activePalette = { ...customization, ...templatePalette, ...customization.colorPalettes?.[colorMode] };
   const landingPages = {
     '/dealer-honda-bandung': {
@@ -606,7 +713,15 @@ export default function App() {
       ],
     },
   } as const;
-  const activeLandingPage = landingPages[currentPath as keyof typeof landingPages];
+  const activeLandingPage = landingPages[currentPath as keyof typeof landingPages] || (hostSeoPage ? {
+    label: hostSeoPost?.title || hostSeoPage.seoTitle || hostSeoPage.title,
+    eyeBrow: hostSeoPost?.title || hostSeoPage.seoTitle || hostSeoPage.title,
+    headline: hostSeoPost?.title || hostSeoPage.seoTitle || hostSeoPage.title,
+    subHeadline: hostSeoPost?.content.slice(0, 180) || hostSeoPage.seoDescription || hostSeoPage.content.slice(0, 180),
+    bullets: [],
+    stats: [],
+    faq: [],
+  } : undefined);
   const customizationStyle = {
     '--custom-primary': activePalette.primaryColor || undefined,
     '--custom-secondary': activePalette.secondaryColor || undefined,
@@ -653,6 +768,7 @@ export default function App() {
   if (activeLandingPage) {
     return (
       <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+        {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
         <Navbar
           settings={settings}
           compareList={compareList}
@@ -663,18 +779,58 @@ export default function App() {
         />
 
         <main className="flex-1">
-          <Hero
-            settings={{ ...settings, customization: activePalette }}
-            contentOverride={{
-              badge: activeLandingPage.eyeBrow,
-              headline: activeLandingPage.headline,
-              subtitle: activeLandingPage.subHeadline,
-            }}
-            onOpenSimulator={() => handleOpenSimulator()}
-            onOpenInterest={() => handleOpenInterest()}
-          />
+          {usesAstraHondaHero ? (
+            <AstraHondaHero
+              settings={{ ...settings, customization: activePalette }}
+              motors={motors}
+              promos={promos}
+              priceList={fifPriceList}
+              contentOverride={{
+                badge: activeLandingPage.eyeBrow,
+                headline: activeLandingPage.headline,
+                subtitle: activeLandingPage.subHeadline,
+              }}
+              onOpenSimulator={() => handleOpenSimulator()}
+              onOpenInterest={handleOpenInterest}
+            />
+          ) : (
+            <Hero
+              settings={{ ...settings, customization: activePalette }}
+              contentOverride={{
+                badge: activeLandingPage.eyeBrow,
+                headline: activeLandingPage.headline,
+                subtitle: activeLandingPage.subHeadline,
+              }}
+              onOpenSimulator={() => handleOpenSimulator()}
+              onOpenInterest={() => handleOpenInterest()}
+            />
+          )}
 
-          <section className="px-4 pb-16 sm:px-6 lg:px-8">
+          {hostSeoPost && (
+            <section className="px-4 pb-12 sm:px-6 lg:px-8">
+              <article className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-900/60 p-6 text-zinc-200 sm:p-8">
+                <h2 className="mb-4 text-xl font-black text-white">{hostSeoPost.title}</h2>
+                <div className="whitespace-pre-line text-sm leading-7 text-zinc-300">{hostSeoPost.content}</div>
+              </article>
+            </section>
+          )}
+
+          {hostSeoPage && currentPath === '/' && getSeoLandingPosts(hostSeoPage).some((post) => post.id !== hostSeoPage.id) && (
+            <section className="px-4 pb-12 sm:px-6 lg:px-8">
+              <div className="mx-auto max-w-4xl border-t border-white/10 pt-6">
+                <h2 className="text-lg font-bold text-white">Artikel lainnya</h2>
+                <nav className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Post subdomain">
+                  {getSeoLandingPosts(hostSeoPage).filter((post) => post.id !== hostSeoPage.id).map((post) => (
+                    <a key={post.id} href={getSeoLandingPostPath(hostSeoPage, post)} className="rounded-lg border border-white/10 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-sky-300 hover:border-sky-400/40 hover:text-sky-200">
+                      {post.title}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            </section>
+          )}
+
+          {activeLandingPage.bullets.length > 0 && <section className="px-4 pb-16 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6 sm:p-8">
               <div className="grid gap-6 md:grid-cols-3">
                 {activeLandingPage.bullets.map((item) => (
@@ -685,7 +841,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-          </section>
+          </section>}
 
           <CatalogSection
             motors={motors}
@@ -718,7 +874,7 @@ export default function App() {
             }}
           />
 
-          <section className="px-4 pb-20 sm:px-6 lg:px-8">
+          {activeLandingPage.faq.length > 0 && <section className="px-4 pb-20 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-7xl">
               <div className="mb-8 text-center">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">FAQ</p>
@@ -736,7 +892,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-          </section>
+          </section>}
         </main>
 
         <FooterSection settings={settings} />
@@ -779,6 +935,7 @@ export default function App() {
   if (currentPath === '/promo') {
     return (
       <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+        {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
         <Navbar
           settings={settings}
           compareList={compareList}
@@ -824,6 +981,7 @@ export default function App() {
 
   return (
     <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} ${gradientMotionClass} min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white`}>
+      {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
       {/* Navbar */}
       <Navbar
         settings={settings}
@@ -837,11 +995,85 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Hero Section */}
-        <Hero
-          settings={{ ...settings, customization: activePalette }}
-          onOpenSimulator={() => handleOpenSimulator()}
-          onOpenInterest={() => handleOpenInterest()}
-        />
+        {usesAstraHondaHero ? (
+          <AstraHondaHero
+            settings={{ ...settings, customization: activePalette }}
+            motors={motors}
+            promos={promos}
+            priceList={fifPriceList}
+            contentOverride={campaignHeroContent}
+            onOpenSimulator={() => handleOpenSimulator()}
+            onOpenInterest={handleOpenInterest}
+          />
+        ) : (
+          <Hero
+            settings={{ ...settings, customization: activePalette }}
+            onOpenSimulator={() => handleOpenSimulator()}
+            onOpenInterest={() => handleOpenInterest()}
+          />
+        )}
+
+        {settings.websiteTemplate === 'wijaya-enerjik' && (
+          <>
+            <section className="wijaya-enerjik-showcase" aria-label="Pilihan motor Honda">
+              <div className="wijaya-enerjik-showcase__inner">
+                <div className="wijaya-enerjik-showcase__intro">
+                  <span>Katalog Motor Honda</span>
+                  <h2>Pilihan Motor Honda <strong>Untuk Anda</strong></h2>
+                  <p>Dapatkan berbagai pilihan motor Honda dengan desain modern dan performa unggul.</p>
+                  <a href="#katalog">Lihat Semua Motor <ArrowRight aria-hidden="true" /></a>
+                </div>
+                {motors.slice(0, 5).map((motor) => (
+                  <a key={motor.id} href="#katalog" className="wijaya-enerjik-showcase__motor">
+                    <span className="wijaya-enerjik-showcase__image">
+                      {motor.image && <img src={motor.image} alt={motor.name} loading="lazy" />}
+                    </span>
+                    <strong>{motor.name}</strong>
+                    <small>{motor.category}</small>
+                    <span className="wijaya-enerjik-showcase__detail">Lihat Detail <ArrowRight aria-hidden="true" /></span>
+                  </a>
+                ))}
+              </div>
+            </section>
+
+            {promos[0] && (
+              <a
+                href="#promo"
+                className="wijaya-enerjik-promo-banner"
+                style={promos[0].images?.[0] ? { '--enerjik-promo-image': `url("${promos[0].images[0].replace(/"/g, '')}")` } as React.CSSProperties : undefined}
+              >
+                <span className="wijaya-enerjik-promo-banner__copy">
+                  <small>{promos[0].badge || 'PROMO HONDA'}</small>
+                  <strong>{promos[0].discountValue || promos[0].title}</strong>
+                  <span>{promos[0].title} · Periode promo berlangsung terbatas</span>
+                </span>
+                <span className="wijaya-enerjik-promo-banner__button">Lihat Promo <ArrowRight aria-hidden="true" /></span>
+              </a>
+            )}
+
+            <nav className="wijaya-enerjik-quick-links" aria-label="Layanan Honda Wijaya Abadi">
+              <a href="#simulasi"><Calculator aria-hidden="true" /><span><strong>Simulasi Kredit Honda</strong><small>Hitung angsuran sesuai kebutuhan</small><em>Coba Sekarang <ArrowRight aria-hidden="true" /></em></span></a>
+              <a href="#testimoni"><Sparkles aria-hidden="true" /><span><strong>Artikel & Tips</strong><small>Tips perawatan dan promo terbaru</small><em>Baca Artikel <ArrowRight aria-hidden="true" /></em></span></a>
+              <a href="#kontak"><MapPin aria-hidden="true" /><span><strong>Lokasi Dealer</strong><small>Temukan dealer terdekat di Bandung</small><em>Lihat Lokasi <ArrowRight aria-hidden="true" /></em></span></a>
+              <a className="wijaya-enerjik-quick-links__contact" href={floatingWaUrl} target="_blank" rel="noopener noreferrer"><Phone aria-hidden="true" /><span><strong>Butuh Bantuan?</strong><small>Chat Sales Kami Sekarang</small><em>{settings.phone} <ArrowRight aria-hidden="true" /></em></span></a>
+            </nav>
+          </>
+        )}
+
+        {currentPath === '/' && hostname === 'kreditmotorhonda.tech' && settings.seoPages?.some((page) => page.sslStatus === 'active') ? (
+          <section className="px-4 py-8 sm:px-6 lg:px-8" aria-labelledby="seo-posts-heading">
+            <div className="mx-auto max-w-7xl border-y border-zinc-200 py-6">
+              <h2 id="seo-posts-heading" className="text-lg font-black text-zinc-900">Informasi Kredit Motor Honda</h2>
+              <nav className="mt-3 flex flex-wrap gap-x-6 gap-y-2" aria-label="Post dealer">
+                {settings.seoPages.filter((page) => page.sslStatus === 'active').map((page) => (
+                  <a key={page.id} href={`https://${page.subdomain}.kreditmotorhonda.tech/`} className="text-sm font-semibold text-red-700 underline-offset-4 hover:underline">
+                    {page.title}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </section>
+        ) : null}
 
         {settings.websiteTemplate === 'wijaya-meriah' && (
           <section className="wijaya-meriah-discovery" aria-label="Jelajahi motor dan layanan Honda">

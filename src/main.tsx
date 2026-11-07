@@ -1,8 +1,14 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import OwnerDashboard from './components/OwnerDashboard.tsx';
 import './index.css';
+import './themes/wijaya-enerjik/theme.css';
 import './themes/wijaya-meriah/theme.css';
+import './themes/astra-honda-red-white/theme.css';
+import './themes/honda-tokyo-racing-edition/theme.css';
+import './themes/astra-honda-november-edition/theme.css';
+import './themes/astra-honda-electric-flame-edition/theme.css';
 import './themes/showcase-wijaya-2/theme.css';
 import './themes/showcase-wijaya-2/appearance-fixes.css';
 import './themes/showcase-wijaya-2/visual-balance-fixes.css';
@@ -19,9 +25,14 @@ import './themes/wijaya-meriah/catalog-promo-visibility.css';
 import './themes/showcase-wijaya-2/promo-section-bottom.css';
 import './themes/showcase-wijaya-2/hero-controls-light-fix.css';
 import './themes/promo-claim-size.css';
+import './themes/showcase-wijaya-2/mobile-navbar-fit.css';
+
+const RootView = window.location.pathname.replace(/\/+$/, '') === '/owner-dashboard'
+  ? <OwnerDashboard />
+  : <App />;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {RootView}
   </StrictMode>,
 );
