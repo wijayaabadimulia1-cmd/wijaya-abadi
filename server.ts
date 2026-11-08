@@ -19,19 +19,9 @@ const DEFAULT_DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_DIR = path.resolve(process.env.DATA_DIR || DEFAULT_DATA_DIR);
 const FALLBACK_DB_FILE = path.join(DEFAULT_DATA_DIR, 'db.json');
 const PERSISTENT_DB_FILE = path.join(DATA_DIR, 'db.json');
-const DB_FILE = (() => {
-  const candidates = [FALLBACK_DB_FILE, PERSISTENT_DB_FILE];
-  for (const candidate of candidates) {
-    if (!fs.existsSync(candidate)) continue;
-    try {
-      const raw = fs.readFileSync(candidate, 'utf-8').trim();
-      if (raw) return candidate;
-    } catch {
-      // continue to the next candidate, but keep the canonical repo DB as the preferred source when it is valid.
-    }
-  }
-  return FALLBACK_DB_FILE;
-})();
+const DB_FILE = fs.existsSync(PERSISTENT_DB_FILE)
+  ? PERSISTENT_DB_FILE
+  : FALLBACK_DB_FILE;
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
   'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
@@ -59,7 +49,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 function readDb() {
-  for (const candidatePath of [FALLBACK_DB_FILE, PERSISTENT_DB_FILE, DB_FILE]) {
+  for (const candidatePath of [PERSISTENT_DB_FILE, FALLBACK_DB_FILE, DB_FILE]) {
     try {
       if (!fs.existsSync(candidatePath)) continue;
       const raw = fs.readFileSync(candidatePath, 'utf-8').trim();
@@ -897,12 +887,14 @@ function renderDynamicSitemap(db: any, hostname = '') {
 
 function writeDb(data: any) {
   try {
-    const targetDbFile = fs.existsSync(FALLBACK_DB_FILE) ? FALLBACK_DB_FILE : DB_FILE;
+    const targetDbFile = fs.existsSync(PERSISTENT_DB_FILE) || process.env.DATA_DIR
+      ? PERSISTENT_DB_FILE
+      : FALLBACK_DB_FILE;
     const targetDir = path.dirname(targetDbFile);
     fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(targetDbFile, JSON.stringify(data, null, 2), 'utf-8');
-    if (targetDbFile !== DB_FILE && fs.existsSync(DB_FILE)) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    if (targetDbFile !== FALLBACK_DB_FILE && fs.existsSync(FALLBACK_DB_FILE)) {
+      fs.writeFileSync(FALLBACK_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
     }
     return true;
   } catch (err) {
