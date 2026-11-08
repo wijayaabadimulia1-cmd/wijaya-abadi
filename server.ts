@@ -846,6 +846,10 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
   <meta name="description" content="${safeDescription}">
   <meta name="keywords" content="harga ${safeName} Bandung, kredit ${safeName}, spesifikasi ${safeName}, motor Honda Bandung">
   <meta name="robots" content="index, follow">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-honda-32.png?v=20261108">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-honda-192.png?v=20261108">
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicon-honda.png?v=20261108">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20261108">
   <link rel="canonical" href="${escapeHtmlAttribute(canonical)}">
   <meta property="og:type" content="product"><meta property="og:title" content="${safeName} Bandung | Harga & Kredit Honda">
   <meta property="og:description" content="${safeDescription}"><meta property="og:url" content="${escapeHtmlAttribute(canonical)}">
@@ -1430,10 +1434,6 @@ async function startServer() {
   app.use((req, res, next) => {
     if (req.hostname.toLowerCase() === 'www.kreditmotorhonda.tech') {
       return res.redirect(301, `https://kreditmotorhonda.tech${req.originalUrl}`);
-    }
-    const host = req.hostname.toLowerCase();
-    if (req.path.startsWith('/admin') && host !== 'kreditmotorhonda.tech' && host !== 'localhost' && host !== '127.0.0.1') {
-      return res.redirect(302, `https://kreditmotorhonda.tech/admin`);
     }
     next();
   });

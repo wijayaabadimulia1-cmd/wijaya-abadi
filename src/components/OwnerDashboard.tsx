@@ -319,7 +319,7 @@ export default function OwnerDashboard() {
             <div>
               <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <img className="owner-brand-logo" src="/favicon-honda.jpg" alt="Honda" />
+                  <img className="owner-brand-logo" src="/favicon-honda.png" alt="Honda" />
                   <div>
                     <span className="block text-sm font-extrabold leading-none tracking-wide text-white">Honda Tech</span>
                     <span className="text-[10px] font-medium text-slate-300">Owner Analytics</span>

@@ -279,7 +279,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         const canManageCatalog = status.canManageCatalog || adminSession.role === 'Super Admin';
         setCanManageCatalog(canManageCatalog);
         setCatalogAdminUrl(status.adminUrl);
-        if (!canManageCatalog) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
+        if (!status.owner) setActiveTab('motors');
       })
       .catch(() => {
         setIsCatalogOwner(false);
@@ -2022,7 +2022,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'export', label: 'Download & Backup Data', icon: Download },
             ].filter((tab) => {
               if (tab.id === 'sales-counter') return canManageSalesCounters;
-              if (tab.id === 'motors' || tab.id === 'credit') return canManageCatalog;
+              if (tab.id === 'motors') return true;
+              if (tab.id === 'credit') return canManageCatalog;
               if (isSuperAdmin) return true;
               if (isSeoPostAdmin) return ['promos', 'settings', 'theme'].includes(tab.id);
               return true;
@@ -2490,6 +2491,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
             {activeTab === 'motors' && (
               <div className="space-y-6 animate-in fade-in duration-300">
+                {!canManageCatalog && (
+                  <section className="flex flex-col gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-sm font-bold text-white">Katalog motor pusat</h2>
+                      <p className="mt-1 text-xs text-zinc-400">Data katalog diambil dari kreditmotorhonda.tech dan hanya dapat diubah dari panel admin utama.</p>
+                    </div>
+                    <a href={catalogAdminUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500">
+                      Buka Admin Katalog Pusat
+                    </a>
+                  </section>
+                )}
                 <div className="flex flex-col items-start justify-between gap-4 xl:flex-row xl:items-center">
                   <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
                     <div className="relative w-full sm:w-80">
@@ -2543,6 +2555,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <FileSpreadsheet className="w-4 h-4" />
                       <span>{activeExport === 'motors-template' ? 'Menyiapkan...' : 'Unduh Template'}</span>
                     </button>
+                    {canManageCatalog && <>
                     <button
                       type="button"
                       onClick={() => motorCsvInputRef.current?.click()}
@@ -2568,6 +2581,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <Plus className="w-4 h-4" />
                       <span>Tambah Motor Baru</span>
                     </button>
+                    </>}
                   </div>
                 </div>
 
@@ -2581,7 +2595,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <th className="py-3.5 px-4">Harga OTR</th>
                           <th className="py-3.5 px-4">Spesifikasi</th>
                           <th className="py-3.5 px-4">Bestseller</th>
-                          <th className="py-3.5 px-4 text-right">Aksi</th>
+                          {canManageCatalog && <th className="py-3.5 px-4 text-right">Aksi</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -2637,7 +2651,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 )}
                               </td>
 
-                              <td className="py-3 px-4 text-right">
+                              {canManageCatalog && <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
                                   <button
                                     onClick={() => handleOpenEditMotor(m)}
@@ -2654,11 +2668,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                     <Trash2 className="w-4 h-4" />
                                   </button>
                                 </div>
-                              </td>
+                              </td>}
                             </tr>
                           )) : (
                             <tr>
-                              <td colSpan={6} className="px-4 py-12 text-center text-sm text-zinc-400">
+                              <td colSpan={canManageCatalog ? 6 : 5} className="px-4 py-12 text-center text-sm text-zinc-400">
                                 Tidak ada motor yang cocok dengan filter ini.
                               </td>
                             </tr>
