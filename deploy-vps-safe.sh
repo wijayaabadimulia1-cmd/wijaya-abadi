@@ -421,7 +421,7 @@ ID_SERVICE_UPDATED=1
 sudo tee "$ID_UNIT_FILE" >/dev/null <<EOF
 [Unit]
 Description=Honda Wijaya Abadi kreditmotorhonda.id site
-After=network.target kreditmotorhonda-id.service
+After=network.target
 
 [Service]
 Type=simple
@@ -448,6 +448,9 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 sudo systemctl daemon-reload
+sudo systemctl reset-failed "$ID_SERVICE" || true
+sudo systemctl stop "$ID_SERVICE" || true
+sudo pkill -f "server\.cjs.*3003|PORT=3003" || true
 sudo systemctl enable "$ID_SERVICE"
 sudo systemctl restart "$ID_SERVICE"
 if ! systemctl is-active --quiet "$ID_SERVICE" \
