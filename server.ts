@@ -15,6 +15,7 @@ import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from '.
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+const SALES_COUNTER_ROOT_DOMAINS = new Set(['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud']);
 const DEFAULT_DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_DIR = path.resolve(process.env.DATA_DIR || DEFAULT_DATA_DIR);
 const FALLBACK_DB_FILE = path.join(DEFAULT_DATA_DIR, 'db.json');
@@ -439,13 +440,30 @@ function getSiteOrigin(settings: any = {}) {
 
 const RESERVED_SEO_SUBDOMAINS = new Set(['www', 'wijaya', 'admin', 'api', 'mail', 'ftp', 'm', 'static']);
 
+function getSalesCounterRootDomain(hostname: string) {
+  const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '').replace(/^www\./, '');
+  return SALES_COUNTER_ROOT_DOMAINS.has(host) ? host : undefined;
+}
+
+function getSeoPageDomainSuffix(page: any) {
+  return SALES_COUNTER_ROOT_DOMAINS.has(page?.domainSuffix) ? page.domainSuffix : 'kreditmotorhonda.tech';
+}
+
+function getSeoPageOrigin(page: any) {
+  return `https://${page.subdomain}.${getSeoPageDomainSuffix(page)}`;
+}
+
 function getSeoPageForHost(settings: any = {}, hostname: string) {
   const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
-  const suffix = '.kreditmotorhonda.tech';
-  if (!host.endsWith(suffix)) return undefined;
-  const subdomain = host.slice(0, -suffix.length);
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || RESERVED_SEO_SUBDOMAINS.has(subdomain)) return undefined;
-  return (Array.isArray(settings.seoPages) ? settings.seoPages : []).find((page: any) => page.subdomain === subdomain);
+  const pages = Array.isArray(settings.seoPages) ? settings.seoPages : [];
+  return pages.find((page: any) => {
+    const suffix = `.${getSeoPageDomainSuffix(page)}`;
+    if (!host.endsWith(suffix)) return false;
+    const subdomain = host.slice(0, -suffix.length);
+    return page.subdomain === subdomain
+      && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)
+      && !RESERVED_SEO_SUBDOMAINS.has(subdomain);
+  });
 }
 
 function normalizeAnalyticsHost(hostname: unknown) {
@@ -618,7 +636,9 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
 function publicSeoPage(page: any) {
   return {
     id: page.id,
+    siteType: page.siteType,
     subdomain: page.subdomain,
+    domainSuffix: getSeoPageDomainSuffix(page),
     title: page.title,
     content: page.content,
     posts: getSeoLandingPosts(page).map((post) => ({
@@ -653,7 +673,7 @@ function getSettingsForSeoPage(settings: any = {}, page: any) {
     seoDescription: page.seoDescription || settings.seoDescription,
     seoKeywords: page.seoKeywords || settings.seoKeywords,
     seoRobots: page.sslStatus === 'active' ? page.seoRobots || 'index, follow' : 'noindex, follow',
-    seoCanonicalUrl: `https://${page.subdomain}.kreditmotorhonda.tech/`,
+    seoCanonicalUrl: `${getSeoPageOrigin(page)}/`,
     seoPages: [publicSeoPage(page)],
     seoPostHost: true,
   };
@@ -696,33 +716,44 @@ async function provisionSeoPageSsl(page: any, settings: any): Promise<{ status: 
   if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || RESERVED_SEO_SUBDOMAINS.has(subdomain)) {
     return { status: 'failed', message: 'Format subdomain tidak valid atau memakai nama yang dicadangkan.' };
   }
-  const hostname = `${subdomain}.kreditmotorhonda.tech`;
+  const domainSuffix = getSeoPageDomainSuffix(page);
+  const rootDomain = domainSuffix;
+  const hostname = `${subdomain}.${domainSuffix}`;
+  const upstreamPort = domainSuffix === 'kreditmotorhonda.id' ? 3003 : domainSuffix === 'solusikreditmotor.cloud' ? 3002 : 3000;
   let rootAddresses: string[];
   let postAddresses: string[];
   try {
     [rootAddresses, postAddresses] = await Promise.all([
-      resolve4('kreditmotorhonda.tech'),
+      resolve4(rootDomain),
       resolve4(hostname),
     ]);
   } catch {
-    return { status: 'pending', message: `DNS ${hostname} belum mengarah ke server utama.` };
+    return { status: 'pending', message: `Tambahkan A record ${hostname} ke IP VPS yang sama dengan ${rootDomain}.` };
   }
   if (!postAddresses.some((address) => rootAddresses.includes(address))) {
-    return { status: 'pending', message: `A record ${hostname} harus mengarah ke IP yang sama dengan kreditmotorhonda.tech.` };
+    return { status: 'pending', message: `A record ${hostname} harus mengarah ke IP yang sama dengan ${rootDomain}.` };
   }
 
-  const certName = `seo-post-${subdomain}`;
+  const isSalesCounter = page.siteType === 'sales-counter';
+  const domainKey = domainSuffix.replace(/\./g, '-');
+  const certName = isSalesCounter ? `sales-counter-${domainKey}-${subdomain}` : `seo-post-${subdomain}`;
   const certPath = `/etc/letsencrypt/live/${certName}/fullchain.pem`;
   const keyPath = `/etc/letsencrypt/live/${certName}/privkey.pem`;
   const webroot = '/var/www/letsencrypt';
   await fs.promises.mkdir(path.join(webroot, '.well-known', 'acme-challenge'), { recursive: true });
 
-  await installManagedNginxConfig('honda-seo-posts-acme', `# Managed by Honda SEO subdomain pages. ACME HTTP-01 challenge routing.\nserver {\n  listen 80;\n  listen [::]:80;\n  server_name ~^[a-z0-9-]+\\.kreditmotorhonda\\.tech$;\n  location ^~ /.well-known/acme-challenge/ {\n    root ${webroot};\n    default_type text/plain;\n    try_files $uri =404;\n  }\n  location / { return 301 https://$host$request_uri; }\n}\n`);
+  const acmeConfigName = isSalesCounter ? `honda-sales-counter-${domainKey}-acme` : 'honda-seo-posts-acme';
+  const escapedDomainSuffix = domainSuffix.replace(/\./g, '\\.');
+  const acmeServerName = isSalesCounter
+    ? `~^[a-z0-9-]+\\.${escapedDomainSuffix}$`
+    : '~^[a-z0-9-]+\\.kreditmotorhonda\\.tech$';
+  await installManagedNginxConfig(acmeConfigName, `# Managed by Honda SEO subdomain pages. ACME HTTP-01 challenge routing.\nserver {\n  listen 80;\n  listen [::]:80;\n  server_name ${acmeServerName};\n  location ^~ /.well-known/acme-challenge/ {\n    root ${webroot};\n    default_type text/plain;\n    try_files $uri =404;\n  }\n  location / { return 301 https://$host$request_uri; }\n}\n`);
   await execFileAsync('nginx', ['-t'], { timeout: 30000, maxBuffer: 1024 * 1024 });
   await execFileAsync('systemctl', ['reload', 'nginx'], { timeout: 30000, maxBuffer: 1024 * 1024 });
 
-  const configuredEmail = String(process.env.CERTBOT_EMAIL || settings.email || 'admin@kreditmotorhonda.tech').trim();
-  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) ? configuredEmail : 'admin@kreditmotorhonda.tech';
+  const defaultEmail = `admin@${rootDomain}`;
+  const configuredEmail = String(process.env.CERTBOT_EMAIL || settings.email || defaultEmail).trim();
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail) ? configuredEmail : defaultEmail;
   try {
     await execFileAsync('certbot', [
       'certonly', '--webroot', '--webroot-path', webroot,
@@ -736,8 +767,8 @@ async function provisionSeoPageSsl(page: any, settings: any): Promise<{ status: 
     return { status: 'failed', message };
   }
 
-  const nginxConfigName = `honda-seo-post-${subdomain}`;
-  await installManagedNginxConfig(nginxConfigName, `# Managed by Honda SEO subdomain pages. TLS reverse proxy for ${hostname}.\nserver {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  server_name ${hostname};\n  ssl_certificate ${certPath};\n  ssl_certificate_key ${keyPath};\n  include /etc/letsencrypt/options-ssl-nginx.conf;\n  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;\n  client_max_body_size 100m;\n  location / {\n    proxy_pass http://127.0.0.1:3000;\n    proxy_http_version 1.1;\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n  }\n}\n`);
+  const nginxConfigName = isSalesCounter ? `honda-sales-counter-${domainKey}-${subdomain}` : `honda-seo-post-${subdomain}`;
+  await installManagedNginxConfig(nginxConfigName, `# Managed by Honda SEO subdomain pages. TLS reverse proxy for ${hostname}.\nserver {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  server_name ${hostname};\n  ssl_certificate ${certPath};\n  ssl_certificate_key ${keyPath};\n  include /etc/letsencrypt/options-ssl-nginx.conf;\n  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;\n  client_max_body_size 100m;\n  location / {\n    proxy_pass http://127.0.0.1:${upstreamPort};\n    proxy_http_version 1.1;\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto $scheme;\n  }\n}\n`);
   await execFileAsync('nginx', ['-t'], { timeout: 30000, maxBuffer: 1024 * 1024 });
   await execFileAsync('systemctl', ['reload', 'nginx'], { timeout: 30000, maxBuffer: 1024 * 1024 });
   return { status: 'active', message: `HTTPS aktif di https://${hostname}` };
@@ -875,7 +906,7 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
 
 function renderDynamicSitemap(db: any, hostname = '') {
   const post = getSeoPageForHost(db.settings || {}, hostname);
-  const origin = post ? `https://${post.subdomain}.kreditmotorhonda.tech` : getSiteOrigin(db.settings || {});
+  const origin = post ? getSeoPageOrigin(post) : getSiteOrigin(db.settings || {});
   const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
     { path: '/', changefreq: 'daily', priority: '1.0' },
     { path: '/dealer-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
@@ -896,9 +927,11 @@ function renderDynamicSitemap(db: any, hostname = '') {
   }));
   const seoPostPages = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
     .filter((page: any) => page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' && page.subdomain)
-    .flatMap((page: any) => [
+    .flatMap((page: any) => {
+      const pageOrigin = getSeoPageOrigin(page);
+      return [
       {
-        path: `https://${page.subdomain}.kreditmotorhonda.tech/`,
+        path: `${pageOrigin}/`,
         changefreq: 'weekly',
         priority: '0.7',
         lastmod: page.updated_at,
@@ -907,13 +940,14 @@ function renderDynamicSitemap(db: any, hostname = '') {
       ...getSeoLandingPosts(page)
         .filter((post) => post.id !== page.id)
         .map((post) => ({
-          path: `https://${page.subdomain}.kreditmotorhonda.tech${getSeoLandingPostPath(page, post)}`,
+          path: `${pageOrigin}${getSeoLandingPostPath(page, post)}`,
           changefreq: 'weekly',
           priority: '0.7',
           lastmod: post.updated_at || page.updated_at,
           absolute: true,
         })),
-    ]);
+      ];
+    });
   const hostPostPages = post
     ? getSeoLandingPosts(post)
         .filter((seoPost) => seoPost.id !== post.id)
@@ -1391,6 +1425,16 @@ function requireCatalogWriteAccess(req: express.Request, res: express.Response, 
   if (!access.canManageCatalog) {
     return res.status(403).json({ error: 'Hanya admin utama katalog yang dapat mengedit motor dan katalog shared.' });
   }
+  next();
+}
+
+function requireSalesCounterAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+  if (session.role !== 'Super Admin' || !getSalesCounterRootDomain(req.hostname)) {
+    return res.status(403).json({ error: 'Website Sales Counter hanya dapat dibuat oleh Super Admin di domain utama yang didukung.' });
+  }
+  (req as any).adminSession = session;
   next();
 }
 
@@ -2891,7 +2935,7 @@ async function startServer() {
       actor: session.username,
       action: 'PROVISION_SEO_POST_SSL',
       resource: page.id,
-      details: `${page.subdomain}.kreditmotorhonda.tech: ${result.status}`,
+      details: `${getSeoPageOrigin(page)}: ${result.status}`,
     });
     if (!writeDb(db)) return res.status(500).json({ error: 'Status SSL gagal disimpan.' });
 
@@ -2905,6 +2949,209 @@ async function startServer() {
   app.get('/api/admin/users', requireAdmin, (req, res) => {
     const db = readDb();
     res.json(ensureAdminUsers(db).map((user: any) => publicAdminUser(user, db)));
+  });
+
+  app.get('/api/admin/sales-counters', requireSalesCounterAdmin, (req, res) => {
+    const db = readDb();
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const pages = Array.isArray(db.settings?.seoPages)
+      ? db.settings.seoPages.filter((page: any) => page.siteType === 'sales-counter'
+        && getSeoPageDomainSuffix(page) === domainSuffix)
+      : [];
+    const users = ensureAdminUsers(db);
+    res.json(pages.map((page: any) => {
+      const user = users.find((item: any) => item.id === page.adminUserId);
+      return {
+        id: page.id,
+        subdomain: page.subdomain,
+        domainSuffix,
+        name: page.siteSettings?.name || page.title || page.subdomain,
+        phone: page.siteSettings?.phone || '',
+        username: user?.username || '',
+        adminUserId: page.adminUserId,
+        seoTitle: page.seoTitle || '',
+        seoDescription: page.seoDescription || '',
+        seoKeywords: page.seoKeywords || '',
+        seoRobots: page.seoRobots || 'index, follow',
+        sslStatus: page.sslStatus || 'pending',
+        sslError: page.sslError,
+        updated_at: page.updated_at,
+      };
+    }));
+  });
+
+  app.put('/api/admin/sales-counters/:id/seo', requireSalesCounterAdmin, (req, res) => {
+    const db = readDb();
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const page = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
+      .find((item: any) => item.id === req.params.id
+        && item.siteType === 'sales-counter'
+        && getSeoPageDomainSuffix(item) === domainSuffix);
+    if (!page) return res.status(404).json({ error: 'Sales Counter tidak ditemukan pada domain ini.' });
+
+    page.seoTitle = String(req.body?.seoTitle || '').trim().slice(0, 70);
+    page.seoDescription = String(req.body?.seoDescription || '').trim().slice(0, 160);
+    page.seoKeywords = String(req.body?.seoKeywords || '').trim().slice(0, 300);
+    page.seoRobots = ['index, follow', 'noindex, follow', 'index, nofollow', 'noindex, nofollow']
+      .includes(req.body?.seoRobots) ? req.body.seoRobots : 'index, follow';
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: (req as any).adminSession.username,
+      action: 'UPDATE_SALES_COUNTER_SEO',
+      resource: page.id,
+      details: `Memperbarui SEO ${page.subdomain}.${domainSuffix}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'SEO Sales Counter gagal disimpan.' });
+    return res.json({
+      id: page.id,
+      seoTitle: page.seoTitle,
+      seoDescription: page.seoDescription,
+      seoKeywords: page.seoKeywords,
+      seoRobots: page.seoRobots,
+      updated_at: page.updated_at,
+    });
+  });
+
+  app.post('/api/admin/sales-counters', requireSalesCounterAdmin, async (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    db.settings = db.settings || {};
+    const users = ensureAdminUsers(db);
+    const sourceSettings = db.settings;
+    const domainSuffix = getSalesCounterRootDomain(req.hostname)!;
+    const name = String(req.body?.name || '').trim();
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+    const phone = String(req.body?.phone || '').replace(/[^0-9]/g, '');
+    const subdomain = String(req.body?.subdomain || '').trim().toLocaleLowerCase('en-US');
+    const seoTitle = String(req.body?.seoTitle || '').trim().slice(0, 70);
+    const seoDescription = String(req.body?.seoDescription || '').trim().slice(0, 160);
+    const seoKeywords = String(req.body?.seoKeywords || '').trim().slice(0, 300);
+    const reservedSubdomains = new Set([...RESERVED_SEO_SUBDOMAINS, 'kreditmotorhonda', 'solusi', 'sales']);
+
+    if (!name || !username || password.length < 8 || phone.length < 8) {
+      return res.status(400).json({ error: 'Nama, username, nomor WhatsApp valid, dan password minimal 8 karakter wajib diisi.' });
+    }
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain) || reservedSubdomains.has(subdomain)) {
+      return res.status(400).json({ error: 'Subdomain tidak valid atau menggunakan nama yang dicadangkan.' });
+    }
+    if (users.some((user: any) => String(user.username || '').toLocaleLowerCase('en-US') === username.toLocaleLowerCase('en-US'))) {
+      return res.status(409).json({ error: 'Username admin sudah digunakan.' });
+    }
+    const currentPages = Array.isArray(sourceSettings.seoPages) ? sourceSettings.seoPages : [];
+    if (currentPages.some((page: any) => page.subdomain === subdomain && getSeoPageDomainSuffix(page) === domainSuffix)) {
+      return res.status(409).json({ error: 'Subdomain sudah digunakan pada domain ini.' });
+    }
+
+    const now = new Date().toISOString();
+    const suffix = crypto.randomBytes(4).toString('hex');
+    const adminUserId = `admin-${Date.now()}-${suffix}`;
+    const pageId = `sales-site-${Date.now()}-${suffix}`;
+    const normalizedPhone = phone.startsWith('0') ? `62${phone.slice(1)}` : phone;
+    const page: any = {
+      id: pageId,
+      siteType: 'sales-counter',
+      subdomain,
+      domainSuffix,
+      adminUserId,
+      title: `${name} | Sales Counter Honda`,
+      content: '',
+      seoTitle: seoTitle || `${name} | Sales Counter Honda Bandung`.slice(0, 70),
+      seoDescription: seoDescription || `Hubungi ${name}, Sales Counter Honda Bandung. Konsultasi motor, harga, promo, dan simulasi kredit Honda melalui WhatsApp.`.slice(0, 160),
+      seoKeywords: seoKeywords || `${name}, sales Honda Bandung, kredit motor Honda Bandung`.slice(0, 300),
+      seoRobots: 'index, follow',
+      siteSettings: {
+        name,
+        tagline: 'Sales Counter Resmi Honda Bandung',
+        phone: normalizedPhone,
+        address: sourceSettings.address,
+        email: sourceSettings.email,
+        workingHours: sourceSettings.workingHours,
+        logo: sourceSettings.logo,
+        heroImage: sourceSettings.heroImage,
+        heroImages: sourceSettings.heroImages,
+        customization: sourceSettings.customization,
+        heroBadge: 'SALES COUNTER HONDA',
+        heroMainTitle: 'Konsultasi &',
+        heroTitleHighlight: 'Pengajuan Kredit Motor Honda',
+        heroSubtitle: `Konsultasikan kebutuhan motor Honda, harga, promo, dan simulasi kredit bersama ${name}.`,
+        footerText: `Hubungi ${name}, Sales Counter Honda Wijaya Abadi, untuk konsultasi motor dan pengajuan kredit.`,
+        websiteTemplate: sourceSettings.websiteTemplate || 'wijaya-enerjik',
+      },
+      sslStatus: 'pending',
+      updated_at: now,
+    };
+    const newUser = {
+      id: adminUserId,
+      username,
+      passwordHash: hashPassword(password),
+      role: 'Staff Admin',
+      created_at: now,
+    };
+
+    db.adminUsers = users;
+    db.adminUsers.push(newUser);
+    db.settings.seoPages = [page, ...currentPages];
+    appendAudit(db, { actor: session.username, action: 'CREATE_SALES_COUNTER', resource: pageId, details: `Membuat website Sales Counter ${name} (${subdomain}.${domainSuffix})` });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Data Sales Counter gagal disimpan.' });
+
+    let sslResult: { status: 'pending' | 'active' | 'failed'; message: string };
+    try {
+      sslResult = await provisionSeoPageSsl(page, db.settings);
+    } catch (error: any) {
+      sslResult = { status: 'failed', message: String(error.message || 'Konfigurasi HTTPS gagal.').slice(0, 500) };
+    }
+    page.sslStatus = sslResult.status;
+    page.sslError = sslResult.status === 'active' ? undefined : sslResult.message;
+    page.updated_at = new Date().toISOString();
+    appendAudit(db, {
+      actor: session.username,
+      action: 'PROVISION_SALES_COUNTER_SSL',
+      resource: pageId,
+      details: `${subdomain}.${domainSuffix}: ${sslResult.status}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Website dibuat, tetapi status SSL gagal disimpan.' });
+
+    return res.status(201).json({
+      id: page.id,
+      subdomain: page.subdomain,
+      domainSuffix,
+      name,
+      phone: normalizedPhone,
+      username,
+      adminUserId,
+      seoTitle: page.seoTitle,
+      seoDescription: page.seoDescription,
+      seoKeywords: page.seoKeywords,
+      seoRobots: page.seoRobots,
+      sslStatus: page.sslStatus,
+      sslError: page.sslError,
+      updated_at: page.updated_at,
+    });
+  });
+
+  app.delete('/api/admin/sales-counters/:id', requireSalesCounterAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    const db = readDb();
+    const pages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const page = pages.find((item: any) => item.id === req.params.id && item.siteType === 'sales-counter');
+    if (!page || getSeoPageDomainSuffix(page) !== getSalesCounterRootDomain(req.hostname)) {
+      return res.status(404).json({ error: 'Sales Counter tidak ditemukan pada domain ini.' });
+    }
+
+    db.settings.seoPages = pages.filter((item: any) => item.id !== page.id);
+    db.adminUsers = (Array.isArray(db.adminUsers) ? db.adminUsers : []).filter((user: any) => user.id !== page.adminUserId);
+    for (const [token, activeSession] of sessions) {
+      if (activeSession.id === page.adminUserId) sessions.delete(token);
+    }
+    appendAudit(db, {
+      actor: session.username,
+      action: 'DELETE_SALES_COUNTER',
+      resource: page.id,
+      details: `Menghapus ${page.subdomain}.${page.domainSuffix} dan akun admin terkait`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Sales Counter gagal dihapus.' });
+    return res.json({ success: true });
   });
 
   app.post('/api/admin/users', requireAdmin, (req, res) => {

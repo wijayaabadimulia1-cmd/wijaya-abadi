@@ -197,7 +197,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [catalogAdminUrl, setCatalogAdminUrl] = useState('https://kreditmotorhonda.tech/admin');
   const [leads, setLeads] = useState<LeadInterest[]>([]);
   const [salesCounters, setSalesCounters] = useState<SalesCounterSite[]>([]);
-  const [salesCounterForm, setSalesCounterForm] = useState({ name: '', phone: '', username: '', password: '', subdomain: '' });
+  const [editingSalesCounterSeoId, setEditingSalesCounterSeoId] = useState<string | null>(null);
+  const [salesCounterSeoForm, setSalesCounterSeoForm] = useState({ seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
+  const [isSavingSalesCounterSeo, setIsSavingSalesCounterSeo] = useState(false);
+  const [salesCounterForm, setSalesCounterForm] = useState({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
   const [isSavingSalesCounter, setIsSavingSalesCounter] = useState(false);
   const salesCounterDomainSuffix = getSalesCounterDomainSuffix(window.location.hostname);
   const canManageSalesCounters = isSuperAdmin && Boolean(salesCounterDomainSuffix);
@@ -473,12 +476,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         subdomain: salesCounterForm.subdomain.trim().toLocaleLowerCase('id-ID'),
       });
       setSalesCounters((current) => [created, ...current.filter((counter) => counter.id !== created.id)]);
-      setSalesCounterForm({ name: '', phone: '', username: '', password: '', subdomain: '' });
+      setSalesCounterForm({ name: '', phone: '', username: '', password: '', subdomain: '', seoTitle: '', seoDescription: '', seoKeywords: '' });
       showToast(`Sales Counter ${created.subdomain}.${created.domainSuffix} berhasil dibuat`);
     } catch (error: any) {
       alert(error.message || 'Gagal membuat Sales Counter');
     } finally {
       setIsSavingSalesCounter(false);
+    }
+  };
+
+  const handleEditSalesCounterSeo = (counter: SalesCounterSite) => {
+    setEditingSalesCounterSeoId(counter.id);
+    setSalesCounterSeoForm({
+      seoTitle: counter.seoTitle || '',
+      seoDescription: counter.seoDescription || '',
+      seoKeywords: counter.seoKeywords || '',
+      seoRobots: counter.seoRobots || 'index, follow',
+    });
+  };
+
+  const handleSaveSalesCounterSeo = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingSalesCounterSeoId) return;
+    if (!salesCounterSeoForm.seoTitle.trim() || !salesCounterSeoForm.seoDescription.trim()) {
+      alert('Judul dan deskripsi SEO wajib diisi.');
+      return;
+    }
+
+    setIsSavingSalesCounterSeo(true);
+    try {
+      const updatedSeo = await api.updateSalesCounterSeo(editingSalesCounterSeoId, salesCounterSeoForm);
+      setSalesCounters((current) => current.map((counter) => counter.id === editingSalesCounterSeoId ? { ...counter, ...updatedSeo } : counter));
+      setEditingSalesCounterSeoId(null);
+      showToast('SEO Sales Counter berhasil disimpan');
+    } catch (error: any) {
+      alert(error.message || 'Gagal menyimpan SEO Sales Counter');
+    } finally {
+      setIsSavingSalesCounterSeo(false);
     }
   };
 
@@ -2463,6 +2497,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     </div>
                     <input required value={salesCounterForm.username} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, username: event.target.value })} placeholder="Username admin" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
                     <input required type="password" minLength={8} value={salesCounterForm.password} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, password: event.target.value })} placeholder="Password admin (min. 8 karakter)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                    <input maxLength={70} value={salesCounterForm.seoTitle} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoTitle: event.target.value })} placeholder="Judul SEO (opsional, maks. 70 karakter)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                    <textarea maxLength={160} rows={2} value={salesCounterForm.seoDescription} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoDescription: event.target.value })} placeholder="Deskripsi SEO (opsional, maks. 160 karakter)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
+                    <input maxLength={300} value={salesCounterForm.seoKeywords} onChange={(event) => setSalesCounterForm({ ...salesCounterForm, seoKeywords: event.target.value })} placeholder="Kata kunci SEO (opsional, pisahkan dengan koma)" className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none" />
                     <button type="submit" disabled={isSavingSalesCounter} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-60">
                       <Plus className="h-4 w-4" />
                       {isSavingSalesCounter ? 'Membuat website...' : 'Tambah Sales Counter'}
@@ -2476,11 +2513,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-white">{counter.name}</p>
                         <p className="mt-1 text-[11px] text-zinc-400">{counter.subdomain}.{counter.domainSuffix} · {counter.phone}</p>
+                        <p className="mt-1 truncate text-[11px] text-zinc-500">{counter.seoTitle || 'Judul SEO belum diatur'}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <a href={`https://${counter.subdomain}.${counter.domainSuffix}/admin`} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-sky-300 hover:text-sky-200">Buka Admin</a>
+                        <button type="button" onClick={() => handleEditSalesCounterSeo(counter)} className="text-[11px] font-semibold text-zinc-300 hover:text-white">Edit SEO</button>
                         <button type="button" onClick={() => void handleDeleteSalesCounter(counter)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-300 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" />Hapus</button>
                       </div>
+                      {editingSalesCounterSeoId === counter.id && (
+                        <form onSubmit={handleSaveSalesCounterSeo} className="grid w-full grid-cols-1 gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
+                          <label className="space-y-1 text-xs font-medium text-zinc-300">Judul SEO
+                            <input required maxLength={70} value={salesCounterSeoForm.seoTitle} onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoTitle: event.target.value })} className="mt-1 w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
+                          </label>
+                          <label className="space-y-1 text-xs font-medium text-zinc-300">Robots
+                            <select value={salesCounterSeoForm.seoRobots} onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoRobots: event.target.value })} className="mt-1 w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+                              <option value="index, follow">Index, follow</option>
+                              <option value="noindex, follow">Noindex, follow</option>
+                              <option value="index, nofollow">Index, nofollow</option>
+                              <option value="noindex, nofollow">Noindex, nofollow</option>
+                            </select>
+                          </label>
+                          <label className="space-y-1 text-xs font-medium text-zinc-300 sm:col-span-2">Deskripsi SEO
+                            <textarea required maxLength={160} rows={3} value={salesCounterSeoForm.seoDescription} onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoDescription: event.target.value })} className="mt-1 w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
+                          </label>
+                          <label className="space-y-1 text-xs font-medium text-zinc-300 sm:col-span-2">Kata kunci SEO
+                            <input maxLength={300} value={salesCounterSeoForm.seoKeywords} onChange={(event) => setSalesCounterSeoForm({ ...salesCounterSeoForm, seoKeywords: event.target.value })} className="mt-1 w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
+                          </label>
+                          <div className="flex justify-end gap-2 sm:col-span-2">
+                            <button type="button" onClick={() => setEditingSalesCounterSeoId(null)} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Batal</button>
+                            <button type="submit" disabled={isSavingSalesCounterSeo} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50">
+                              <Save className="h-3.5 w-3.5" />{isSavingSalesCounterSeo ? 'Menyimpan...' : 'Simpan SEO'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   )) : (
                     <p className="px-4 py-5 text-center text-xs text-zinc-500">Belum ada website Sales Counter.</p>

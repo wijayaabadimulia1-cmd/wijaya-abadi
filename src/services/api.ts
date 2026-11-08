@@ -86,7 +86,7 @@ export const api = {
     return result;
   },
 
-  async createSalesCounter(data: { name: string; phone: string; username: string; password: string; subdomain: string; seoTitle?: string; seoDescription?: string; seoKeywords?: string }): Promise<SalesCounterSite> {
+  async createSalesCounter(data: { name: string; phone: string; username: string; password: string; subdomain: string; seoTitle?: string; seoDescription?: string; seoKeywords?: string; seoRobots?: string }): Promise<SalesCounterSite> {
     const res = await fetch('/api/admin/sales-counters', {
       method: 'POST',
       headers: adminHeaders(),

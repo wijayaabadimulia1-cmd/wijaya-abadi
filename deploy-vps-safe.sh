@@ -33,11 +33,15 @@ SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
 ID_SERVICE="kreditmotorhonda-id.service"
 ID_UNIT_FILE="/etc/systemd/system/${ID_SERVICE}"
+ID_DROPIN_DIR="/etc/systemd/system/${ID_SERVICE}.d"
+ID_DEPLOY_DROPIN="${ID_DROPIN_DIR}/zzzz-wijaya-abadi-deploy.conf"
 ID_DATA_DIR="/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data"
 ID_SERVICE_UPDATED=0
 ID_SERVICE_WAS_ACTIVE=0
 ID_SERVICE_WAS_ENABLED=0
 ID_UNIT_BACKUP=""
+ID_DROPIN_BACKUP=""
+ID_DROPIN_EXISTED=0
 STAGING_DIR=""
 STAGING_PID=""
 PREVIOUS_DROPIN_EXISTS=0
@@ -57,6 +61,11 @@ cleanup() {
     echo "Kreditmotorhonda.id deployment failed; restoring its previous service." >&2
     if [ -n "$ID_UNIT_BACKUP" ] && [ -f "$ID_UNIT_BACKUP" ]; then
       sudo install -m 644 "$ID_UNIT_BACKUP" "$ID_UNIT_FILE"
+      if [ "$ID_DROPIN_EXISTED" -eq 1 ] && [ -f "$ID_DROPIN_BACKUP" ]; then
+        sudo install -m 644 "$ID_DROPIN_BACKUP" "$ID_DEPLOY_DROPIN"
+      else
+        sudo rm -f "$ID_DEPLOY_DROPIN"
+      fi
       if [ "$ID_SERVICE_WAS_ENABLED" -eq 1 ]; then
         sudo systemctl enable "$ID_SERVICE" || true
       else
@@ -71,6 +80,7 @@ cleanup() {
     else
       sudo systemctl stop "$ID_SERVICE" || true
       sudo systemctl disable "$ID_SERVICE" || true
+      sudo rm -f "$ID_DEPLOY_DROPIN"
       sudo rm -f "$ID_UNIT_FILE"
       sudo systemctl daemon-reload || true
     fi
@@ -385,7 +395,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
 WorkingDirectory=$RELEASE_DIR
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
-ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
+ExecStart=/usr/bin/env PORT=$port /usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 done
 sudo systemctl daemon-reload
@@ -424,6 +434,11 @@ if [ -f "$ID_UNIT_FILE" ]; then
   if systemctl is-active --quiet "$ID_SERVICE"; then ID_SERVICE_WAS_ACTIVE=1; fi
   if systemctl is-enabled --quiet "$ID_SERVICE"; then ID_SERVICE_WAS_ENABLED=1; fi
 fi
+if [ -f "$ID_DEPLOY_DROPIN" ]; then
+  ID_DROPIN_BACKUP="$STAGING_DIR/kreditmotorhonda-id-deploy.conf.previous"
+  sudo cp "$ID_DEPLOY_DROPIN" "$ID_DROPIN_BACKUP"
+  ID_DROPIN_EXISTED=1
+fi
 ID_SERVICE_UPDATED=1
 sudo tee "$ID_UNIT_FILE" >/dev/null <<EOF
 [Unit]
@@ -453,6 +468,15 @@ RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
+EOF
+sudo install -d -m 755 "$ID_DROPIN_DIR"
+sudo tee "$ID_DEPLOY_DROPIN" >/dev/null <<EOF
+[Service]
+WorkingDirectory=$RELEASE_DIR
+Environment=CATALOG_API_URL=http://127.0.0.1:3000
+Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
+ExecStart=
+ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
 sudo systemctl daemon-reload
 sudo systemctl reset-failed "$ID_SERVICE" || true
