@@ -46,6 +46,9 @@ export interface Promo {
   promoAnimation?: CatalogAnimation;
   promoTemplate?: PromoTemplate;
   created_at?: string;
+  isGlobal?: boolean;
+  isLocal?: boolean;
+  disabledHosts?: string[];
 }
 
 export interface Testimonial {

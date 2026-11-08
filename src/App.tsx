@@ -134,6 +134,33 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (isAdminRoute || currentPath.startsWith('/admin')) return;
+
+    try {
+      const sessionKey = 'hwa-visitor-session';
+      let sessionId = sessionStorage.getItem(sessionKey);
+      if (!sessionId) {
+        sessionId = typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `visit_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        sessionStorage.setItem(sessionKey, sessionId);
+      }
+
+      let source = 'Direct';
+      if (document.referrer) {
+        const referrerHost = new URL(document.referrer).hostname.toLowerCase();
+        if (/google\.|bing\.|yahoo\.|duckduckgo\./.test(referrerHost)) source = 'Organik Search';
+        else if (/facebook\.|instagram\.|tiktok\.|youtube\.|x\.com$|twitter\.|linkedin\./.test(referrerHost)) source = 'Social Media';
+        else if (referrerHost !== window.location.hostname.toLowerCase()) source = 'Referral';
+      }
+
+      void api.trackVisitor(sessionId, currentPath, source).catch(() => undefined);
+    } catch {
+      // Analytics should never interrupt page navigation.
+    }
+  }, [currentPath, isAdminRoute]);
+
   // Fetch initial data from dynamic database
   const loadData = async () => {
     try {

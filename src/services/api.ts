@@ -303,9 +303,73 @@ export const api = {
 
   // Promos
   async getPromos(): Promise<Promo[]> {
-    const res = await fetch('/api/promos');
-    if (!res.ok) throw new Error('Gagal mengambil promo');
-    return res.json();
+    const [localResponse, globalResponse] = await Promise.all([
+      fetch('/api/promos', { cache: 'no-store' }),
+      fetch('/api/promos/global', { cache: 'no-store' }),
+    ]);
+    if (!localResponse.ok) throw new Error('Gagal mengambil promo');
+
+    const localPromos: Promo[] = await localResponse.json();
+    const globalPromos: Promo[] = globalResponse.ok ? await globalResponse.json() : [];
+    const globalById = new Map(globalPromos.map((promo) => [promo.id, promo]));
+    const globalIds = new Set(globalPromos.map((promo) => promo.id));
+    const localIds = new Set(localPromos.map((promo) => promo.id));
+    const isAdminPage = window.location.pathname.replace(/\/+$/, '').endsWith('/admin');
+    const currentHost = window.location.hostname.toLowerCase().replace(/^www\./, '');
+
+    if (isAdminPage) {
+      const localWithGlobalState = localPromos.map((promo) => {
+        const globalPromo = globalById.get(promo.id);
+        return globalPromo
+          ? { ...globalPromo, ...promo, disabledHosts: globalPromo.disabledHosts, isGlobal: true, isLocal: true }
+          : { ...promo, isGlobal: false, isLocal: true };
+      });
+      return [...localWithGlobalState, ...globalPromos.filter((promo) => !localIds.has(promo.id)).map((promo) => ({ ...promo, isGlobal: true, isLocal: false }))];
+    }
+
+    return [
+      ...globalPromos.filter((promo) => !promo.disabledHosts?.includes(currentHost)).map((promo) => ({ ...promo, isGlobal: true, isLocal: localIds.has(promo.id) })),
+      ...localPromos.filter((promo) => !globalIds.has(promo.id)).map((promo) => ({ ...promo, isGlobal: false, isLocal: true })),
+    ];
+  },
+
+  async getGlobalPromoDomains(): Promise<string[]> {
+    const res = await fetch('/api/admin/global-promos', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengambil daftar domain promo');
+    return result.availableDomains || [];
+  },
+
+  async updateGlobalPromoDomains(id: string, disabledHosts: string[]): Promise<string[]> {
+    const res = await fetch(`/api/promos/global/${encodeURIComponent(id)}/domains`, {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ disabledHosts }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menyimpan visibilitas promo per domain');
+    return result.disabledHosts || [];
+  },
+
+  async publishPromoGlobally(promo: Partial<Promo>): Promise<Promo> {
+    const { isGlobal: _isGlobal, isLocal: _isLocal, ...payload } = promo;
+    const res = await fetch('/api/promos/global', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menampilkan promo di semua website');
+    return result;
+  },
+
+  async unpublishPromoGlobally(id: string): Promise<void> {
+    const res = await fetch(`/api/promos/global/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menarik promo dari semua website');
   },
 
   async createPromo(data: Partial<Promo>): Promise<Promo> {
@@ -431,11 +495,11 @@ export const api = {
     return res.json();
   },
 
-  async trackVisitor(sessionId: string, path: string): Promise<void> {
+  async trackVisitor(sessionId: string, path: string, source = 'Lainnya'): Promise<void> {
     const res = await fetch('/api/analytics/visit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, path }),
+      body: JSON.stringify({ sessionId, path, source }),
       keepalive: true,
     });
     if (!res.ok) throw new Error('Gagal menyimpan kunjungan website');

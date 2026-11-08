@@ -48,17 +48,32 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
+function readJsonDbFile(filePath: string) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return null;
+    const raw = fs.readFileSync(filePath, 'utf-8').trim();
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed;
+  } catch (err) {
+    console.error(`Error reading db file ${filePath}:`, err);
+  }
+  return null;
+}
+
 function readDb() {
-  for (const candidatePath of [PERSISTENT_DB_FILE, FALLBACK_DB_FILE, DB_FILE]) {
-    try {
-      if (!fs.existsSync(candidatePath)) continue;
-      const raw = fs.readFileSync(candidatePath, 'utf-8').trim();
-      if (!raw) continue;
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') return parsed;
-    } catch (err) {
-      console.error('Error reading db:', err);
-    }
+  for (const candidatePath of Array.from(
+    new Set(
+      [
+        CATALOG_OWNER_DATA_FILE,
+        PERSISTENT_DB_FILE,
+        FALLBACK_DB_FILE,
+        DB_FILE,
+      ].filter((value): value is string => Boolean(value))
+    )
+  )) {
+    const parsed = readJsonDbFile(candidatePath);
+    if (parsed) return parsed;
   }
   return {
     settings: {},
@@ -72,21 +87,51 @@ function readDb() {
 }
 
 function readCatalogDb() {
-  try {
-    const catalogDb = JSON.parse(fs.readFileSync(CATALOG_OWNER_DATA_FILE, 'utf-8'));
-    const localDb = readDb();
-    return {
-      ...localDb,
-      motors: Array.isArray(catalogDb.motors) ? catalogDb.motors : [],
-      fifPriceList: catalogDb.fifPriceList,
-    };
-  } catch {
-    return readDb();
-  }
+  const ownerDb = readJsonDbFile(CATALOG_OWNER_DATA_FILE) || readJsonDbFile(PERSISTENT_DB_FILE) || readJsonDbFile(FALLBACK_DB_FILE) || readJsonDbFile(DB_FILE);
+  const primaryDb = readDb();
+  const baseDb = ownerDb && typeof ownerDb === 'object' ? ownerDb : primaryDb;
+
+  return {
+    ...primaryDb,
+    ...baseDb,
+    settings: {
+      ...(primaryDb.settings || {}),
+      ...(baseDb.settings || {}),
+    },
+    motors: Array.isArray(ownerDb?.motors) && ownerDb.motors.length > 0
+      ? ownerDb.motors
+      : Array.isArray(baseDb.motors) && baseDb.motors.length > 0
+        ? baseDb.motors
+        : Array.isArray(primaryDb.motors)
+          ? primaryDb.motors
+          : [],
+    promos: Array.isArray(ownerDb?.promos) && ownerDb.promos.length > 0
+      ? ownerDb.promos
+      : Array.isArray(baseDb.promos) && baseDb.promos.length > 0
+        ? baseDb.promos
+        : Array.isArray(primaryDb.promos)
+          ? primaryDb.promos
+          : [],
+    testimonials: Array.isArray(ownerDb?.testimonials) && ownerDb.testimonials.length > 0
+      ? ownerDb.testimonials
+      : Array.isArray(baseDb.testimonials) && baseDb.testimonials.length > 0
+        ? baseDb.testimonials
+        : Array.isArray(primaryDb.testimonials)
+          ? primaryDb.testimonials
+          : [],
+    manifesto: Array.isArray(ownerDb?.manifesto) && ownerDb.manifesto.length > 0
+      ? ownerDb.manifesto
+      : Array.isArray(baseDb.manifesto) && baseDb.manifesto.length > 0
+        ? baseDb.manifesto
+        : Array.isArray(primaryDb.manifesto)
+          ? primaryDb.manifesto
+          : [],
+    fifPriceList: ownerDb?.fifPriceList ?? baseDb.fifPriceList ?? primaryDb.fifPriceList ?? currentFifPriceList(primaryDb),
+  };
 }
 
 function isSharedCatalogPath(pathname: string) {
-  return /^\/api\/(?:motors(?:\/|$)|fif-price-list(?:\/|$))/.test(pathname.split('?')[0]);
+  return /^\/api\/(?:motors(?:\/|$)|fif-price-list(?:\/|$)|promos\/global(?:\/|$))/.test(pathname.split('?')[0]);
 }
 
 function isSharedCatalogRequest(req: express.Request) {
@@ -1243,11 +1288,40 @@ async function saveExternalImage(url: string): Promise<string> {
   return `/uploads/${filename}`;
 }
 
+const SUPER_ADMIN_ALLOWED_HOSTS = new Set([
+  'kreditmotorhonda.tech',
+  'www.kreditmotorhonda.tech',
+  'wijaya.kreditmotorhonda.tech',
+  'kreditmotorhonda.id',
+  'www.kreditmotorhonda.id',
+  'solusikreditmotor.cloud',
+  'www.solusikreditmotor.cloud',
+  'localhost',
+  '127.0.0.1',
+  '::1',
+]);
+const SUPER_ADMIN_ALLOWED_ROOT_DOMAINS = new Set([
+  'kreditmotorhonda.tech',
+  'kreditmotorhonda.id',
+  'solusikreditmotor.cloud',
+]);
+
+function normalizeAdminHost(hostname: string) {
+  return String(hostname || '').trim().toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
+}
+
+function isSuperAdminAllowedHost(hostname: string) {
+  const host = normalizeAdminHost(hostname);
+  return SUPER_ADMIN_ALLOWED_HOSTS.has(host)
+    || [...SUPER_ADMIN_ALLOWED_ROOT_DOMAINS].some((domain) => host.endsWith(`.${domain}`));
+}
+
 function isAdminAuthorizedForHost(session: any, hostname: string, db: any = readDb()) {
   if (!session) return false;
-  if (session.role === 'Super Admin') return true;
 
-  const host = String(hostname || '').toLowerCase().replace(/:\d+$/, '');
+  const host = normalizeAdminHost(hostname);
+  if (session.role === 'Super Admin') return isSuperAdminAllowedHost(host);
+
   const hostPost = getSeoPageForHost(db.settings || {}, host);
   if (hostPost) {
     return session.id === hostPost.adminUserId;
@@ -1273,6 +1347,15 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
 
+  const host = normalizeAdminHost(req.hostname);
+  if (session.role === 'Super Admin' && !isSuperAdminAllowedHost(host)) {
+    return res.status(403).json({ error: 'Super Admin hanya dapat masuk dari domain utama yang diizinkan.' });
+  }
+
+  if (session.role !== 'Super Admin' && !isAdminAuthorizedForHost(session, host, readDb())) {
+    return res.status(403).json({ error: 'Akses admin tidak diizinkan untuk domain ini.' });
+  }
+
   (req as any).adminSession = session;
   next();
 }
@@ -1281,17 +1364,17 @@ function getCatalogAccessState(req: express.Request) {
   const session = getSession(req);
   const host = normalizeAnalyticsHost(req.hostname);
   const isMainCatalogHost = host === 'kreditmotorhonda.tech';
+  const isApprovedSuperAdminHost = Boolean(session?.role === 'Super Admin' && isSuperAdminAllowedHost(host));
   const isLocalCatalogHost = host === 'localhost' || host === '127.0.0.1';
-  const isSuperAdmin = session?.role === 'Super Admin';
-  const canManageCatalog = Boolean(session) && (isMainCatalogHost || (isSuperAdmin && isLocalCatalogHost));
+  const canManageCatalog = Boolean(session) && (isMainCatalogHost || isApprovedSuperAdminHost || (session?.role === 'Super Admin' && isLocalCatalogHost));
 
   return {
     session,
     host,
     isMainCatalogHost,
-    isSuperAdmin,
+    isSuperAdmin: session?.role === 'Super Admin',
     canManageCatalog,
-    owner: isMainCatalogHost || (isSuperAdmin && isLocalCatalogHost),
+    owner: isMainCatalogHost || isApprovedSuperAdminHost || (session?.role === 'Super Admin' && isLocalCatalogHost),
     adminUrl: 'https://kreditmotorhonda.tech/admin',
   };
 }
@@ -1921,7 +2004,119 @@ async function startServer() {
   });
 
   // Promos
+  app.get('/api/promos/global', (_req, res) => {
+    const db = readDb();
+    res.json(Array.isArray(db.globalPromos) ? db.globalPromos : []);
+  });
+
+  app.post('/api/promos/global', (req, res) => {
+    const db = readDb();
+    const body = req.body || {};
+    const id = String(body.id || '').trim();
+    const title = String(body.title || '').trim();
+    if (!id || !title) return res.status(400).json({ error: 'ID dan judul promo wajib diisi.' });
+
+    const images = Array.isArray(body.images)
+      ? body.images.filter((image: unknown): image is string => typeof image === 'string' && Boolean(image.trim())).map((image: string) => {
+          const value = image.trim();
+          return value.startsWith('/uploads/') ? `https://kreditmotorhonda.tech${value}` : value;
+        })
+      : [];
+    if (images.length > MAX_PROMO_IMAGES) {
+      return res.status(400).json({ error: `Maksimal ${MAX_PROMO_IMAGES} foto per promo.` });
+    }
+
+    const globalPromos = Array.isArray(db.globalPromos) ? db.globalPromos : [];
+    const previous = globalPromos.find((promo: any) => promo.id === id);
+    const now = new Date().toISOString();
+    const promo = {
+      id,
+      title,
+      description: String(body.description || ''),
+      terms: String(body.terms || 'S&K Berlaku'),
+      badge: String(body.badge || 'Promo'),
+      discountValue: String(body.discountValue || ''),
+      images,
+      promoAnimation: body.promoAnimation || 'fade',
+      promoTemplate: body.promoTemplate || 'classic',
+      disabledHosts: Array.isArray(previous?.disabledHosts) ? previous.disabledHosts : [],
+      created_at: previous?.created_at || body.created_at || now,
+      updated_at: now,
+    };
+
+    db.globalPromos = [promo, ...globalPromos.filter((item: any) => item.id !== id)];
+    writeDb(db);
+    res.json(promo);
+  });
+
+  app.get('/api/admin/global-promos', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengatur publikasi promo global.' });
+    }
+
+    const db = readDb();
+    const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const availableDomains = [...new Set([
+      'kreditmotorhonda.tech',
+      'kreditmotorhonda.id',
+      'solusikreditmotor.cloud',
+      'wijaya.kreditmotorhonda.tech',
+      ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
+      ...seoPages.map((page: any) => `${String(page.subdomain || '').trim().toLowerCase()}.kreditmotorhonda.tech`),
+    ])].filter((host) => host && !host.startsWith('.')).sort();
+
+    return res.json({ availableDomains });
+  });
+
+  app.put('/api/promos/global/:id/domains', requireAdmin, (req, res) => {
+    const session = (req as any).adminSession;
+    if (session.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengubah domain promo global.' });
+    }
+
+    const db = readDb();
+    const globalPromos = Array.isArray(db.globalPromos) ? db.globalPromos : [];
+    const promo = globalPromos.find((item: any) => item.id === req.params.id);
+    if (!promo) return res.status(404).json({ error: 'Promo global tidak ditemukan.' });
+
+    const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const allowedHosts = new Set([
+      'kreditmotorhonda.tech',
+      'kreditmotorhonda.id',
+      'solusikreditmotor.cloud',
+      'wijaya.kreditmotorhonda.tech',
+      ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
+      ...seoPages.map((page: any) => `${String(page.subdomain || '').trim().toLowerCase()}.kreditmotorhonda.tech`),
+    ]);
+    const disabledHosts = Array.isArray(req.body?.disabledHosts)
+      ? [...new Set(req.body.disabledHosts.map((host: unknown) => String(host || '').trim().toLowerCase()))]
+        .filter((host: string) => allowedHosts.has(host))
+      : [];
+
+    promo.disabledHosts = disabledHosts;
+    promo.updated_at = new Date().toISOString();
+    db.globalPromos = globalPromos;
+    appendAudit(db, {
+      actor: session.username,
+      action: 'UPDATE_GLOBAL_PROMO_DOMAINS',
+      resource: promo.id,
+      details: `Promo ${promo.title}; disembunyikan di: ${disabledHosts.join(', ') || 'tidak ada domain'}`,
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan pengaturan domain promo.' });
+    return res.json({ disabledHosts });
+  });
+
+  app.delete('/api/promos/global/:id', (req, res) => {
+    const db = readDb();
+    db.globalPromos = (Array.isArray(db.globalPromos) ? db.globalPromos : []).filter((promo: any) => promo.id !== req.params.id);
+    writeDb(db);
+    res.json({ success: true });
+  });
+
   app.get('/api/promos', (req, res) => {
+      const collectionNames = ['motors', 'promos', 'globalPromos', 'testimonials', 'interests', 'manifesto', 'auditLogs', 'adminUsers'];
+      const collections = ['motors', 'promos', 'globalPromos', 'testimonials', 'interests', 'manifesto', 'auditLogs', 'adminUsers'];
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     res.json(hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : db.promos || []);
@@ -2126,6 +2321,8 @@ async function startServer() {
     const sessionId = String(req.body?.sessionId || '');
     const pagePath = String(req.body?.path || '/');
     const host = normalizeAnalyticsHost(req.hostname);
+    const allowedSources = new Set(['Organik Search', 'Social Media', 'Direct', 'Referral', 'Lainnya']);
+    const source = allowedSources.has(String(req.body?.source || '')) ? String(req.body.source) : 'Lainnya';
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !pagePath.startsWith('/') || pagePath.length > 200 || pagePath.startsWith('/admin')) {
       return res.status(400).json({ error: 'Data kunjungan tidak valid.' });
     }
@@ -2141,6 +2338,7 @@ async function startServer() {
       host,
       timestamp: new Date().toISOString(),
       path: pagePath,
+      source,
     };
     db.visitorLogs.push(visit);
     if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan log pengunjung.' });
@@ -2279,7 +2477,7 @@ async function startServer() {
       if (!databaseSources.has(sourceFile)) databaseSources.set(sourceFile, OWNER_ANALYTICS_SITE_DB_FILES[host] ? host : 'kreditmotorhonda.tech');
     }
     const databaseContents = new Map<string, any>();
-    const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string }> = [];
+    const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string; source?: string }> = [];
     const allSearchLogs: Array<{ timestamp: string; keyword?: string; host?: string; sessionId?: string }> = [];
     const allWhatsappLogs: Array<{ timestamp: string; path?: string; menu?: string; host?: string; sessionId?: string }> = [];
     for (const [sourceFile, legacyHost] of databaseSources) {
@@ -2340,14 +2538,38 @@ async function startServer() {
       .filter((log) => validHosts.has(log.host || ''))
       .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
       .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const previousPeriodChange = (() => {
+      if (!startDate || !endDate) return null;
+      const periodDays = buildDateKeys(startDate, endDate).length;
+      if (!periodDays) return null;
+
+      const previousEnd = new Date(`${startDate}T00:00:00.000Z`);
+      previousEnd.setUTCDate(previousEnd.getUTCDate() - 1);
+      const previousEndKey = previousEnd.toISOString().slice(0, 10);
+      const previousStart = new Date(previousEnd);
+      previousStart.setUTCDate(previousStart.getUTCDate() - periodDays + 1);
+      const previousStartKey = previousStart.toISOString().slice(0, 10);
+      const previousVisits = allLogs.filter((log) => validHosts.has(log.host || ''))
+        .filter((log) => {
+          const date = getJakartaDateParts(log.timestamp).date;
+          return date >= previousStartKey && date <= previousEndKey;
+        }).length;
+
+      return previousVisits
+        ? Number((((logs.length - previousVisits) / previousVisits) * 100).toFixed(1))
+        : null;
+    })();
     const countsByHost = new Map<string, number>();
     const countsByDate = new Map<string, number>();
     const countsByPage = new Map<string, number>();
+    const countsBySource = new Map<string, number>();
     logs.forEach((log) => {
       countsByHost.set(log.host, (countsByHost.get(log.host) || 0) + 1);
       countsByDate.set(log.date, (countsByDate.get(log.date) || 0) + 1);
       const pageKey = `${log.host}${log.path || '/'}`;
       countsByPage.set(pageKey, (countsByPage.get(pageKey) || 0) + 1);
+      const source = String(log.source || 'Lainnya');
+      countsBySource.set(source, (countsBySource.get(source) || 0) + 1);
     });
 
     const recordedDates = [...countsByDate.keys()].sort();
@@ -2361,6 +2583,9 @@ async function startServer() {
     }));
     const sites = [...validHosts].map((host) => ({ host, visits: countsByHost.get(host) || 0 }))
       .sort((left, right) => right.visits - left.visits);
+    const trafficSources = ['Organik Search', 'Social Media', 'Direct', 'Referral', 'Lainnya']
+      .map((source) => ({ source, visits: countsBySource.get(source) || 0 }))
+      .filter((item) => item.visits > 0);
     const allTopPages = [...countsByPage.entries()]
       .map(([page, visits]) => ({ page, visits }))
       .sort((left, right) => right.visits - left.visits);
@@ -2419,8 +2644,10 @@ async function startServer() {
 
     return res.json({
       totalVisits: logs.length,
+      previousPeriodChange,
       siteCount: validHosts.size,
       sites,
+      trafficSources,
       siteAdmins,
       siteLeads,
       siteLeadsTotal: filteredSiteLeads.length,

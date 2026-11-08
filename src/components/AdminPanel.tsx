@@ -29,6 +29,9 @@ import {
   HardDrive,
   FileDown,
   FileJson,
+  Globe,
+  EyeOff,
+  Send,
   Palette,
   Shield,
   Sun,
@@ -175,6 +178,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [ownerDashboardHosts, setOwnerDashboardHosts] = useState<string[]>([]);
   const [ownerDashboardUrl, setOwnerDashboardUrl] = useState('');
   const [isSavingOwnerDashboard, setIsSavingOwnerDashboard] = useState(false);
+  const [globalPromoDomains, setGlobalPromoDomains] = useState<string[]>([]);
+  const [updatingGlobalPromoIds, setUpdatingGlobalPromoIds] = useState<string[]>([]);
 
   // Local state for all dynamic data
   const [motors, setMotors] = useState<Motor[]>([]);
@@ -271,9 +276,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     api.getCatalogStatus()
       .then((status) => {
         setIsCatalogOwner(status.owner);
-        setCanManageCatalog(status.canManageCatalog);
+        const canManageCatalog = status.canManageCatalog || adminSession.role === 'Super Admin';
+        setCanManageCatalog(canManageCatalog);
         setCatalogAdminUrl(status.adminUrl);
-        if (!status.canManageCatalog) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
+        if (!canManageCatalog) setActiveTab((current) => current === 'motors' || current === 'credit' ? 'dashboard' : current);
       })
       .catch(() => {
         setIsCatalogOwner(false);
@@ -373,6 +379,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       })
       .catch(() => undefined);
   }, [isSuperAdmin]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || activeTab !== 'promos') return;
+    api.getGlobalPromoDomains()
+      .then(setGlobalPromoDomains)
+      .catch((error) => {
+        console.error('Failed to load global promo domains:', error);
+        setGlobalPromoDomains([]);
+      });
+  }, [isSuperAdmin, activeTab]);
 
   useEffect(() => {
     if (!adminSession || activeTab !== 'seo') return;
@@ -912,6 +928,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       onRefreshData();
     } catch (err: any) {
       alert('Gagal menyimpan promo: ' + err.message);
+    }
+  };
+
+  const handlePublishPromoGlobally = async (promo: Promo) => {
+    try {
+      await api.publishPromoGlobally(promo);
+      showToast(promo.isGlobal ? 'Promo global berhasil diperbarui' : 'Promo tampil di semua website');
+      await loadAllData();
+      onRefreshData();
+    } catch (error: any) {
+      alert(error.message || 'Gagal menampilkan promo di semua website');
+    }
+  };
+
+  const handleUnpublishPromoGlobally = async (promo: Promo) => {
+    if (!window.confirm(`Tarik promo "${promo.title}" dari semua website? Promo lokal tetap dipertahankan.`)) return;
+    try {
+      await api.unpublishPromoGlobally(promo.id);
+      showToast('Publikasi global ditarik; promo lokal tetap tersedia');
+      await loadAllData();
+      onRefreshData();
+    } catch (error: any) {
+      alert(error.message || 'Gagal menarik promo global');
+    }
+  };
+
+  const handleToggleGlobalPromoDomain = async (promo: Promo, host: string, isVisible: boolean) => {
+    const disabledHosts = new Set(promo.disabledHosts || []);
+    if (isVisible) disabledHosts.delete(host);
+    else disabledHosts.add(host);
+
+    setUpdatingGlobalPromoIds((current) => [...new Set([...current, promo.id])]);
+    try {
+      const savedDisabledHosts = await api.updateGlobalPromoDomains(promo.id, [...disabledHosts]);
+      setPromos((current) => current.map((item) => item.id === promo.id ? { ...item, disabledHosts: savedDisabledHosts } : item));
+      showToast(isVisible ? `Promo ditampilkan di ${host}` : `Promo disembunyikan di ${host}`);
+      onRefreshData();
+    } catch (error: any) {
+      alert(error.message || 'Gagal memperbarui tampilan promo per domain');
+    } finally {
+      setUpdatingGlobalPromoIds((current) => current.filter((id) => id !== promo.id));
     }
   };
 
@@ -2760,7 +2817,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <span className="text-[10px] bg-red-600/20 text-red-400 font-bold px-2 py-0.5 rounded">
                             {p.badge || 'Promo'}
                           </span>
-                          <span className="text-xs font-bold text-yellow-400">{p.discountValue}</span>
+                          <div className="flex items-center gap-2">
+                            {isSuperAdmin && <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${p.isGlobal ? 'bg-emerald-500/15 text-emerald-300' : 'bg-zinc-700 text-zinc-300'}`}>{p.isGlobal ? 'GLOBAL' : 'LOKAL'}</span>}
+                            <span className="text-xs font-bold text-yellow-400">{p.discountValue}</span>
+                          </div>
                         </div>
                         <h4 className="text-base font-bold text-white">{p.title}</h4>
                         <p className="text-xs text-zinc-400 mt-2">{p.description}</p>
@@ -2782,24 +2842,69 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           <MessageSquare className="w-3.5 h-3.5" />
                           <span>Kirim Promo via WhatsApp</span>
                         </button>
+                        {isSuperAdmin && <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => void handlePublishPromoGlobally(p)}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-600 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-red-500"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                            <span>{p.isGlobal ? 'Perbarui di semua website' : 'Tampilkan di semua website'}</span>
+                          </button>
+                          {p.isGlobal && <>
+                            <details className="rounded-xl border border-white/10 bg-zinc-950/60 p-3">
+                              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-semibold text-zinc-200">
+                                <span className="flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-emerald-400" />Atur per domain</span>
+                                <span className="text-[10px] text-zinc-400">{globalPromoDomains.length - (p.disabledHosts?.length || 0)} aktif</span>
+                              </summary>
+                              <div className="mt-3 max-h-48 space-y-2 overflow-y-auto border-t border-white/10 pt-3">
+                                {globalPromoDomains.map((host) => {
+                                  const visible = !p.disabledHosts?.includes(host);
+                                  return (
+                                    <label key={host} className="flex min-w-0 items-center gap-2 text-[10px] text-zinc-300">
+                                      <input
+                                        type="checkbox"
+                                        checked={visible}
+                                        disabled={updatingGlobalPromoIds.includes(p.id)}
+                                        onChange={(event) => void handleToggleGlobalPromoDomain(p, host, event.target.checked)}
+                                        className="h-3.5 w-3.5 shrink-0 accent-emerald-500"
+                                      />
+                                      <span className="min-w-0 break-all">{host}</span>
+                                    </label>
+                                  );
+                                })}
+                                {!globalPromoDomains.length && <p className="text-[10px] text-zinc-500">Daftar domain belum tersedia.</p>}
+                              </div>
+                            </details>
+                            <button
+                              type="button"
+                              onClick={() => void handleUnpublishPromoGlobally(p)}
+                              className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-semibold text-red-300 hover:bg-red-500/10"
+                            >
+                              <EyeOff className="h-3.5 w-3.5" />Tarik dari semua website
+                            </button>
+                          </>}
+                        </div>}
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingPromo(p);
-                              setIsPromoModalOpen(true);
-                            }}
-                            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDeletePromo(p.id)}
-                            className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Hapus</span>
-                          </button>
+                          {(p.isLocal !== false || !p.isGlobal) && <>
+                            <button
+                              onClick={() => {
+                                setEditingPromo(p);
+                                setIsPromoModalOpen(true);
+                              }}
+                              className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Edit lokal</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeletePromo(p.id)}
+                              className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg text-xs flex items-center gap-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus lokal</span>
+                            </button>
+                          </>}
                         </div>
                       </div>
                     </div>

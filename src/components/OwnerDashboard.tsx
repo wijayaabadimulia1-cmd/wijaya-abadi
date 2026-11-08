@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Activity,
+  ArrowDownRight,
   ArrowUpRight,
   BarChart3,
   CalendarDays,
@@ -10,6 +11,7 @@ import {
   Globe,
   LayoutDashboard,
   Link2,
+  LogOut,
   Maximize,
   Menu,
   MessageSquare,
@@ -24,8 +26,10 @@ import { api } from '../services/api';
 
 interface OwnerAnalytics {
   totalVisits: number;
+  previousPeriodChange?: number | null;
   siteCount: number;
   sites: Array<{ host: string; visits: number }>;
+  trafficSources: Array<{ source: string; visits: number }>;
   siteAdmins: Array<{ host: string; dataAvailable: boolean; admins: Array<{ username: string; role: string }> }>;
   seoSubdomains: Array<{ host: string; title: string; sslStatus: string; seoRobots: string; postCount: number; updatedAt: string }>;
   seoPosts: Array<{ host: string; title: string; url: string; author: string; updatedAt: string }>;
@@ -48,8 +52,7 @@ interface OwnerAnalytics {
   timeZone: string;
 }
 
-type DateRange = '7d' | '30d' | 'all' | 'custom';
-type ChartType = 'bar' | 'line';
+type DateRange = '7d' | '30d' | '90d' | 'all' | 'custom';
 type OwnerDashboardSection = 'overview' | 'domains' | 'admins' | 'leads' | 'pages' | 'posts' | 'subdomains';
 
 function jakartaDateKey(date: Date) {
@@ -132,7 +135,6 @@ export default function OwnerDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('hwa-owner-dashboard-theme') === 'dark');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [chartType, setChartType] = useState<ChartType>('line');
   const [activeSection, setActiveSection] = useState<OwnerDashboardSection>('overview');
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [showAllDays, setShowAllDays] = useState(false);
@@ -162,7 +164,7 @@ export default function OwnerDashboard() {
         ? undefined
         : range === 'custom'
           ? startDate
-          : daysBefore(today, range === '7d' ? 6 : 29);
+          : daysBefore(today, range === '7d' ? 6 : range === '30d' ? 29 : range === '90d' ? 89 : 6);
       const requestEndDate = range === 'all'
         ? undefined
         : range === 'custom'
@@ -211,6 +213,9 @@ export default function OwnerDashboard() {
     } else if (nextRange === '30d') {
       setStartDate(daysBefore(today, 29));
       setEndDate(today);
+    } else if (nextRange === '90d') {
+      setStartDate(daysBefore(today, 89));
+      setEndDate(today);
     } else if (nextRange === 'all') {
       setStartDate('');
       setEndDate('');
@@ -234,8 +239,11 @@ export default function OwnerDashboard() {
   };
 
   const maxDailyVisits = Math.max(1, ...(analytics?.dailyVisitors || []).map((item) => item.visits));
+  const dailyAxisMax = Math.max(50, Math.ceil(maxDailyVisits / 50) * 50);
   const allDays = analytics?.dailyVisitors || [];
-  const visibleDays = showAllDays ? allDays : allDays.slice(-30);
+  const visibleDays = showAllDays
+    ? allDays
+    : allDays.slice(-(range === '7d' ? 7 : range === '30d' ? 30 : 90));
   const totalDomainVisits = (analytics?.sites || []).reduce((total, site) => total + site.visits, 0);
   const visitSparkline = (analytics?.dailyVisitors || []).slice(-8).map((day) => day.visits);
   const domainSparkline = (analytics?.sites || []).slice(0, 8).map((site) => site.visits);
@@ -246,19 +254,24 @@ export default function OwnerDashboard() {
       ? `${startDate} - ${endDate}`
       : range === '7d'
         ? '7 hari terakhir'
-        : '30 hari terakhir';
+        : range === '30d'
+          ? '30 hari terakhir'
+          : '90 hari terakhir';
+  const previousPeriodChange = analytics?.previousPeriodChange ?? null;
   let donutProgress = 0;
-  const donutStops = (analytics?.sites || []).map((site, index) => {
+  const sourceColors = ['#e60012', '#1478ef', '#f59e0b', '#9333ea', '#a8b1c2'];
+  const trafficSources = analytics?.trafficSources || [];
+  const donutStops = trafficSources.map((source, index) => {
     const start = donutProgress;
-    donutProgress += totalDomainVisits ? (site.visits / totalDomainVisits) * 100 : 0;
-    return `${domainColors[index % domainColors.length]} ${start}% ${donutProgress}%`;
+    donutProgress += analytics?.totalVisits ? (source.visits / analytics.totalVisits) * 100 : 0;
+    return `${sourceColors[index % sourceColors.length]} ${start}% ${donutProgress}%`;
   });
-  const donutStyle = {
-    background: totalDomainVisits ? `conic-gradient(${donutStops.join(', ')})` : '#cbd5e1',
+  const sourceDonutStyle = {
+    background: analytics?.totalVisits ? `conic-gradient(${donutStops.join(', ')})` : '#e5e7eb',
   };
   const linePoints = visibleDays.map((day, index) => {
     const x = visibleDays.length <= 1 ? 50 : (index / (visibleDays.length - 1)) * 100;
-    const y = 92 - (day.visits / maxDailyVisits) * 78;
+    const y = 86 - (day.visits / dailyAxisMax) * 68;
     return `${x},${y}`;
   }).join(' ');
 
@@ -268,8 +281,6 @@ export default function OwnerDashboard() {
     { id: 'admins', label: 'Admin Owner', icon: <Users className="h-4 w-4" /> },
     { id: 'leads', label: 'Prospek Masuk', icon: <Users className="h-4 w-4" /> },
     { id: 'pages', label: 'URL Landing Pages', icon: <Link2 className="h-4 w-4" /> },
-    { id: 'posts', label: 'Pos SEO', icon: <Link2 className="h-4 w-4" /> },
-    { id: 'subdomains', label: 'SEO Subdomain', icon: <Globe className="h-4 w-4" /> },
   ];
   const sectionTitles: Record<OwnerDashboardSection, string> = {
     overview: 'Ringkasan Analitik Network',
@@ -280,6 +291,19 @@ export default function OwnerDashboard() {
     posts: 'Pos SEO',
     subdomains: 'SEO Subdomain',
   };
+  const pageSectionNavigation = (
+    <div className="flex w-fit rounded-lg bg-slate-100 p-1 text-[11px] font-semibold dark:bg-slate-800" role="group" aria-label="Bagian URL dan SEO">
+      {([
+        { id: 'pages', label: 'Landing Pages' },
+        { id: 'posts', label: 'Pos SEO' },
+        { id: 'subdomains', label: 'SEO Subdomain' },
+      ] as const).map((section) => (
+        <button key={section.id} type="button" aria-pressed={activeSection === section.id} onClick={() => { setActiveSection(section.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`rounded-md px-3 py-1.5 transition ${activeSection === section.id ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>
+          {section.label}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className={`owner-dashboard-ui ${isDarkMode ? 'dark' : ''}`}>
@@ -310,7 +334,7 @@ export default function OwnerDashboard() {
                   <button
                     key={item.id}
                     type="button"
-                    aria-current={activeSection === item.id ? 'page' : undefined}
+                    aria-current={activeSection === item.id || (item.id === 'pages' && (activeSection === 'posts' || activeSection === 'subdomains')) ? 'page' : undefined}
                     onClick={() => {
                       setActiveSection(item.id as OwnerDashboardSection);
                       setIsSidebarOpen(false);
@@ -336,6 +360,9 @@ export default function OwnerDashboard() {
                   <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">Akses analitik aktif</p>
                 </div>
               </div>
+              <button type="button" onClick={() => window.location.replace('/')} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-500/10">
+                <LogOut className="h-4 w-4" />Logout
+              </button>
             </div>
           </aside>
 
@@ -355,6 +382,7 @@ export default function OwnerDashboard() {
                   <select aria-label="Periode kunjungan" value={range} onChange={(event) => selectRange(event.target.value as DateRange)}>
                     <option value="7d">7 hari terakhir</option>
                     <option value="30d">30 hari terakhir</option>
+                    <option value="90d">90 hari terakhir</option>
                     <option value="all">Semua data</option>
                     <option value="custom">Pilih tanggal</option>
                   </select>
@@ -392,7 +420,12 @@ export default function OwnerDashboard() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400"><Eye className="h-4 w-4" /></span>
                   </div>
                   <div className="mt-3 text-3xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.totalVisits || 0).toLocaleString('id-ID')}</div>
-                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Pengunjung pada periode terpilih</p>
+                  <p className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold ${previousPeriodChange === null ? 'text-slate-400 dark:text-slate-500' : previousPeriodChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {previousPeriodChange === null ? 'Data periode sebelumnya belum tersedia' : <>
+                      {previousPeriodChange >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                      {previousPeriodChange > 0 ? '+' : ''}{previousPeriodChange.toFixed(1)}% dari periode sebelumnya
+                    </>}
+                  </p>
                   <Sparkline values={visitSparkline} label="Tren kunjungan harian" color="#e11d2e" />
                 </div>
                 <div className="owner-kpi owner-kpi-sites rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
@@ -440,49 +473,52 @@ export default function OwnerDashboard() {
               {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300" role="alert">{error}</div>}
 
               <section className={`${activeSection === 'overview' ? '' : 'hidden'} grid grid-cols-1 gap-6 lg:grid-cols-3`}>
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2 sm:p-6">
-                  <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
+                  <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                     <div>
                       <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white"><BarChart3 className="h-4 w-4 text-red-600" />Pergerakan Kunjungan Harian</h3>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Jumlah kunjungan harian dari website terpilih</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {allDays.length > 30 && (
+                      {allDays.length > 30 && (range === 'all' || range === 'custom') && (
                         <button type="button" aria-expanded={showAllDays} onClick={() => setShowAllDays((value) => !value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                           {showAllDays ? 'Tampilkan 30 hari' : `Lihat semua data (${allDays.length} hari)`}
                         </button>
                       )}
-                      <div className="flex w-fit rounded-xl bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800" role="group" aria-label="Jenis grafik">
-                      <button type="button" aria-pressed={chartType === 'bar'} onClick={() => setChartType('bar')} className={`rounded-lg px-3 py-1.5 transition ${chartType === 'bar' ? 'bg-white font-bold text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Bar</button>
-                      <button type="button" aria-pressed={chartType === 'line'} onClick={() => setChartType('line')} className={`rounded-lg px-3 py-1.5 transition ${chartType === 'line' ? 'bg-white font-bold text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Garis</button>
+                      <div className="flex w-fit rounded-xl bg-slate-100 p-1 text-[10px] font-semibold dark:bg-slate-800" role="group" aria-label="Periode grafik">
+                        {([{ value: '7d', label: '7 Hari' }, { value: '30d', label: '30 Hari' }, { value: '90d', label: '90 Hari' }] as const).map((period) => (
+                          <button key={period.value} type="button" aria-pressed={range === period.value} onClick={() => selectRange(period.value)} className={`rounded-lg px-3 py-1.5 transition ${range === period.value ? 'bg-red-600 font-bold text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>
+                            {period.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
                   {visibleDays.length ? (
                     <div className="relative overflow-x-auto pb-2">
                       <div className="min-w-full" style={{ minWidth: `max(100%, ${visibleDays.length * 42}px)` }}>
-                      <div className="relative h-56 border-b border-slate-200 pb-2 dark:border-slate-700">
-                        {chartType === 'bar' ? (
-                          <div className="flex h-full items-end gap-1.5 sm:gap-3">
-                            {visibleDays.map((day) => (
-                              <div key={day.date} className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2" title={`${day.date}: ${day.visits} kunjungan`}>
-                                <span className="text-[10px] font-semibold text-slate-500 opacity-0 transition group-hover:opacity-100">{day.visits}</span>
-                                <div className="w-full max-w-10 rounded-t-lg bg-red-600 transition-colors group-hover:bg-red-500" style={{ height: `${Math.max(3, (day.visits / maxDailyVisits) * 76)}%` }} />
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label="Grafik garis kunjungan harian">
-                            <polyline points={linePoints} fill="none" stroke="#dc2626" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-                            {visibleDays.map((day, index) => {
-                              const x = visibleDays.length <= 1 ? 50 : (index / (visibleDays.length - 1)) * 100;
-                              const y = 92 - (day.visits / maxDailyVisits) * 78;
-                              return <circle key={day.date} cx={x} cy={y} r="1.7" fill="#dc2626"><title>{`${day.date}: ${day.visits} kunjungan`}</title></circle>;
-                            })}
-                          </svg>
-                        )}
+                      <div className="relative h-24 border-b border-slate-200 pb-2 dark:border-slate-700">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label="Grafik garis kunjungan harian">
+                          <defs>
+                            <linearGradient id="owner-visits-area" x1="0" x2="0" y1="0" y2="1">
+                              <stop offset="0%" stopColor="#ef233c" stopOpacity="0.28" />
+                              <stop offset="100%" stopColor="#ef233c" stopOpacity="0.02" />
+                            </linearGradient>
+                          </defs>
+                          {[18, 35, 52, 69, 86].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#e8ecf2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />)}
+                          <polygon points={`0,86 ${linePoints} 100,86`} fill="url(#owner-visits-area)" />
+                          <polyline points={linePoints} fill="none" stroke="#e60012" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+                          {visibleDays.map((day, index) => {
+                            const pointX = visibleDays.length <= 1 ? 50 : (index / (visibleDays.length - 1)) * 100;
+                            const pointY = 86 - (day.visits / dailyAxisMax) * 68;
+                            return <g key={day.date}>
+                              <text x={Math.max(4, Math.min(96, pointX))} y={Math.max(8, pointY - 3)} fill="#334155" fontSize="1.5" fontWeight="600" textAnchor="middle">{day.visits}</text>
+                              <circle cx={pointX} cy={pointY} r="1.7" fill="#e60012"><title>{`${day.date}: ${day.visits} kunjungan`}</title></circle>
+                            </g>;
+                          })}
+                        </svg>
                       </div>
-                      <div className="mt-2 flex gap-1.5 sm:gap-3">
+                      <div className="mt-1 flex gap-1.5 sm:gap-3">
                         {visibleDays.map((day) => <span key={day.date} className="min-w-0 flex-1 truncate text-center text-[9px] text-slate-500 sm:text-[10px]">{day.label}</span>)}
                       </div>
                       </div>
@@ -490,48 +526,33 @@ export default function OwnerDashboard() {
                   ) : <p className="py-16 text-center text-xs text-slate-500">Belum ada data kunjungan pada periode ini.</p>}
                 </div>
 
-                <div id="domains" className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-                  <div>
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white"><Globe className="h-4 w-4 text-red-600" />Kunjungan Per Website</h3>
-                      <span className="shrink-0 text-[10px] text-slate-400">Periode</span>
-                    </div>
-                    <p className="mb-5 text-xs text-slate-500 dark:text-slate-400">Distribusi proporsi kunjungan domain</p>
-                    <div className="flex items-center justify-center py-2">
-                      <div className="relative h-44 w-44 rounded-full" role="img" aria-label="Distribusi kunjungan antar website" style={donutStyle}>
-                        <div className="absolute inset-7 flex flex-col items-center justify-center rounded-full bg-white text-center dark:bg-slate-900">
-                          <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.totalVisits || 0).toLocaleString('id-ID')}</span>
-                          <span className="text-[10px] text-slate-400">kunjungan</span>
-                        </div>
+                <div id="domains" className="flex min-w-0 flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white"><Globe className="h-4 w-4 text-red-600" />Kunjungan per Sumber</h3>
+                    <span className="shrink-0 text-[10px] text-slate-400">Periode</span>
+                  </div>
+                  <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">Distribusi kunjungan berdasarkan sumber</p>
+                  <div className="flex min-h-0 flex-1 items-center justify-center gap-4">
+                    <div className="relative h-32 w-32 shrink-0 rounded-full" role="img" aria-label="Distribusi kunjungan berdasarkan sumber" style={sourceDonutStyle}>
+                      <div className="absolute inset-6 flex flex-col items-center justify-center rounded-full bg-white text-center dark:bg-slate-900">
+                        <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.totalVisits || 0).toLocaleString('id-ID')}</span>
+                        <span className="text-[10px] text-slate-400">kunjungan</span>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-5 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-                    {(analytics?.sites || []).map((site, index) => (
-                      <div key={site.host} className="flex min-w-0 items-center justify-between gap-3 text-xs">
-                        <a href={`https://${site.host}`} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-2 font-medium text-slate-700 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: domainColors[index % domainColors.length] }} />
-                          <span className="truncate">{site.host}</span>
-                        </a>
-                        <span className="shrink-0 font-bold tabular-nums text-slate-900 dark:text-white">{site.visits.toLocaleString('id-ID')} <span className="font-normal text-slate-400">({totalDomainVisits ? Math.round((site.visits / totalDomainVisits) * 100) : 0}%)</span></span>
+                    <div className="min-w-0 flex-1 space-y-2">
+                    {trafficSources.map((source, index) => (
+                      <div key={source.source} className="flex min-w-0 items-center justify-between gap-3 text-xs">
+                        <span className="flex min-w-0 items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: sourceColors[index % sourceColors.length] }} />
+                          <span className="truncate">{source.source}</span>
+                        </span>
+                        <span className="shrink-0 font-bold tabular-nums text-slate-900 dark:text-white">{analytics?.totalVisits ? ((source.visits / analytics.totalVisits) * 100).toFixed(1) : '0.0'}%</span>
                       </div>
                     ))}
+                    </div>
                   </div>
                 </div>
               </section>
-
-              {activeSection === 'overview' && <section className="owner-insight" aria-label="Ringkasan insight">
-                <span className="owner-insight-icon"><Activity className="h-5 w-5" /></span>
-                <div className="min-w-0 flex-1">
-                  <h3>Ringkasan Insight</h3>
-                  <p>
-                    {analytics?.totalVisits
-                      ? `${analytics.sites[0]?.host || 'Website terpantau'} mencatat ${analytics.sites[0]?.visits.toLocaleString('id-ID') || 0} kunjungan; total ${analytics.totalVisits.toLocaleString('id-ID')} kunjungan pada periode ini.`
-                      : 'Data traffic akan muncul setelah kunjungan pertama tercatat.'}
-                  </p>
-                </div>
-                <button type="button" onClick={() => { setActiveSection('domains'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="owner-insight-link">Lihat Detail <ArrowUpRight className="h-4 w-4" /></button>
-              </section>}
 
               {activeSection === 'overview' && <section className="owner-overview-bottom" aria-label="Insight dan halaman populer">
                 <div className="owner-recommendations">
@@ -672,6 +693,7 @@ export default function OwnerDashboard() {
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Halaman Paling Banyak Dikunjungi</h3>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Gabungan seluruh website pada periode terpilih ({analytics?.topPages.length || 0} halaman)</p>
                   </div>
+                  {pageSectionNavigation}
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                     <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" />Diperbarui {lastUpdated ? lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                   </div>
@@ -722,9 +744,12 @@ export default function OwnerDashboard() {
               </section>
 
               {activeSection === 'posts' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pos SEO</h2>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Semua pos dari subdomain yang dipilih ({analytics?.seoPosts?.length || 0} pos).</p>
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pos SEO</h2>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Semua pos dari subdomain yang dipilih ({analytics?.seoPosts?.length || 0} pos).</p>
+                  </div>
+                  {pageSectionNavigation}
                 </div>
                 {(analytics?.seoPosts || []).length ? (
                   <div className="overflow-x-auto">
@@ -745,9 +770,12 @@ export default function OwnerDashboard() {
               </section>}
 
               {activeSection === 'subdomains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">SEO Subdomain</h2>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Status, indeks, dan jumlah pos pada setiap subdomain.</p>
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">SEO Subdomain</h2>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Status, indeks, dan jumlah pos pada setiap subdomain.</p>
+                  </div>
+                  {pageSectionNavigation}
                 </div>
                 {(analytics?.seoSubdomains || []).length ? (
                   <div className="overflow-x-auto">
