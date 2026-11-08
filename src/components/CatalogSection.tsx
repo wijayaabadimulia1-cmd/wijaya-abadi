@@ -448,23 +448,13 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           aria-label={`Galeri foto ${selectedGallery.alt}`}
         >
           <div
-            className="mobile-gallery-shell relative flex max-h-[92vh] w-full max-w-[92vw] items-center justify-center gap-2 sm:gap-3"
+            className="mobile-gallery-shell relative flex max-h-[92vh] w-fit max-w-[92vw] flex-col items-center justify-center gap-3"
             onClick={(event) => event.stopPropagation()}
           >
-            {selectedGallery.images.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index - 1 + selectedGallery.images.length) % selectedGallery.images.length })}
-                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-14 sm:w-14"
-                aria-label="Foto sebelumnya"
-              >
-                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-            )}
             <img
               src={selectedGallery.images[selectedGallery.index]}
               alt={`${selectedGallery.alt} foto ${selectedGallery.index + 1}`}
-              className="mobile-gallery-image max-h-[82vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl sm:max-h-[88vh]"
+              className="mobile-gallery-image max-h-[76vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl sm:max-h-[82vh]"
             />
             <button
               type="button"
@@ -474,17 +464,29 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             >
               <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
-            {selectedGallery.images.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index + 1) % selectedGallery.images.length })}
-                className="gallery-nav-button flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-14 sm:w-14"
-                aria-label="Foto berikutnya"
-              >
-                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-            )}
-            <p className="gallery-caption absolute -bottom-8 left-0 right-0 text-center text-sm font-semibold text-white sm:text-sm">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</p>
+            <div className="gallery-caption flex w-full items-center justify-center gap-3 text-center text-sm font-semibold text-white">
+              {selectedGallery.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index - 1 + selectedGallery.images.length) % selectedGallery.images.length })}
+                  className="gallery-nav-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-12 sm:w-12"
+                  aria-label="Foto sebelumnya"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
+              <span className="min-w-0 break-words">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</span>
+              {selectedGallery.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index + 1) % selectedGallery.images.length })}
+                  className="gallery-nav-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-12 sm:w-12"
+                  aria-label="Foto berikutnya"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
