@@ -10,6 +10,7 @@ import {
   Globe,
   LayoutDashboard,
   Link2,
+  Maximize,
   Menu,
   MessageSquare,
   Moon,
@@ -131,7 +132,7 @@ export default function OwnerDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('hwa-owner-dashboard-theme') === 'dark');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [chartType, setChartType] = useState<ChartType>('bar');
+  const [chartType, setChartType] = useState<ChartType>('line');
   const [activeSection, setActiveSection] = useState<OwnerDashboardSection>('overview');
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [showAllDays, setShowAllDays] = useState(false);
@@ -271,7 +272,7 @@ export default function OwnerDashboard() {
     { id: 'subdomains', label: 'SEO Subdomain', icon: <Globe className="h-4 w-4" /> },
   ];
   const sectionTitles: Record<OwnerDashboardSection, string> = {
-    overview: 'Dashboard Analytics',
+    overview: 'Ringkasan Analitik Network',
     domains: 'Domain Dipantau',
     admins: 'Admin Owner',
     leads: 'Prospek Masuk',
@@ -294,12 +295,10 @@ export default function OwnerDashboard() {
             <div>
               <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-red-700 to-red-500 text-white shadow-lg shadow-red-500/30">
-                    <span className="text-lg font-black">H</span>
-                  </div>
+                  <img className="owner-brand-logo" src="/favicon-honda.jpg" alt="Honda" />
                   <div>
-                    <span className="block text-sm font-extrabold leading-none tracking-wide text-slate-900 dark:text-white">HONDA TECH</span>
-                    <span className="text-[10px] font-medium text-slate-400">Owner Analytics</span>
+                    <span className="block text-sm font-extrabold leading-none tracking-wide text-white">Honda Tech</span>
+                    <span className="text-[10px] font-medium text-slate-300">Owner Analytics</span>
                   </div>
                 </div>
                 <button type="button" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden" onClick={() => setIsSidebarOpen(false)} aria-label="Tutup menu">
@@ -324,6 +323,10 @@ export default function OwnerDashboard() {
                   </button>
                 ))}
               </nav>
+              <a className="owner-sidebar-promo" href="https://kreditmotorhonda.tech/#katalog" target="_blank" rel="noreferrer">
+                <img src="/uploads/hero.jpeg" alt="Motor Honda" />
+                <span><strong>Grow Your Business</strong><small>with Honda Tech</small><em>Lihat detail <ArrowUpRight className="h-3 w-3" /></em></span>
+              </a>
             </div>
             <div className="m-4 rounded-2xl border border-slate-200/80 bg-slate-100 p-4 dark:border-slate-700/50 dark:bg-slate-800/60">
               <div className="flex items-center gap-3">
@@ -346,12 +349,21 @@ export default function OwnerDashboard() {
                 <span className="truncate text-sm font-bold text-slate-900 dark:text-white sm:hidden">{sectionTitles[activeSection]}</span>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 sm:flex">
+                <label className="owner-range-select hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 sm:flex">
                   <CalendarDays className="h-3.5 w-3.5 text-red-500" />
-                  <span>{rangeLabel}</span>
-                </div>
+                  <span className="sr-only">Periode kunjungan</span>
+                  <select aria-label="Periode kunjungan" value={range} onChange={(event) => selectRange(event.target.value as DateRange)}>
+                    <option value="7d">7 hari terakhir</option>
+                    <option value="30d">30 hari terakhir</option>
+                    <option value="all">Semua data</option>
+                    <option value="custom">Pilih tanggal</option>
+                  </select>
+                </label>
                 <button type="button" onClick={() => setIsDarkMode((value) => !value)} title={isDarkMode ? 'Gunakan tema terang' : 'Gunakan tema gelap'} aria-label={isDarkMode ? 'Gunakan tema terang' : 'Gunakan tema gelap'} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
                   {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+                </button>
+                <button type="button" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen(); }} title="Layar penuh" aria-label="Layar penuh" className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                  <Maximize className="h-4 w-4" />
                 </button>
                 <button type="button" onClick={() => setRefreshVersion((value) => value + 1)} title="Perbarui data" aria-label="Perbarui data" className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
                   <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -362,8 +374,8 @@ export default function OwnerDashboard() {
             <section id="overview" className="owner-hero">
               <div className="owner-hero-copy">
                 <span>HONDA TECH <span aria-hidden="true">|</span> OWNER ANALYTICS</span>
-                <h2>Performa Traffic Website</h2>
-                <p>Pantau seluruh domain dan landing page dalam satu dashboard.</p>
+                <h2>Honda Tech</h2>
+                <p>Insight lebih dalam, keputusan lebih tepat.</p>
               </div>
               <span className="owner-live-status">
                 <span className="owner-live-dot" />
@@ -411,36 +423,19 @@ export default function OwnerDashboard() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Filter tanggal">
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                  <div>
-                    <div className="grid grid-cols-2 gap-3 sm:max-w-xl">
-                      <label className="min-w-0 space-y-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                        <span>Tanggal mulai</span>
-                        <input type="date" aria-label="Tanggal mulai" value={range === 'all' ? '' : startDate} max={endDate || undefined} onChange={(event) => updateStartDate(event.target.value)} className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                      </label>
-                      <label className="min-w-0 space-y-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                        <span>Tanggal akhir</span>
-                        <input type="date" aria-label="Tanggal akhir" value={range === 'all' ? '' : endDate} min={startDate || undefined} onChange={(event) => updateEndDate(event.target.value)} className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                      </label>
-                    </div>
-                    <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">Tanggal awal dan akhir termasuk dalam hasil. Pilih tanggal yang sama untuk melihat satu hari.</p>
-                  </div>
-                  <div className="flex w-fit max-w-full rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800" role="group" aria-label="Periode kunjungan">
-                    {([
-                      ['7d', '7 hari'],
-                      ['30d', '30 hari'],
-                      ['all', 'Semua'],
-                      ['custom', 'Tanggal'],
-                    ] as const).map(([value, label]) => (
-                      <button key={value} type="button" aria-pressed={range === value} onClick={() => selectRange(value)} className={`whitespace-nowrap rounded-lg px-2.5 py-2 text-[11px] font-semibold transition sm:px-3 ${range === value ? 'bg-white text-red-700 shadow-sm dark:bg-slate-700 dark:text-red-300' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+              {range === 'custom' && <section className="owner-custom-date rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Filter tanggal">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="min-w-0 space-y-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    <span>Tanggal mulai</span>
+                    <input type="date" aria-label="Tanggal mulai" value={startDate} max={endDate || undefined} onChange={(event) => updateStartDate(event.target.value)} className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                  </label>
+                  <label className="min-w-0 space-y-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                    <span>Tanggal akhir</span>
+                    <input type="date" aria-label="Tanggal akhir" value={endDate} min={startDate || undefined} onChange={(event) => updateEndDate(event.target.value)} className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                  </label>
                 </div>
-                {range === 'custom' && startDate && endDate && startDate > endDate && <p className="mt-3 text-xs text-red-600" role="alert">Tanggal mulai tidak boleh melewati tanggal akhir.</p>}
-              </section>
+                {startDate > endDate && <p className="mt-3 text-xs text-red-600" role="alert">Tanggal mulai tidak boleh melewati tanggal akhir.</p>}
+              </section>}
 
               {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300" role="alert">{error}</div>}
 
@@ -536,6 +531,32 @@ export default function OwnerDashboard() {
                   </p>
                 </div>
                 <button type="button" onClick={() => { setActiveSection('domains'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="owner-insight-link">Lihat Detail <ArrowUpRight className="h-4 w-4" /></button>
+              </section>}
+
+              {activeSection === 'overview' && <section className="owner-overview-bottom" aria-label="Insight dan halaman populer">
+                <div className="owner-recommendations">
+                  <h3><Activity className="h-4 w-4" />Insight &amp; Rekomendasi</h3>
+                  <p>{analytics?.sites[0] ? `${analytics.sites[0].host} memimpin dengan ${analytics.sites[0].visits.toLocaleString('id-ID')} kunjungan.` : 'Data website akan muncul setelah kunjungan tercatat.'}</p>
+                  <p>{analytics?.topPages[0] ? `Halaman populer: ${analytics.topPages[0].page}.` : 'Belum ada halaman populer pada rentang ini.'}</p>
+                  <p>{analytics?.whatsappClicks?.length ? `${analytics.whatsappClicks.length} tombol WhatsApp menerima klik.` : 'Pantau klik WhatsApp untuk mengukur minat calon pembeli.'}</p>
+                </div>
+
+                <div className="owner-top-pages">
+                  <h3><BarChart3 className="h-4 w-4" />Top 5 Halaman Populer</h3>
+                  {analytics?.topPages?.length ? analytics.topPages.slice(0, 5).map((page, index) => (
+                    <div className="owner-top-page-row" key={page.page}>
+                      <span className="owner-top-page-rank">{index + 1}</span>
+                      <span className="owner-top-page-name" title={page.page}>{page.page}</span>
+                      <span className="owner-top-page-count">{page.visits.toLocaleString('id-ID')}</span>
+                      <span className="owner-top-page-bar"><span style={{ width: `${Math.max(4, (page.visits / (analytics.topPages[0]?.visits || 1)) * 100)}%` }} /></span>
+                    </div>
+                  )) : <p className="owner-empty-state">Belum ada halaman populer pada rentang ini.</p>}
+                </div>
+
+                <a className="owner-promo-card" href="https://kreditmotorhonda.tech/#katalog" target="_blank" rel="noreferrer">
+                  <img src="/uploads/hero.jpeg" alt="Pilihan motor Honda" />
+                  <span className="owner-promo-copy"><strong>Honda Tech</strong><span>Bangun ekosistem digital Honda bersama kami.</span><em>Pelajari lebih lanjut <ArrowUpRight className="h-3.5 w-3.5" /></em></span>
+                </a>
               </section>}
 
               {activeSection === 'domains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
