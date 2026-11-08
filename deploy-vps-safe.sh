@@ -389,6 +389,7 @@ done
 SATELLITE_UPDATES_STARTED=1
 for index in "${!SATELLITE_SERVICES[@]}"; do
   dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
+  port="${SATELLITE_PORTS[$index]}"
   sudo install -d -m 755 "$(dirname "$dropin_file")"
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
