@@ -11,7 +11,13 @@ DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-tech.service"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMIT="${DEPLOY_COMMIT:-$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)}"
+if [ -n "${DEPLOY_COMMIT:-}" ]; then
+  COMMIT="${DEPLOY_COMMIT}"
+elif git -C "$SOURCE_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
+  COMMIT="$(git -C "$SOURCE_DIR" rev-parse --short=12 HEAD)"
+else
+  COMMIT="unknown"
+fi
 COMMIT="${COMMIT:0:12}"
 RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
 BACKUP_DIR="/var/backups/honda-wijaya-abadi"
