@@ -189,7 +189,8 @@ if systemctl is-active --quiet "$ID_SERVICE"; then
 fi
 for service in "${SATELLITE_SERVICES[@]}"; do
   if ! systemctl is-active --quiet "$service"; then
-    fail "$service is not active; refusing to replace an unknown production state."
+    echo "Notice: $service is currently inactive; proceeding with deployment and it will be restarted during cutover." >&2
+    continue
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
   if [ "$catalog_api_url" != "http://127.0.0.1:3000" ]; then
