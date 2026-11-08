@@ -130,7 +130,7 @@ if ! systemctl is-active --quiet "$SERVICE"; then
 fi
 if [ -e "$DROPIN_FILE" ]; then
   if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$DROPIN_FILE" \
-    || ! grep -Eq '^ExecStart=/usr/bin/(node|env -u CATALOG_API_URL PORT=3000 /usr/bin/node) /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$DROPIN_FILE"; then
+    || ! grep -Eq '^ExecStart=(/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs|/usr/bin/env([[:space:]]+-u[[:space:]][A-Za-z_][A-Za-z0-9_]*|[[:space:]][A-Za-z_][A-Za-z0-9_]*=[^[:space:]]+)*[[:space:]]+/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs)$' "$DROPIN_FILE"; then
     fail "$DROPIN_FILE is not a recognized managed deployment; review it before deploying."
   fi
   PREVIOUS_DROPIN_EXISTS=1
@@ -360,7 +360,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
   if [ -e "$dropin_file" ]; then
     if ! grep -Eq '^WorkingDirectory=/opt/wijaya-abadi/releases/[^[:space:]]+$' "$dropin_file" \
-      || ! grep -Eq '^ExecStart=/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs$' "$dropin_file"; then
+      || ! grep -Eq '^ExecStart=(/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs|/usr/bin/env([[:space:]]+-u[[:space:]][A-Za-z_][A-Za-z0-9_]*|[[:space:]][A-Za-z_][A-Za-z0-9_]*=[^[:space:]]+)*[[:space:]]+/usr/bin/node /opt/wijaya-abadi/releases/[^[:space:]]+/dist/server\.cjs)$' "$dropin_file"; then
       fail "$dropin_file is not a recognized managed catalog release; review it before deployment."
     fi
     SATELLITE_DROPIN_EXISTED[$index]=1
