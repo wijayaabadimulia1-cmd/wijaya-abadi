@@ -464,23 +464,23 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             >
               <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
-            <div className="gallery-caption flex w-full items-center justify-center gap-3 text-center text-sm font-semibold text-white">
+            <div className="relative flex w-full items-center justify-between pt-2 text-center text-sm font-semibold text-white">
               {selectedGallery.images.length > 1 && (
                 <button
                   type="button"
                   onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index - 1 + selectedGallery.images.length) % selectedGallery.images.length })}
-                  className="gallery-nav-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-12 sm:w-12"
+                  className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-zinc-900 shadow-xl transition-all duration-200 hover:bg-zinc-100 sm:h-12 sm:w-12"
                   aria-label="Foto sebelumnya"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
               )}
-              <span className="min-w-0 break-words">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</span>
+              <span className="pointer-events-none absolute inset-x-12 min-w-0 break-words">{selectedGallery.alt} · {selectedGallery.index + 1}/{selectedGallery.images.length}</span>
               {selectedGallery.images.length > 1 && (
                 <button
                   type="button"
                   onClick={() => setSelectedGallery({ ...selectedGallery, index: (selectedGallery.index + 1) % selectedGallery.images.length })}
-                  className="gallery-nav-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-xl transition-all duration-200 sm:h-12 sm:w-12"
+                  className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-zinc-900 shadow-xl transition-all duration-200 hover:bg-zinc-100 sm:h-12 sm:w-12"
                   aria-label="Foto berikutnya"
                 >
                   <ChevronRight className="h-5 w-5" />
