@@ -675,7 +675,6 @@ function selectGoogleSearchConsoleSites(discoveredSites: string[], configuredSit
       }
     }
 
-    if (!rootSites.length) selectedSites.add(rootDomainProperty);
   }
 
   configuredSites
