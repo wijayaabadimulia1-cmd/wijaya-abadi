@@ -26,8 +26,8 @@ DROPIN_FILE="${DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
 SATELLITE_PORTS=(3001 3002)
 SATELLITE_DROPIN_FILES=(
-  "/etc/systemd/system/kreditmotorhonda.service.d/zz-catalog-release.conf"
-  "/etc/systemd/system/solusikreditmotor.service.d/zz-catalog-release.conf"
+  "/etc/systemd/system/kreditmotorhonda.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
+  "/etc/systemd/system/solusikreditmotor.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
 )
 SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
@@ -408,6 +408,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo systemctl restart "$service"
   if ! systemctl is-active --quiet "$service" \
     || ! systemctl show "$service" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+    systemctl show "$service" --property=FragmentPath --property=DropInPaths --property=ExecStart --no-pager >&2 || true
     fail "$service did not start the new catalog release."
   fi
 
