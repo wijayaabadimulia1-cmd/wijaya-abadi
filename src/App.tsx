@@ -1133,21 +1133,6 @@ export default function App() {
           </>
         )}
 
-        {currentPath === '/' && hostname === 'kreditmotorhonda.tech' && settings.seoPages?.some((page) => page.sslStatus === 'active') ? (
-          <section className="px-4 py-8 sm:px-6 lg:px-8" aria-labelledby="seo-posts-heading">
-            <div className="mx-auto max-w-7xl border-y border-zinc-200 py-6">
-              <h2 id="seo-posts-heading" className="text-lg font-black text-zinc-900">Informasi Kredit Motor Honda</h2>
-              <nav className="mt-3 flex flex-wrap gap-x-6 gap-y-2" aria-label="Post dealer">
-                {settings.seoPages.filter((page) => page.sslStatus === 'active').map((page) => (
-                  <a key={page.id} href={`https://${page.subdomain}.kreditmotorhonda.tech/`} className="text-sm font-semibold text-red-700 underline-offset-4 hover:underline">
-                    {page.title}
-                  </a>
-                ))}
-              </nav>
-            </div>
-          </section>
-        ) : null}
-
         {settings.websiteTemplate === 'wijaya-meriah' && (
           <section className="wijaya-meriah-discovery" aria-label="Jelajahi motor dan layanan Honda">
             <div className="wijaya-meriah-discovery-inner">
