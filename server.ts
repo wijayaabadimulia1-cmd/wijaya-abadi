@@ -374,11 +374,17 @@ function updateSeoJsonLdForPage(
   }
 }
 
-function getGoogleTagManagerId(hostname = '') {
+function getGoogleTrackingScript(hostname = '') {
   const host = normalizeAnalyticsHost(hostname);
-  if (host === 'kreditmotorhonda.id' || host.endsWith('.kreditmotorhonda.id')) return 'GTM-W6NNC8TC';
-  if (host === 'solusikreditmotor.cloud' || host.endsWith('.solusikreditmotor.cloud')) return 'GTM-W7PC28PJ';
-  if (host === 'kreditmotorhonda.tech' || host.endsWith('.kreditmotorhonda.tech')) return 'GTM-W7PC28PJ';
+  if (host === 'kreditmotorhonda.id' || host.endsWith('.kreditmotorhonda.id')) {
+    return `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());</script><script async src="https://www.googletagmanager.com/gtm.js?id=GTM-W6NNC8TC"></script>`;
+  }
+  if (host === 'solusikreditmotor.cloud' || host.endsWith('.solusikreditmotor.cloud')) {
+    return `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());</script><script async src="https://www.googletagmanager.com/gtm.js?id=GTM-W7PC28PJ"></script>`;
+  }
+  if (host === 'kreditmotorhonda.tech' || host.endsWith('.kreditmotorhonda.tech')) {
+    return `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9PJGPJZD6B');</script><script async src="https://www.googletagmanager.com/gtag/js?id=G-9PJGPJZD6B"></script>`;
+  }
   return '';
 }
 
@@ -478,10 +484,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     ? 'noindex, follow'
     : String(hostPage?.seoRobots || pageSettings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
-  const googleTagManagerId = getGoogleTagManagerId(hostname);
-  const googleTagManagerScript = googleTagManagerId
-    ? `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());</script><script async src="https://www.googletagmanager.com/gtm.js?id=${googleTagManagerId}"></script>`
-    : '';
+  const googleTrackingScript = getGoogleTrackingScript(hostname);
   const initialSettings = JSON.stringify(publicSettings(pageSettings)).replace(/</g, '\\u003c');
   const initialPublicData = JSON.stringify(initialData).replace(/</g, '\\u003c');
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
@@ -525,7 +528,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
       : html;
 
   return htmlWithH1Fallback
-    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}${googleTagManagerScript}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>${articleStructuredData}`)
+    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}${googleTrackingScript}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>${articleStructuredData}`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
