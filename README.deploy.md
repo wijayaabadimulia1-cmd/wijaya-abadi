@@ -219,14 +219,14 @@ Kirim `https://kreditmotorhonda.tech/sitemap.xml` ke Google Search Console hanya
 Dashboard mengambil query, klik, impresi, CTR, dan posisi rata-rata dari Search Console. Agar datanya tersedia:
 
 1. Aktifkan Google Search Console API di Google Cloud dan buat service account dengan kunci JSON.
-2. Tambahkan email service account sebagai pengguna dengan akses baca ke properti domain `kreditmotorhonda.tech` dan `solusikreditmotor.cloud` di Search Console. Properti domain pertama mencakup subdomain Honda yang dipantau.
+2. Tambahkan email service account sebagai pengguna dengan akses baca ke properti domain `kreditmotorhonda.tech`, `kreditmotorhonda.id`, dan `solusikreditmotor.cloud` di Search Console. Gunakan properti jenis Domain agar subdomain, POS, dan Sales Counter ikut tercakup.
 3. Di GitHub repo, buka **Settings → Secrets and variables → Actions**, lalu tambahkan repository secret bernama `GSC_SERVICE_ACCOUNT_JSON` dengan seluruh isi file JSON service account. Jangan kirim atau commit isi kunci tersebut.
 4. Opsional, tambahkan repository variable `GSC_SITE_URLS` bila properti Search Console Anda berbeda dari default berikut:
 
 ```text
-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud
+sc-domain:kreditmotorhonda.tech,sc-domain:kreditmotorhonda.id,sc-domain:solusikreditmotor.cloud
 ```
 
 5. Jalankan ulang workflow **Deploy to Ubuntu VPS** agar secret dipasang aman di server, atau lakukan push berikutnya. Secret disimpan sebagai file server berizin terbatas dan tidak dikirim ke browser.
 
-Search Console biasanya menunda data beberapa hari. Pilih rentang tanggal yang mencakup data final; dashboard menggabungkan query yang sama dari semua properti yang dikonfigurasi.
+Dashboard meminta data terbaru yang tersedia dari Search Console untuk ketiga domain dan memperbarui cache setiap lima menit. Google tetap dapat menunda atau mengubah data terbaru; ini bukan pelaporan realtime instan. Dashboard menggabungkan query yang sama dari semua properti yang dikonfigurasi.

@@ -584,6 +584,242 @@ function normalizeSearchKeyword(value: unknown) {
   return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('id-ID');
 }
 
+const DEFAULT_OWNER_DASHBOARD_KEY = 'KXP6bWUoo2xXqLhrtCTTcBrNqpzUTYqZkEZ2RRULwo0';
+
+function ensureAnalyticsStore(db: any) {
+  if (!db || typeof db !== 'object') return db;
+  if (!db.analytics || typeof db.analytics !== 'object') db.analytics = {};
+  db.analytics.visits = Array.isArray(db.analytics.visits) ? db.analytics.visits : [];
+  db.analytics.searches = Array.isArray(db.analytics.searches) ? db.analytics.searches : [];
+  db.analytics.whatsappClicks = Array.isArray(db.analytics.whatsappClicks) ? db.analytics.whatsappClicks : [];
+  if (!db.settings || typeof db.settings !== 'object') db.settings = {};
+  const dashboardConfig = db.settings.ownerDashboard && typeof db.settings.ownerDashboard === 'object'
+    ? db.settings.ownerDashboard
+    : {};
+  db.settings.ownerDashboard = {
+    key: String(dashboardConfig.key || DEFAULT_OWNER_DASHBOARD_KEY).trim() || DEFAULT_OWNER_DASHBOARD_KEY,
+    enabled: dashboardConfig.enabled !== false,
+    allowedHosts: Array.isArray(dashboardConfig.allowedHosts) ? dashboardConfig.allowedHosts : [
+      'kreditmotorhonda.tech',
+      'kreditmotorhonda.id',
+      'solusikreditmotor.cloud',
+      'wijaya.kreditmotorhonda.tech',
+    ],
+    selectedHosts: Array.isArray(dashboardConfig.selectedHosts) && dashboardConfig.selectedHosts.length
+      ? dashboardConfig.selectedHosts
+      : [
+        'kreditmotorhonda.tech',
+        'kreditmotorhonda.id',
+        'solusikreditmotor.cloud',
+        'wijaya.kreditmotorhonda.tech',
+      ],
+    lastUpdated: dashboardConfig.lastUpdated || new Date().toISOString(),
+  };
+  return db.analytics;
+}
+
+function getOwnerDashboardKey(db: any = readDb()) {
+  const configuredKey = String((db?.settings?.ownerDashboard?.key || db?.analytics?.ownerDashboard?.key || DEFAULT_OWNER_DASHBOARD_KEY) || '').trim();
+  return configuredKey || DEFAULT_OWNER_DASHBOARD_KEY;
+}
+
+function getOwnerDashboardHosts(db: any = readDb()) {
+  const configuredHosts = Array.isArray(db?.settings?.ownerDashboard?.selectedHosts)
+    ? db.settings.ownerDashboard.selectedHosts
+    : Array.isArray(db?.settings?.ownerDashboard?.allowedHosts)
+      ? db.settings.ownerDashboard.allowedHosts
+      : [];
+  const fallbackHosts = [
+    'kreditmotorhonda.tech',
+    'kreditmotorhonda.id',
+    'solusikreditmotor.cloud',
+    'wijaya.kreditmotorhonda.tech',
+  ];
+  return configuredHosts.length ? [...new Set(configuredHosts)] : fallbackHosts;
+}
+
+function getOwnerAnalyticsDbCandidates() {
+  const rootDir = OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR);
+  const files = [
+    PERSISTENT_DB_FILE,
+    FALLBACK_DB_FILE,
+    DB_FILE,
+    path.join(rootDir, 'data', 'db.json'),
+    path.join(rootDir, 'sites', 'wijaya', 'data', 'db.json'),
+    path.join(rootDir, 'sites', 'solusi', 'data', 'db.json'),
+    path.join(rootDir, 'sites', 'id', 'data', 'db.json'),
+  ];
+  return [...new Set(files.filter(Boolean))];
+}
+
+function getAnalyticsDataSourceFiles() {
+  return getOwnerAnalyticsDbCandidates().filter((file) => fs.existsSync(file));
+}
+
+function normalizeOwnerDashboardDate(value: string | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? undefined : value;
+}
+
+function coerceAnalyticsEventDate(value: unknown) {
+  try {
+    const date = new Date(String(value || ''));
+    return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+function summarizeAnalyticsEvents(events: any[] = [], startDate?: string, endDate?: string) {
+  const filtered = events.filter((event) => {
+    const createdAt = coerceAnalyticsEventDate(event?.created_at || event?.timestamp || event?.date);
+    const eventDate = createdAt.slice(0, 10);
+    if (startDate && eventDate < startDate) return false;
+    if (endDate && eventDate > endDate) return false;
+    return true;
+  });
+
+  const pages = new Map<string, number>();
+  const sources = new Map<string, number>();
+  const hosts = new Map<string, number>();
+  const searchTerms = new Map<string, number>();
+
+  for (const event of filtered) {
+    const page = String(event.path || event.page || '/').trim() || '/';
+    const source = String(event.source || event.referrer || 'Direct').trim() || 'Direct';
+    const host = normalizeAnalyticsHost(String(event.host || event.hostname || 'kreditmotorhonda.tech')) || 'kreditmotorhonda.tech';
+    pages.set(page, (pages.get(page) || 0) + 1);
+    sources.set(source, (sources.get(source) || 0) + 1);
+    hosts.set(host, (hosts.get(host) || 0) + 1);
+    if (event.keyword) {
+      searchTerms.set(String(event.keyword), (searchTerms.get(String(event.keyword)) || 0) + 1);
+    }
+  }
+
+  const topPages = [...pages.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([path, count]) => ({ path, count }));
+  const sourceBreakdown = [...sources.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+  const hostBreakdown = [...hosts.entries()].sort((a, b) => b[1] - a[1]).map(([host, count]) => ({ host, count }));
+  const topSearchTerms = [...searchTerms.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([keyword, count]) => ({ keyword, count }));
+
+  return {
+    total: filtered.length,
+    topPages,
+    sourceBreakdown,
+    hostBreakdown,
+    topSearchTerms,
+  };
+}
+
+function getOwnerDashboardSummary(rawKey?: string, startDate?: string, endDate?: string) {
+  const normalizedStart = normalizeOwnerDashboardDate(startDate);
+  const normalizedEnd = normalizeOwnerDashboardDate(endDate);
+  const key = String(rawKey || DEFAULT_OWNER_DASHBOARD_KEY).trim() || DEFAULT_OWNER_DASHBOARD_KEY;
+  const files = getAnalyticsDataSourceFiles();
+
+  let visits: any[] = [];
+  let searches: any[] = [];
+  let whatsappClicks: any[] = [];
+  for (const file of files) {
+    const db = readJsonDbFile(file);
+    if (!db) continue;
+    const analytics = ensureAnalyticsStore(db);
+    visits = visits.concat(Array.isArray(analytics.visits) ? analytics.visits : []);
+    searches = searches.concat(Array.isArray(analytics.searches) ? analytics.searches : []);
+    whatsappClicks = whatsappClicks.concat(Array.isArray(analytics.whatsappClicks) ? analytics.whatsappClicks : []);
+  }
+
+  const visitsSummary = summarizeAnalyticsEvents(visits, normalizedStart, normalizedEnd);
+  const searchesSummary = summarizeAnalyticsEvents(searches, normalizedStart, normalizedEnd);
+  const whatsappSummary = summarizeAnalyticsEvents(whatsappClicks, normalizedStart, normalizedEnd);
+
+  const allEvents = [...visits, ...searches, ...whatsappClicks];
+  const overall = summarizeAnalyticsEvents(allEvents, normalizedStart, normalizedEnd);
+
+  return {
+    key,
+    enabled: true,
+    totalViews: visits.length,
+    totalSearches: searches.length,
+    totalWhatsAppClicks: whatsappClicks.length,
+    visits: visits.filter((event) => {
+      const createdAt = coerceAnalyticsEventDate(event?.created_at || event?.timestamp || event?.date);
+      const date = createdAt.slice(0, 10);
+      if (normalizedStart && date < normalizedStart) return false;
+      if (normalizedEnd && date > normalizedEnd) return false;
+      return true;
+    }),
+    searches: searches.filter((event) => {
+      const createdAt = coerceAnalyticsEventDate(event?.created_at || event?.timestamp || event?.date);
+      const date = createdAt.slice(0, 10);
+      if (normalizedStart && date < normalizedStart) return false;
+      if (normalizedEnd && date > normalizedEnd) return false;
+      return true;
+    }),
+    whatsappClicks: whatsappClicks.filter((event) => {
+      const createdAt = coerceAnalyticsEventDate(event?.created_at || event?.timestamp || event?.date);
+      const date = createdAt.slice(0, 10);
+      if (normalizedStart && date < normalizedStart) return false;
+      if (normalizedEnd && date > normalizedEnd) return false;
+      return true;
+    }),
+    topPages: overall.topPages,
+    sourceBreakdown: overall.sourceBreakdown,
+    hostBreakdown: overall.hostBreakdown,
+    topSearchTerms: searchesSummary.topSearchTerms,
+    searchTermBreakdown: searchesSummary.topSearchTerms,
+    visitSummary: visitsSummary,
+    searchSummary: searchesSummary,
+    whatsappSummary,
+    hosts: getOwnerDashboardHosts(),
+  };
+}
+
+function createOwnerDashboardHtml(payload: any) {
+  const summaryRows = payload.topPages.slice(0, 8).map((entry: any) => `<li><span>${escapeHtmlAttribute(entry.path)}</span><strong>${entry.count}</strong></li>`).join('');
+  const searchRows = payload.topSearchTerms.slice(0, 8).map((entry: any) => `<li><span>${escapeHtmlAttribute(entry.keyword)}</span><strong>${entry.count}</strong></li>`).join('');
+  const referrerRows = payload.sourceBreakdown.slice(0, 8).map((entry: any) => `<li><span>${escapeHtmlAttribute(entry.label)}</span><strong>${entry.count}</strong></li>`).join('');
+  const hostRows = payload.hostBreakdown.slice(0, 8).map((entry: any) => `<li><span>${escapeHtmlAttribute(entry.host)}</span><strong>${entry.count}</strong></li>`).join('');
+  return `<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Owner Dashboard</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 32px; }
+      .wrap { max-width: 1100px; margin: 0 auto; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+      .card { background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.35); border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(15,23,42,0.25); }
+      h1 { margin: 0 0 12px; font-size: clamp(26px, 4vw, 42px); }
+      p { color: #cbd5e1; }
+      .metric { font-size: 2rem; font-weight: 700; margin-top: 8px; }
+      ul { list-style: none; padding: 0; margin: 12px 0 0; }
+      li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(148,163,184,0.2); }
+      .muted { opacity: .8; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Owner Dashboard</h1>
+      <p class="muted">Key: ${escapeHtmlAttribute(payload.key)}</p>
+      <div class="grid">
+        <div class="card"><div>Total Kunjungan</div><div class="metric">${payload.totalViews}</div></div>
+        <div class="card"><div>Jumlah Search</div><div class="metric">${payload.totalSearches}</div></div>
+        <div class="card"><div>WhatsApp Click</div><div class="metric">${payload.totalWhatsAppClicks}</div></div>
+        <div class="card"><div>Website Terpantau</div><div class="metric">${payload.hostBreakdown.length}</div></div>
+      </div>
+      <div class="grid">
+        <div class="card"><h2>Top Halaman</h2><ul>${summaryRows || '<li><span>Belum ada data</span><strong>0</strong></li>'}</ul></div>
+        <div class="card"><h2>Top Search</h2><ul>${searchRows || '<li><span>Belum ada data</span><strong>0</strong></li>'}</ul></div>
+        <div class="card"><h2>Source</h2><ul>${referrerRows || '<li><span>Belum ada data</span><strong>0</strong></li>'}</ul></div>
+        <div class="card"><h2>Host</h2><ul>${hostRows || '<li><span>Belum ada data</span><strong>0</strong></li>'}</ul></div>
+      </div>
+    </div>
+  </body>
+</html>`;
+}
+
 let cachedGscAccessToken: { token: string; expiresAt: number } | null = null;
 const googleSearchConsoleReportCache = new Map<string, { expiresAt: number; report: any }>();
 let cachedGoogleSearchConsoleSites: { expiresAt: number; configuredKey: string; sites: string[]; errors: string[] } | null = null;
@@ -730,11 +966,11 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
     .filter(Boolean);
   const fallbackSites = selectGoogleSearchConsoleSites([], configuredSites);
   const today = new Date();
-  const latestFinalDate = new Date(today);
-  latestFinalDate.setUTCDate(latestFinalDate.getUTCDate() - 3);
-  const effectiveEndDate = endDate && endDate < latestFinalDate.toISOString().slice(0, 10)
+  const latestAvailableDate = new Date(today);
+  latestAvailableDate.setUTCDate(latestAvailableDate.getUTCDate() - 1);
+  const effectiveEndDate = endDate && endDate < latestAvailableDate.toISOString().slice(0, 10)
     ? endDate
-    : latestFinalDate.toISOString().slice(0, 10);
+    : latestAvailableDate.toISOString().slice(0, 10);
   const earliestDate = new Date(today);
   earliestDate.setUTCMonth(earliestDate.getUTCMonth() - 16);
   const effectiveStartDate = startDate || earliestDate.toISOString().slice(0, 10);
@@ -770,7 +1006,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
           endDate: effectiveEndDate,
           dimensions: ['query'],
           rowLimit: 25_000,
-          dataState: 'final',
+          dataState: 'all',
         }),
       });
       const body = await response.json() as {
@@ -825,7 +1061,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
     rows,
     errors: [...siteSelection.errors, ...responses.filter((result) => result.error).map((result) => result.error)],
   };
-  googleSearchConsoleReportCache.set(cacheKey, { report, expiresAt: Date.now() + 15 * 60 * 1000 });
+  googleSearchConsoleReportCache.set(cacheKey, { report, expiresAt: Date.now() + 5 * 60 * 1000 });
   return report;
 }
 
