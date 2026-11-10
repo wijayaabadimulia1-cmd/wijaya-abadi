@@ -575,6 +575,7 @@ function normalizeSearchKeyword(value: unknown) {
 
 let cachedGscAccessToken: { token: string; expiresAt: number } | null = null;
 const googleSearchConsoleReportCache = new Map<string, { expiresAt: number; report: any }>();
+let cachedGoogleSearchConsoleSites: { expiresAt: number; configuredKey: string; sites: string[]; errors: string[] } | null = null;
 
 async function getGoogleSearchConsoleAccessToken() {
   const credentialsFile = process.env.GSC_SERVICE_ACCOUNT_FILE || '/etc/wijaya-abadi/gsc-service-account.json';
@@ -627,12 +628,97 @@ async function getGoogleSearchConsoleAccessToken() {
   return cachedGscAccessToken.token;
 }
 
+function getGoogleSearchConsoleSiteHost(site: string) {
+  if (site.startsWith('sc-domain:')) return site.slice('sc-domain:'.length).trim().toLowerCase();
+  try {
+    return normalizeAnalyticsHost(new URL(site).hostname);
+  } catch {
+    return '';
+  }
+}
+
+function isMonitoredGoogleSearchConsoleSite(site: string) {
+  const host = getGoogleSearchConsoleSiteHost(site);
+  return [...SALES_COUNTER_ROOT_DOMAINS].some((domain) => host === domain || host.endsWith(`.${domain}`));
+}
+
+function selectGoogleSearchConsoleSites(discoveredSites: string[], configuredSites: string[]) {
+  const candidates = [...new Set([...discoveredSites.filter(isMonitoredGoogleSearchConsoleSite), ...configuredSites])];
+  const selectedSites = new Set<string>();
+
+  for (const rootDomain of SALES_COUNTER_ROOT_DOMAINS) {
+    const rootSites = candidates.filter((site) => {
+      const host = getGoogleSearchConsoleSiteHost(site);
+      return host === rootDomain || host.endsWith(`.${rootDomain}`);
+    });
+    const rootDomainProperty = `sc-domain:${rootDomain}`;
+    if (rootSites.includes(rootDomainProperty)) {
+      selectedSites.add(rootDomainProperty);
+      continue;
+    }
+
+    const domainProperties = rootSites.filter((site) => site.startsWith('sc-domain:'));
+    const broadestDomainProperties = domainProperties.filter((site) => {
+      const host = getGoogleSearchConsoleSiteHost(site);
+      return !domainProperties.some((otherSite) => {
+        const otherHost = getGoogleSearchConsoleSiteHost(otherSite);
+        return otherSite !== site && host.endsWith(`.${otherHost}`);
+      });
+    });
+    broadestDomainProperties.forEach((site) => selectedSites.add(site));
+
+    const coveredHosts = broadestDomainProperties.map(getGoogleSearchConsoleSiteHost);
+    for (const site of rootSites.filter((item) => !item.startsWith('sc-domain:'))) {
+      const host = getGoogleSearchConsoleSiteHost(site);
+      if (!coveredHosts.some((domainHost) => host === domainHost || host.endsWith(`.${domainHost}`))) {
+        selectedSites.add(site);
+      }
+    }
+
+    if (!rootSites.length) selectedSites.add(rootDomainProperty);
+  }
+
+  configuredSites
+    .filter((site) => !isMonitoredGoogleSearchConsoleSite(site))
+    .forEach((site) => selectedSites.add(site));
+  return [...selectedSites];
+}
+
+async function getGoogleSearchConsoleSites(token: string, configuredSites: string[]) {
+  const configuredKey = configuredSites.join(',');
+  if (cachedGoogleSearchConsoleSites?.configuredKey === configuredKey && cachedGoogleSearchConsoleSites.expiresAt > Date.now()) {
+    return cachedGoogleSearchConsoleSites;
+  }
+
+  const errors: string[] = [];
+  let discoveredSites: string[] = [];
+  try {
+    const response = await fetch('https://searchconsole.googleapis.com/webmasters/v3/sites', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json() as { siteEntry?: Array<{ siteUrl?: string }> ; error?: { message?: string } };
+    if (!response.ok) throw new Error(data.error?.message || `Google Search Console sites.list gagal (HTTP ${response.status}).`);
+    discoveredSites = (data.siteEntry || []).map((entry) => String(entry.siteUrl || '').trim()).filter(Boolean);
+  } catch (error: any) {
+    errors.push(`Daftar properti Search Console tidak dapat dimuat: ${String(error?.message || 'permintaan gagal')}`);
+  }
+
+  const result = {
+    expiresAt: Date.now() + 15 * 60 * 1000,
+    configuredKey,
+    sites: selectGoogleSearchConsoleSites(discoveredSites, configuredSites),
+    errors,
+  };
+  cachedGoogleSearchConsoleSites = result;
+  return result;
+}
+
 async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: string) {
-  const sites = [...new Set((process.env.GSC_SITE_URLS
-    || 'sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud')
+  const configuredSites = (process.env.GSC_SITE_URLS || '')
     .split(',')
     .map((site) => site.trim())
-    .filter(Boolean))];
+    .filter(Boolean);
+  const fallbackSites = selectGoogleSearchConsoleSites([], configuredSites);
   const today = new Date();
   const latestFinalDate = new Date(today);
   latestFinalDate.setUTCDate(latestFinalDate.getUTCDate() - 3);
@@ -643,12 +729,8 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
   earliestDate.setUTCMonth(earliestDate.getUTCMonth() - 16);
   const effectiveStartDate = startDate || earliestDate.toISOString().slice(0, 10);
   if (effectiveStartDate > effectiveEndDate) {
-    return { configured: true, startDate: effectiveStartDate, endDate: effectiveEndDate, sites, rows: [], errors: [] };
+    return { configured: true, startDate: effectiveStartDate, endDate: effectiveEndDate, sites: fallbackSites, rows: [], errors: [] };
   }
-
-  const cacheKey = `${effectiveStartDate}:${effectiveEndDate}:${sites.join(',')}`;
-  const cached = googleSearchConsoleReportCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.report;
 
   const token = await getGoogleSearchConsoleAccessToken();
   if (!token) {
@@ -656,11 +738,17 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
       configured: false,
       startDate: effectiveStartDate,
       endDate: effectiveEndDate,
-      sites,
+      sites: fallbackSites,
       rows: [],
       errors: ['Search Console belum terhubung. Admin perlu menambahkan secret GSC_SERVICE_ACCOUNT_JSON di GitHub Actions.'],
     };
   }
+
+  const siteSelection = await getGoogleSearchConsoleSites(token, configuredSites);
+  const sites = siteSelection.sites;
+  const cacheKey = `${effectiveStartDate}:${effectiveEndDate}:${sites.join(',')}`;
+  const cached = googleSearchConsoleReportCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.report;
 
   const responses = await Promise.all(sites.map(async (site) => {
     try {
@@ -725,7 +813,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
     endDate: effectiveEndDate,
     sites,
     rows,
-    errors: responses.filter((result) => result.error).map((result) => result.error),
+    errors: [...siteSelection.errors, ...responses.filter((result) => result.error).map((result) => result.error)],
   };
   googleSearchConsoleReportCache.set(cacheKey, { report, expiresAt: Date.now() + 15 * 60 * 1000 });
   return report;
