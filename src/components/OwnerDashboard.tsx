@@ -135,6 +135,7 @@ export default function OwnerDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('hwa-owner-dashboard-theme') === 'dark');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState<OwnerDashboardSection>('overview');
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [showAllDays, setShowAllDays] = useState(false);
@@ -314,13 +315,13 @@ export default function OwnerDashboard() {
           onClick={() => setIsSidebarOpen(false)}
           className={`fixed inset-0 z-30 bg-slate-950/50 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`}
         />
-        <div className="flex min-h-screen">
-          <aside className={`fixed inset-y-0 left-0 z-40 w-64 flex-col justify-between border-r border-slate-200 bg-white transition-transform dark:border-slate-800 dark:bg-slate-900 md:flex ${isSidebarOpen ? 'flex' : 'hidden'}`}>
+        <div className={`flex min-h-screen ${isSidebarCollapsed ? 'owner-sidebar-is-collapsed' : ''}`}>
+          <aside className={`owner-sidebar fixed inset-y-0 left-0 z-40 w-64 flex-col justify-between border-r border-slate-200 bg-white transition-transform dark:border-slate-800 dark:bg-slate-900 md:flex ${isSidebarCollapsed ? 'owner-sidebar-collapsed' : ''} ${isSidebarOpen ? 'flex' : 'hidden'}`}>
             <div>
               <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <img className="owner-brand-logo" src="/favicon-honda.png" alt="Honda" />
-                  <div>
+                <div className="owner-brand-lockup">
+                  <img className="owner-brand-logo" src="/favicon-honda.png" alt="Honda Wing" />
+                  <div className="owner-sidebar-brand-copy">
                     <span className="block text-sm font-extrabold leading-none tracking-wide text-white">Honda Tech</span>
                     <span className="text-[10px] font-medium text-slate-300">Owner Analytics</span>
                   </div>
@@ -342,8 +343,8 @@ export default function OwnerDashboard() {
                     }}
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition-colors ${activeSection === item.id ? 'bg-red-600 font-semibold text-white shadow-md shadow-red-950/20' : 'font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60'}`}
                   >
-                    {item.icon}<span>{item.label}</span>
-                    {item.id === 'domains' && <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${activeSection === item.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>{analytics?.siteCount || 0}</span>}
+                    {item.icon}<span className="owner-nav-label">{item.label}</span>
+                    {item.id === 'domains' && <span className={`owner-domain-count ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${activeSection === item.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>{analytics?.siteCount || 0}</span>}
                   </button>
                 ))}
               </nav>
@@ -355,13 +356,13 @@ export default function OwnerDashboard() {
             <div className="m-4 rounded-2xl border border-slate-200/80 bg-slate-100 p-4 dark:border-slate-700/50 dark:bg-slate-800/60">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-300 text-xs font-bold text-slate-700 dark:bg-slate-600 dark:text-slate-200">SA</div>
-                <div className="min-w-0">
+                <div className="owner-sidebar-profile-copy min-w-0">
                   <p className="truncate text-xs font-bold text-slate-800 dark:text-slate-200">Super Admin Owner</p>
                   <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">Akses analitik aktif</p>
                 </div>
               </div>
-              <button type="button" onClick={() => window.location.replace('/')} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-500/10">
-                <LogOut className="h-4 w-4" />Logout
+              <button type="button" onClick={() => window.location.replace('/')} className="owner-sidebar-logout mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-500/10">
+                <LogOut className="h-4 w-4" /><span className="owner-nav-label">Logout</span>
               </button>
             </div>
           </aside>
@@ -372,7 +373,13 @@ export default function OwnerDashboard() {
                 <button type="button" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden" onClick={() => setIsSidebarOpen(true)} aria-label="Buka menu">
                   <Menu className="h-5 w-5" />
                 </button>
-                <h1 className="hidden truncate text-lg font-bold text-slate-900 dark:text-white sm:block">{sectionTitles[activeSection]}</h1>
+                <button type="button" onClick={() => setIsSidebarCollapsed((value) => !value)} title={isSidebarCollapsed ? 'Perluas navigasi' : 'Ciutkan navigasi'} aria-label={isSidebarCollapsed ? 'Perluas navigasi' : 'Ciutkan navigasi'} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 md:flex">
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div className="hidden min-w-0 sm:block">
+                  <h1 className="truncate text-sm font-bold leading-tight text-slate-900 dark:text-white">{sectionTitles[activeSection]}</h1>
+                  <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">Pantau performa website dan landing page secara real-time</p>
+                </div>
                 <span className="truncate text-sm font-bold text-slate-900 dark:text-white sm:hidden">{sectionTitles[activeSection]}</span>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -410,6 +417,7 @@ export default function OwnerDashboard() {
                 {isLoading ? 'Memperbarui data' : 'Live Traffic Connected'}
               </span>
               <img className="owner-hero-photo" src="/uploads/hero.jpeg" alt="Motor Honda Vario" />
+              <img className="owner-hero-logo" src="/favicon-honda.png" alt="Honda One HEART" />
             </section>
 
             <div className="space-y-6 p-4 sm:p-8">
@@ -476,8 +484,8 @@ export default function OwnerDashboard() {
                 <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
                   <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                     <div>
-                      <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white"><BarChart3 className="h-4 w-4 text-red-600" />Pergerakan Kunjungan Harian</h3>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Jumlah kunjungan harian dari website terpilih</p>
+                      <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white"><BarChart3 className="h-4 w-4 text-red-600" />Tren Kunjungan Website</h3>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Performa kunjungan dalam {rangeLabel.toLocaleLowerCase('id-ID')}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {allDays.length > 30 && (range === 'all' || range === 'custom') && (
@@ -496,8 +504,11 @@ export default function OwnerDashboard() {
                   </div>
                   {visibleDays.length ? (
                     <div className="relative overflow-x-auto pb-2">
-                      <div className="min-w-full" style={{ minWidth: `max(100%, ${visibleDays.length * 42}px)` }}>
-                      <div className="relative h-24 border-b border-slate-200 pb-2 dark:border-slate-700">
+                      <div className="flex min-w-full" style={{ minWidth: `max(100%, ${visibleDays.length * 42}px)` }}>
+                      <div className="flex h-24 w-7 shrink-0 flex-col justify-between pb-[13px] pr-1 pt-[17px] text-right text-[9px] tabular-nums text-slate-400" aria-hidden="true">
+                        {[dailyAxisMax, Math.round(dailyAxisMax * 2 / 3), Math.round(dailyAxisMax / 3), 0].map((tick, index) => <span key={`${tick}-${index}`}>{tick}</span>)}
+                      </div>
+                      <div className="relative h-24 min-w-0 flex-1 border-b border-slate-200 pb-2 dark:border-slate-700">
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label="Grafik garis kunjungan harian">
                           <defs>
                             <linearGradient id="owner-visits-area" x1="0" x2="0" y1="0" y2="1">
@@ -505,7 +516,7 @@ export default function OwnerDashboard() {
                               <stop offset="100%" stopColor="#ef233c" stopOpacity="0.02" />
                             </linearGradient>
                           </defs>
-                          {[18, 35, 52, 69, 86].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#e8ecf2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />)}
+                          {[18, 41, 63, 86].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#e8ecf2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />)}
                           <polygon points={`0,86 ${linePoints} 100,86`} fill="url(#owner-visits-area)" />
                           <polyline points={linePoints} fill="none" stroke="#e60012" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
                           {visibleDays.map((day, index) => {
@@ -557,19 +568,34 @@ export default function OwnerDashboard() {
               {activeSection === 'overview' && <section className="owner-overview-bottom" aria-label="Insight dan halaman populer">
                 <div className="owner-recommendations">
                   <h3><Activity className="h-4 w-4" />Insight &amp; Rekomendasi</h3>
-                  <p>{analytics?.sites[0] ? `${analytics.sites[0].host} memimpin dengan ${analytics.sites[0].visits.toLocaleString('id-ID')} kunjungan.` : 'Data website akan muncul setelah kunjungan tercatat.'}</p>
-                  <p>{analytics?.topPages[0] ? `Halaman populer: ${analytics.topPages[0].page}.` : 'Belum ada halaman populer pada rentang ini.'}</p>
-                  <p>{analytics?.whatsappClicks?.length ? `${analytics.whatsappClicks.length} tombol WhatsApp menerima klik.` : 'Pantau klik WhatsApp untuk mengukur minat calon pembeli.'}</p>
+                  <div className={`owner-recommendation-row ${previousPeriodChange === null ? 'is-neutral' : previousPeriodChange >= 0 ? 'is-positive' : 'is-negative'}`}>
+                    {previousPeriodChange !== null && previousPeriodChange < 0 ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                    <span>{previousPeriodChange === null ? 'Perbandingan kunjungan tersedia setelah data periode sebelumnya terkumpul.' : `Kunjungan ${previousPeriodChange >= 0 ? 'meningkat' : 'menurun'} ${Math.abs(previousPeriodChange).toFixed(1)}% dibanding periode sebelumnya.`}</span>
+                  </div>
+                  <div className="owner-recommendation-row is-highlight">
+                    <Globe className="h-4 w-4" />
+                    <span>{analytics?.sites[0] ? `Website teratas: ${analytics.sites[0].host} (${analytics.sites[0].visits.toLocaleString('id-ID')} kunjungan).` : 'Website teratas tampil setelah kunjungan tercatat.'}</span>
+                  </div>
+                  <div className="owner-recommendation-row is-advice">
+                    <Activity className="h-4 w-4" />
+                    <span>{analytics?.topPages[0] ? `Pertahankan konten populer ${analytics.topPages[0].page} dan optimalkan SEO.` : 'Pantau halaman populer untuk menentukan prioritas konten dan SEO.'}</span>
+                  </div>
                 </div>
 
                 <div className="owner-top-pages">
                   <h3><BarChart3 className="h-4 w-4" />Top 5 Halaman Populer</h3>
+                  <div className="owner-top-pages-header" aria-hidden="true">
+                    <span>No</span><span>Halaman</span><span>Kunjungan</span><span>Persentase</span>
+                  </div>
                   {analytics?.topPages?.length ? analytics.topPages.slice(0, 5).map((page, index) => (
                     <div className="owner-top-page-row" key={page.page}>
                       <span className="owner-top-page-rank">{index + 1}</span>
                       <span className="owner-top-page-name" title={page.page}>{page.page}</span>
                       <span className="owner-top-page-count">{page.visits.toLocaleString('id-ID')}</span>
-                      <span className="owner-top-page-bar"><span style={{ width: `${Math.max(4, (page.visits / (analytics.topPages[0]?.visits || 1)) * 100)}%` }} /></span>
+                      <span className="owner-top-page-share">
+                        <span>{analytics.totalVisits ? `${((page.visits / analytics.totalVisits) * 100).toFixed(1)}%` : '0.0%'}</span>
+                        <span className="owner-top-page-bar"><span style={{ width: `${Math.max(4, (page.visits / (analytics.topPages[0]?.visits || 1)) * 100)}%` }} /></span>
+                      </span>
                     </div>
                   )) : <p className="owner-empty-state">Belum ada halaman populer pada rentang ini.</p>}
                 </div>
