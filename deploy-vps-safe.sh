@@ -34,7 +34,7 @@ SATELLITE_DROPIN_BACKUPS=("" "")
 ID_SERVICE="kreditmotorhonda-id.service"
 ID_UNIT_FILE="/etc/systemd/system/${ID_SERVICE}"
 ID_DROPIN_DIR="/etc/systemd/system/${ID_SERVICE}.d"
-ID_DEPLOY_DROPIN="${ID_DROPIN_DIR}/zzzz-wijaya-abadi-deploy.conf"
+ID_DEPLOY_DROPIN="${ID_DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 ID_DATA_DIR="/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data"
 ID_SERVICE_UPDATED=0
 ID_SERVICE_WAS_ACTIVE=0
@@ -489,6 +489,7 @@ sudo systemctl enable "$ID_SERVICE"
 sudo systemctl restart "$ID_SERVICE"
 if ! systemctl is-active --quiet "$ID_SERVICE" \
   || ! systemctl show "$ID_SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+  systemctl show "$ID_SERVICE" --property=FragmentPath --property=DropInPaths --property=ExecStart --no-pager >&2 || true
   fail "$ID_SERVICE did not start the new release."
 fi
 
