@@ -40,7 +40,7 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
-          GSC_SITE_URLS: ${{ vars.GSC_SITE_URLS || 'sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud' }}
+          GSC_SITE_URLS: ${{ vars.GSC_SITE_URLS || 'sc-domain:kreditmotorhonda.tech,sc-domain:kreditmotorhonda.id,sc-domain:solusikreditmotor.cloud' }}
         run: |
           test -n "$VPS_HOST"
           test -n "$VPS_USER"
