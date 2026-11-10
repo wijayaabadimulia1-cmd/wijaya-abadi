@@ -446,7 +446,14 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   const keywords = String(article
     ? [article.title, article.category, pageSettings.seoKeywords].filter(Boolean).join(', ')
     : hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
-  const siteOrigin = hostPage ? `https://${hostPage.subdomain}.kreditmotorhonda.tech` : getSiteOrigin(pageSettings);
+  const normalizedHostname = normalizeAnalyticsHost(hostname);
+  const isRootSiteHost = SALES_COUNTER_ROOT_DOMAINS.has(normalizedHostname)
+    || normalizedHostname === 'wijaya.kreditmotorhonda.tech';
+  const siteOrigin = hostPage
+    ? getSeoPageOrigin(hostPage)
+    : isRootSiteHost
+      ? `https://${normalizedHostname}`
+      : getSiteOrigin(pageSettings);
   const articleOrigin = hostname ? `https://${String(hostname).toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '')}` : siteOrigin;
   const logoValue = String(pageSettings.logo || '/uploads/logo.jpeg').trim();
   const logoUrl = /^https?:\/\//i.test(logoValue)
@@ -458,7 +465,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     ? `${siteOrigin}${hostPost ? getSeoLandingPostPath(hostPage, hostPost) : '/'}`
     : page
     ? `${siteOrigin}${pathname.replace(/\/+$/, '') || '/'}`
-    : String(pageSettings.seoCanonicalUrl || `${siteOrigin}/`).trim();
+    : String(isRootSiteHost ? `${siteOrigin}/` : pageSettings.seoCanonicalUrl || `${siteOrigin}/`).trim();
   const robots = hostPage && hostPage.sslStatus !== 'active'
     ? 'noindex, follow'
     : String(hostPage?.seoRobots || pageSettings.seoRobots || 'index, follow').trim();

@@ -83,6 +83,13 @@ const getSalesCounterDomainSuffix = (hostname: string): SalesCounterRootDomain |
   const domains: SalesCounterRootDomain[] = ['kreditmotorhonda.id', 'kreditmotorhonda.tech', 'solusikreditmotor.cloud'];
   return domains.find((domain) => domain === normalized);
 };
+const getAdminCanonicalUrl = () => {
+  const hostname = window.location.hostname.toLocaleLowerCase('en-US').replace(/^www\./, '');
+  if (getSalesCounterDomainSuffix(hostname) || hostname === 'wijaya.kreditmotorhonda.tech') {
+    return `https://${hostname}/`;
+  }
+  return DEFAULT_SEO_CANONICAL_URL;
+};
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -319,7 +326,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const priceList = priceListResult.status === 'fulfilled' ? priceListResult.value : DEFAULT_FIF_PRICE_LIST;
     setFifPriceList(priceList);
 
-    if (settingsResult.status === 'fulfilled') setSettings(settingsResult.value);
+    if (settingsResult.status === 'fulfilled') {
+      setSettings({ ...settingsResult.value, seoCanonicalUrl: getAdminCanonicalUrl() });
+    }
     else failedSections.push('pengaturan');
 
     if (motorsResult.status === 'fulfilled') {
@@ -1519,6 +1528,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       const settingsToSave = Object.fromEntries(
         Object.entries(settings).filter(([key]) => key !== 'seoPages' && key !== 'ownerDashboard'),
       ) as Partial<DealerSettings>;
+      settingsToSave.seoCanonicalUrl = getAdminCanonicalUrl();
       const savedSettings = await api.updateSettings(settingsToSave);
       setSettings(savedSettings);
       showToast('Pengaturan dealer berhasil disimpan ke database!');
@@ -3641,7 +3651,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           URL canonical
-                          <input type="url" value={settings.seoCanonicalUrl ?? DEFAULT_SEO_CANONICAL_URL} onChange={(event) => setSettings({ ...settings, seoCanonicalUrl: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
+                          <input type="url" value={settings.seoCanonicalUrl ?? getAdminCanonicalUrl()} onChange={(event) => setSettings({ ...settings, seoCanonicalUrl: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" />
                         </label>
                         <label className="block space-y-1.5 text-xs font-medium text-zinc-300">
                           Robots
