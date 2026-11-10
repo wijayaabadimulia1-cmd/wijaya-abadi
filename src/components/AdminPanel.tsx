@@ -60,6 +60,7 @@ import {
 import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
 import { getSeoLandingPosts, getSeoLandingPostPath, slugifySeoPost } from '../utils/seoPosts';
 import { CustomizationPanel } from './CustomizationPanel';
+import { ArticleManager } from './ArticleManager';
 
 interface AdminPanelProps {
   onBackToWebsite: () => void;
@@ -164,7 +165,7 @@ function matchFocusKeyword(keyword: string, title: string, description: string) 
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'articles' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -192,8 +193,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
-  const [isUploadingSeoPostImages, setIsUploadingSeoPostImages] = useState(false);
-  const seoPostImagesInputRef = useRef<HTMLInputElement>(null);
   const [isCatalogOwner, setIsCatalogOwner] = useState(false);
   const [canManageCatalog, setCanManageCatalog] = useState(false);
   const [catalogAdminUrl, setCatalogAdminUrl] = useState('https://kreditmotorhonda.tech/admin');
@@ -1529,37 +1528,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
-  const handleSeoPostImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const files = Array.from(input.files || []);
-    if (!files.length || !seoPageEditor) return;
-
-    const currentImages = seoPageEditor.images || [];
-    const availableSlots = MAX_MOTOR_IMAGES - currentImages.length;
-    if (files.length > availableSlots) {
-      alert(`Maksimal ${MAX_MOTOR_IMAGES} gambar per pos. Tersisa ${availableSlots} slot.`);
-      input.value = '';
-      return;
-    }
-    if (files.some((file) => !file.type.startsWith('image/'))) {
-      alert('Pilih file gambar yang valid.');
-      input.value = '';
-      return;
-    }
-
-    setIsUploadingSeoPostImages(true);
-    try {
-      const uploadedImages = await Promise.all(files.map((file) => api.uploadImage(file)));
-      setSeoPageEditor((current) => current ? { ...current, images: [...(current.images || []), ...uploadedImages] } : current);
-      showToast(`${uploadedImages.length} gambar pos berhasil diunggah`);
-    } catch (error: any) {
-      alert(`Gagal upload gambar pos: ${error.message}`);
-    } finally {
-      setIsUploadingSeoPostImages(false);
-      input.value = '';
-    }
-  };
-
   const handleSaveSeoPage = async () => {
     if (!settings || !seoPageEditor) return;
     const title = seoPageEditor.title.trim();
@@ -1592,9 +1560,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       slug,
       title,
       content,
-      images: (seoPageEditor.images || []).slice(0, MAX_MOTOR_IMAGES),
-      animation: seoPageEditor.animation || DEFAULT_CATALOG_ANIMATION,
-      animationSpeed: normalizeCatalogAnimationSpeed(seoPageEditor.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED),
       authorUsername: currentPosts.find((item) => item.id === seoPageEditor.id)?.authorUsername || (seoPageEditor.id ? 'Abadi' : adminSession.username),
       authorRole: currentPosts.find((item) => item.id === seoPageEditor.id)?.authorRole || (seoPageEditor.id ? 'Super Admin' : adminSession.role),
     };
@@ -2077,6 +2042,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'leads', label: `Peminat (${leads.length})`, icon: MessageSquare },
               ...(canManageSalesCounters ? [{ id: 'sales-counter', label: 'Sales Counter', icon: Users }] : []),
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
+              { id: 'articles', label: 'Artikel', icon: FileText },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
               { id: 'theme', label: 'Template View Website', icon: Palette },
@@ -2084,7 +2050,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               ...(isSuperAdmin
                 ? [
                     { id: 'seo-subdomains', label: 'SEO Subdomain', icon: Search },
-                    { id: 'seo-posts', label: 'Buat Pos', icon: FileText },
+                    { id: 'seo-posts', label: 'Post SEO', icon: FileText },
                   ]
                 : []),
               { id: 'security', label: 'Admin & Histori', icon: Shield },
@@ -2144,6 +2110,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
           </div>
         ) : (
           <>
+            {activeTab === 'articles' && <ArticleManager onRefreshData={onRefreshData} />}
+
             {/* TAB 1: DASHBOARD */}
             {activeTab === 'dashboard' && (
               <div className="space-y-8 animate-in fade-in duration-300">
@@ -3910,55 +3878,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             <textarea value={seoPageEditor.content} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, content: event.target.value })} rows={8} maxLength={20000} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-relaxed text-white focus:border-red-500 focus:outline-none" placeholder="Tulis isi post. Gunakan baris baru untuk memisahkan paragraf." />
                           </label>
 
-                          <section className="space-y-3 rounded-lg border border-white/10 bg-zinc-900/60 p-3">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <h5 className="text-xs font-bold text-white">Galeri pos</h5>
-                                <p className="mt-1 text-[10px] text-zinc-400">Unggah hingga {MAX_MOTOR_IMAGES} gambar. Gambar pertama menjadi sampul.</p>
-                              </div>
-                              <button type="button" disabled={isUploadingSeoPostImages || (seoPageEditor.images?.length || 0) >= MAX_MOTOR_IMAGES} onClick={() => seoPostImagesInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50">
-                                <Upload className="h-4 w-4" /> {isUploadingSeoPostImages ? 'Mengunggah...' : 'Unggah gambar'}
-                              </button>
-                              <input ref={seoPostImagesInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleSeoPostImageUpload} />
-                            </div>
-                            {seoPageEditor.images?.length ? (
-                              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                {seoPageEditor.images.map((image, index) => (
-                                  <div key={`${image}-${index}`} className="relative overflow-hidden rounded-md border border-white/10">
-                                    <img src={image} alt={`Gambar pos ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
-                                    <button type="button" onClick={() => setSeoPageEditor({ ...seoPageEditor, images: [image, ...seoPageEditor.images!.filter((item) => item !== image)] })} className="absolute bottom-2 left-2 rounded bg-black/75 px-2 py-1 text-[10px] font-bold text-white hover:bg-black">
-                                      {index === 0 ? 'Sampul' : 'Jadikan sampul'}
-                                    </button>
-                                    <button type="button" onClick={() => setSeoPageEditor({ ...seoPageEditor, images: seoPageEditor.images!.filter((_, imageIndex) => imageIndex !== index) })} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/75 text-white hover:bg-red-700" aria-label={`Hapus gambar ${index + 1}`}>
-                                      <X className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="border border-dashed border-white/15 px-3 py-5 text-center text-xs text-zinc-500">Belum ada gambar yang diunggah.</p>
-                            )}
-                          </section>
-
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <label className="block space-y-1 text-xs font-medium text-zinc-300">
-                              Animasi gambar
-                              <select value={seoPageEditor.animation || DEFAULT_CATALOG_ANIMATION} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, animation: event.target.value as SeoLandingPost['animation'] })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
-                                {CATALOG_ANIMATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                              </select>
-                            </label>
-                            <label className="block space-y-1 text-xs font-medium text-zinc-300">
-                              Kecepatan animasi
-                              <span className="flex items-center gap-3 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5">
-                                <input type="range" min={MIN_CATALOG_ANIMATION_SPEED} max={MAX_CATALOG_ANIMATION_SPEED} step={1} value={normalizeCatalogAnimationSpeed(seoPageEditor.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} onChange={(event) => setSeoPageEditor({ ...seoPageEditor, animationSpeed: Number(event.target.value) })} className="min-w-0 flex-1 accent-red-600" />
-                                <output className="w-12 text-right tabular-nums text-white">{normalizeCatalogAnimationSpeed(seoPageEditor.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} dtk</output>
-                              </span>
-                            </label>
-                          </div>
-
                           <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
                             <button type="button" onClick={() => setSeoPageEditor(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
-                            <button type="button" onClick={() => void handleSaveSeoPage()} disabled={isSavingSeoPage || isUploadingSeoPostImages} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {isSavingSeoPage ? 'Menyimpan...' : 'Simpan sekali'}</button>
+                            <button type="button" onClick={() => void handleSaveSeoPage()} disabled={isSavingSeoPage} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {isSavingSeoPage ? 'Menyimpan...' : 'Simpan sekali'}</button>
                           </div>
                         </div>
                       )}

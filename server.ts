@@ -11,6 +11,7 @@ import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
+import { DEFAULT_CATALOG_ANIMATION, isCatalogAnimation, normalizeCatalogAnimationSpeed } from './src/catalogAnimation';
 import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './src/utils/seoPosts';
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -85,6 +86,25 @@ function readDb() {
     interests: [],
     analytics: { totalViews: 0, simulatorUsed: 0, compareUsed: 0 }
   };
+}
+
+function readSiteDb() {
+  return readJsonDbFile(PERSISTENT_DB_FILE) || {
+    settings: {},
+    articles: [],
+    auditLogs: [],
+  };
+}
+
+function writeSiteDb(data: any) {
+  try {
+    fs.mkdirSync(path.dirname(PERSISTENT_DB_FILE), { recursive: true });
+    fs.writeFileSync(PERSISTENT_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    return true;
+  } catch (error) {
+    console.error('Error writing site database:', error);
+    return false;
+  }
 }
 
 function readCatalogDb() {
@@ -198,6 +218,7 @@ function escapeHtmlAttribute(value: string) {
 
 function createPublicInitialData(db: any, hostname?: string) {
   const hostPage = hostname ? getSeoPageForHost(db.settings || {}, hostname) : undefined;
+  const siteArticles = readSiteDb().articles;
   const testimonials = (Array.isArray(db.testimonials) ? db.testimonials : [])
     .filter((item: any) => item.approved !== false)
     .map((item: any) => ({
@@ -216,6 +237,9 @@ function createPublicInitialData(db: any, hostname?: string) {
     promos: hostPage
       ? Array.isArray(hostPage.promos) ? hostPage.promos : []
       : Array.isArray(db.promos) ? db.promos : [],
+    articles: (Array.isArray(siteArticles) ? siteArticles : [])
+      .filter((article: any) => article.published === true)
+      .sort((left: any, right: any) => String(right.created_at || '').localeCompare(String(left.created_at || ''))),
     testimonials,
     manifesto: Array.isArray(db.manifesto) ? db.manifesto : [],
     fifPriceList: currentFifPriceList(db),
@@ -646,9 +670,6 @@ function publicSeoPage(page: any) {
       slug: post.slug,
       title: post.title,
       content: post.content,
-      images: post.images || [],
-      animation: post.animation,
-      animationSpeed: post.animationSpeed,
     })),
     seoTitle: page.seoTitle,
     seoDescription: page.seoDescription,
@@ -1587,7 +1608,7 @@ async function startServer() {
       }
       const allowedPostWrite = req.method === 'PUT' && req.path === '/settings'
         || req.method === 'POST' && (req.path === '/admin/logout' || req.path === '/upload')
-        || ['POST', 'PUT', 'DELETE'].includes(req.method) && /^\/promos(?:\/[^/]+)?$/.test(req.path);
+        || ['POST', 'PUT', 'DELETE'].includes(req.method) && (/^\/promos(?:\/[^/]+)?$/.test(req.path) || /^\/articles(?:\/[^/]+)?$/.test(req.path));
       if (!allowedPostWrite) return res.status(403).json({ error: 'Admin post hanya dapat mengubah promo dan pengaturan situs post ini.' });
       (req as any).adminSession = session;
       return next();
@@ -1595,14 +1616,16 @@ async function startServer() {
     if (req.method === 'GET' || isPublicWrite) return next();
     return requireAdmin(req, res, () => {
       const session = (req as any).adminSession;
-      const db = readDb();
+      const isArticleWrite = /^\/articles(?:\/[^/]+)?$/.test(req.path);
+      const db = isArticleWrite ? readSiteDb() : readDb();
       appendAudit(db, {
         actor: session.username,
         action: `${req.method} ${req.path}`,
         resource: req.path,
         details: 'Perubahan data melalui admin panel',
       });
-      writeDb(db);
+      if (isArticleWrite) writeSiteDb(db);
+      else writeDb(db);
       next();
     });
   });
@@ -2229,6 +2252,93 @@ async function startServer() {
     if (hostPage) hostPage.promos = (Array.isArray(hostPage.promos) ? hostPage.promos : []).filter((p: any) => p.id !== req.params.id);
     else db.promos = (db.promos || []).filter((p: any) => p.id !== req.params.id);
     writeDb(db);
+    res.json({ success: true });
+  });
+
+  // Articles are stored independently from SEO subdomain posts.
+  app.get('/api/articles', (req, res) => {
+    const db = readSiteDb();
+    const session = getSession(req);
+    if (req.header('x-admin-token') && !session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
+    if (session && !isAdminAuthorizedForHost(session, req.hostname, readDb())) return res.status(403).json({ error: 'Akses admin tidak diizinkan untuk domain ini.' });
+    const articles = Array.isArray(db.articles) ? db.articles : [];
+    const visibleArticles = session ? articles : articles.filter((article: any) => article.published === true);
+    res.json(visibleArticles.sort((left: any, right: any) => String(right.created_at || '').localeCompare(String(left.created_at || ''))));
+  });
+
+  app.post('/api/articles', (req, res) => {
+    const db = readSiteDb();
+    const articles = Array.isArray(db.articles) ? db.articles : [];
+    const title = String(req.body.title || '').trim();
+    const slug = String(req.body.slug || title).toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/g, '');
+    const excerpt = String(req.body.excerpt || '').trim();
+    const content = String(req.body.content || '').trim();
+    const images = normalizeMotorImages(req.body.images);
+    if (!title || !slug || !excerpt || !content) return res.status(400).json({ error: 'Judul, slug, ringkasan, dan isi artikel wajib diisi.' });
+    if (articles.some((article: any) => article.slug === slug)) return res.status(409).json({ error: 'Slug artikel sudah digunakan.' });
+    if (images.length > MAX_MOTOR_IMAGES) return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} gambar per artikel.` });
+
+    const now = new Date().toISOString();
+    const article = {
+      id: `article-${crypto.randomUUID()}`,
+      title,
+      slug,
+      category: String(req.body.category || 'Tips Berkendara').trim(),
+      excerpt,
+      content,
+      image: images[0] || '',
+      images,
+      animation: isCatalogAnimation(req.body.animation) ? req.body.animation : DEFAULT_CATALOG_ANIMATION,
+      animationSpeed: normalizeCatalogAnimationSpeed(req.body.animationSpeed),
+      author: String(req.body.author || 'Honda Wijaya Abadi').trim(),
+      published: req.body.published === true,
+      created_at: now,
+      updated_at: now,
+    };
+    db.articles = [article, ...articles];
+    if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal menyimpan artikel.' });
+    res.status(201).json(article);
+  });
+
+  app.put('/api/articles/:id', (req, res) => {
+    const db = readSiteDb();
+    const articles = Array.isArray(db.articles) ? db.articles : [];
+    const index = articles.findIndex((article: any) => article.id === req.params.id);
+    if (index < 0) return res.status(404).json({ error: 'Artikel tidak ditemukan.' });
+    const current = articles[index];
+    const title = String(req.body.title ?? current.title).trim();
+    const slug = String(req.body.slug ?? current.slug).toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/g, '');
+    const excerpt = String(req.body.excerpt ?? current.excerpt).trim();
+    const content = String(req.body.content ?? current.content).trim();
+    const images = req.body.images === undefined ? normalizeMotorImages(current.images, current.image) : normalizeMotorImages(req.body.images);
+    if (!title || !slug || !excerpt || !content) return res.status(400).json({ error: 'Judul, slug, ringkasan, dan isi artikel wajib diisi.' });
+    if (articles.some((article: any) => article.slug === slug && article.id !== current.id)) return res.status(409).json({ error: 'Slug artikel sudah digunakan.' });
+    if (images.length > MAX_MOTOR_IMAGES) return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} gambar per artikel.` });
+
+    articles[index] = {
+      ...current,
+      title,
+      slug,
+      category: String(req.body.category ?? current.category ?? 'Tips Berkendara').trim(),
+      excerpt,
+      content,
+      image: images[0] || '',
+      images,
+      animation: isCatalogAnimation(req.body.animation ?? current.animation) ? (req.body.animation ?? current.animation) : DEFAULT_CATALOG_ANIMATION,
+      animationSpeed: normalizeCatalogAnimationSpeed(req.body.animationSpeed ?? current.animationSpeed),
+      author: String(req.body.author ?? current.author ?? 'Honda Wijaya Abadi').trim(),
+      published: req.body.published === undefined ? current.published === true : req.body.published === true,
+      updated_at: new Date().toISOString(),
+    };
+    db.articles = articles;
+    if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal memperbarui artikel.' });
+    res.json(articles[index]);
+  });
+
+  app.delete('/api/articles/:id', (req, res) => {
+    const db = readSiteDb();
+    db.articles = (Array.isArray(db.articles) ? db.articles : []).filter((article: any) => article.id !== req.params.id);
+    if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal menghapus artikel.' });
     res.json({ success: true });
   });
 

@@ -51,6 +51,23 @@ export interface Promo {
   disabledHosts?: string[];
 }
 
+export interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  excerpt: string;
+  content: string;
+  image?: string;
+  images?: string[];
+  animation?: CatalogAnimation;
+  animationSpeed?: number;
+  author: string;
+  published: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Testimonial {
   id: string;
   name: string;
@@ -114,9 +131,6 @@ export interface SeoLandingPost {
   slug: string;
   title: string;
   content: string;
-  images?: string[];
-  animation?: CatalogAnimation;
-  animationSpeed?: number;
   authorUsername?: string;
   authorRole?: string;
   created_at?: string;

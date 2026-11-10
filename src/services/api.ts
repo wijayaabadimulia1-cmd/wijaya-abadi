@@ -1,4 +1,4 @@
-import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite } from '../types';
+import { Motor, Promo, Article, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite } from '../types';
 
 interface MotorSaveData extends Partial<Motor> {
   fifPriceListModel?: {
@@ -398,6 +398,38 @@ export const api = {
       headers: adminHeaders(),
     });
     return res.ok;
+  },
+
+  async getArticles(): Promise<Article[]> {
+    const res = await fetch('/api/articles', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal mengambil artikel');
+    return res.json();
+  },
+
+  async getAdminArticles(): Promise<Article[]> {
+    const res = await fetch('/api/articles', { headers: adminHeaders(), cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal mengambil daftar artikel');
+    return res.json();
+  },
+
+  async createArticle(data: Partial<Article>): Promise<Article> {
+    const res = await fetch('/api/articles', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(data) });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal membuat artikel');
+    return result;
+  },
+
+  async updateArticle(id: string, data: Partial<Article>): Promise<Article> {
+    const res = await fetch(`/api/articles/${encodeURIComponent(id)}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify(data) });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal memperbarui artikel');
+    return result;
+  },
+
+  async deleteArticle(id: string): Promise<void> {
+    const res = await fetch(`/api/articles/${encodeURIComponent(id)}`, { method: 'DELETE', headers: adminHeaders() });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal menghapus artikel');
   },
 
   // Testimonials
