@@ -6,7 +6,6 @@ import { createWhatsAppUrl } from '../utils/whatsapp';
 
 interface NavbarProps {
   settings: DealerSettings;
-  hasArticles: boolean;
   compareList: Motor[];
   onOpenCompare: () => void;
   onOpenInterest: (motor?: Motor) => void;
@@ -16,7 +15,6 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   settings,
-  hasArticles,
   compareList,
   onOpenCompare,
   onOpenInterest,
@@ -35,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         { label: 'Motor', href: `${anchorPrefix}#katalog` },
         { label: 'Promo', href: `${anchorPrefix}#promo` },
         { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
-        ...(hasArticles ? [{ label: 'Artikel', href: `${anchorPrefix}#artikel` }] : []),
+        { label: 'Artikel', href: `${anchorPrefix}#artikel` },
         { label: 'Tentang Kami', href: `${anchorPrefix}#manifesto` },
         { label: 'Kontak', href: `${anchorPrefix}#kontak` },
       ]
@@ -44,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         { label: 'Katalog Motor', href: `${anchorPrefix}#katalog` },
         { label: 'Promo', href: `${anchorPrefix}#promo` },
         { label: 'Simulasi Kredit', href: `${anchorPrefix}#simulasi` },
-        ...(hasArticles ? [{ label: 'Artikel', href: `${anchorPrefix}#artikel` }] : []),
+        { label: 'Artikel', href: `${anchorPrefix}#artikel` },
         { label: 'Nilai Kami', href: `${anchorPrefix}#manifesto` },
         { label: 'Testimoni', href: `${anchorPrefix}#testimoni` },
         { label: 'Kontak', href: `${anchorPrefix}#kontak` },

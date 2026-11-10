@@ -107,6 +107,42 @@ function writeSiteDb(data: any) {
   }
 }
 
+function getArticleSiteKey(hostname: string, db: any) {
+  const host = normalizeAdminHost(hostname);
+  if (['localhost', '127.0.0.1', '::1'].includes(host)) return '';
+
+  try {
+    const canonicalHost = normalizeAdminHost(new URL(getSiteOrigin(db.settings || {})).hostname);
+    return host === canonicalHost ? '' : host;
+  } catch {
+    return host;
+  }
+}
+
+function getSiteArticles(db: any, hostname: string) {
+  const siteKey = getArticleSiteKey(hostname, db);
+  if (!siteKey) return Array.isArray(db.articles) ? db.articles : [];
+
+  const site = Array.isArray(db.articleSites)
+    ? db.articleSites.find((item: any) => item.host === siteKey)
+    : undefined;
+  return Array.isArray(site?.articles) ? site.articles : [];
+}
+
+function setSiteArticles(db: any, hostname: string, articles: any[]) {
+  const siteKey = getArticleSiteKey(hostname, db);
+  if (!siteKey) {
+    db.articles = articles;
+    return;
+  }
+
+  const sites = Array.isArray(db.articleSites) ? db.articleSites : [];
+  const index = sites.findIndex((item: any) => item.host === siteKey);
+  if (index < 0) sites.push({ host: siteKey, articles });
+  else sites[index] = { ...sites[index], articles };
+  db.articleSites = sites;
+}
+
 function readCatalogDb() {
   const ownerDb = readJsonDbFile(CATALOG_OWNER_DATA_FILE) || readJsonDbFile(PERSISTENT_DB_FILE) || readJsonDbFile(FALLBACK_DB_FILE) || readJsonDbFile(DB_FILE);
   const primaryDb = readDb();
@@ -218,7 +254,7 @@ function escapeHtmlAttribute(value: string) {
 
 function createPublicInitialData(db: any, hostname?: string) {
   const hostPage = hostname ? getSeoPageForHost(db.settings || {}, hostname) : undefined;
-  const siteArticles = readSiteDb().articles;
+  const siteArticles = getSiteArticles(readSiteDb(), hostname || '');
   const testimonials = (Array.isArray(db.testimonials) ? db.testimonials : [])
     .filter((item: any) => item.approved !== false)
     .map((item: any) => ({
@@ -2315,14 +2351,14 @@ async function startServer() {
     const session = getSession(req);
     if (req.header('x-admin-token') && !session) return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
     if (session && !isAdminAuthorizedForHost(session, req.hostname, readDb())) return res.status(403).json({ error: 'Akses admin tidak diizinkan untuk domain ini.' });
-    const articles = Array.isArray(db.articles) ? db.articles : [];
+    const articles = getSiteArticles(db, req.hostname);
     const visibleArticles = session ? articles : articles.filter((article: any) => article.published === true);
     res.json(visibleArticles.sort((left: any, right: any) => String(right.created_at || '').localeCompare(String(left.created_at || ''))));
   });
 
   app.post('/api/articles', (req, res) => {
     const db = readSiteDb();
-    const articles = Array.isArray(db.articles) ? db.articles : [];
+    const articles = getSiteArticles(db, req.hostname);
     const title = String(req.body.title || '').trim();
     const slug = String(req.body.slug || title).toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/g, '');
     const excerpt = String(req.body.excerpt || '').trim();
@@ -2349,14 +2385,14 @@ async function startServer() {
       created_at: now,
       updated_at: now,
     };
-    db.articles = [article, ...articles];
+    setSiteArticles(db, req.hostname, [article, ...articles]);
     if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal menyimpan artikel.' });
     res.status(201).json(article);
   });
 
   app.put('/api/articles/:id', (req, res) => {
     const db = readSiteDb();
-    const articles = Array.isArray(db.articles) ? db.articles : [];
+    const articles = getSiteArticles(db, req.hostname);
     const index = articles.findIndex((article: any) => article.id === req.params.id);
     if (index < 0) return res.status(404).json({ error: 'Artikel tidak ditemukan.' });
     const current = articles[index];
@@ -2384,14 +2420,15 @@ async function startServer() {
       published: req.body.published === undefined ? current.published === true : req.body.published === true,
       updated_at: new Date().toISOString(),
     };
-    db.articles = articles;
+    setSiteArticles(db, req.hostname, articles);
     if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal memperbarui artikel.' });
     res.json(articles[index]);
   });
 
   app.delete('/api/articles/:id', (req, res) => {
     const db = readSiteDb();
-    db.articles = (Array.isArray(db.articles) ? db.articles : []).filter((article: any) => article.id !== req.params.id);
+    const articles = getSiteArticles(db, req.hostname).filter((article: any) => article.id !== req.params.id);
+    setSiteArticles(db, req.hostname, articles);
     if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal menghapus artikel.' });
     res.json({ success: true });
   });
@@ -3578,7 +3615,7 @@ async function startServer() {
   app.get('/sitemap.xml', (req, res) => {
     res.set('Cache-Control', 'no-cache');
     const db = readDb();
-    db.articles = readSiteDb().articles;
+    db.articles = getSiteArticles(readSiteDb(), req.hostname);
     res.type('application/xml').send(renderDynamicSitemap(db, req.hostname));
   });
 
@@ -3643,7 +3680,7 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
-        db.articles = readSiteDb().articles;
+        db.articles = getSiteArticles(readSiteDb(), req.hostname);
         const initialData = await createSsrInitialData(db, req.hostname);
         const article = (initialData as any).articles?.find((item: any) => item.slug === req.params.slug && item.published === true);
         if (!article) return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
@@ -3700,7 +3737,7 @@ async function startServer() {
       if (path.extname(req.path)) return res.sendStatus(404);
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       const db = readDb();
-      db.articles = readSiteDb().articles;
+      db.articles = getSiteArticles(readSiteDb(), req.hostname);
       const initialData = createPublicInitialData(db, req.hostname);
       const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
       if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
