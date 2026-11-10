@@ -40,7 +40,7 @@ export function filterCatalogMotors(
   motors: Motor[],
   activeCategory: string,
   searchQuery: string,
-  sortBy: 'default' | 'price-asc' | 'price-desc' | 'bestseller' = 'default',
+  sortBy: 'default' | 'price-asc' | 'price-desc' | 'bestseller' = 'bestseller',
 ) {
   return motors
     .filter((motor) => {
@@ -191,7 +191,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('default');
+  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('bestseller');
   const [selectedGallery, setSelectedGallery] = useState<{ images: string[]; index: number; alt: string } | null>(null);
   const galleryTouchStartX = useRef<number | null>(null);
 
