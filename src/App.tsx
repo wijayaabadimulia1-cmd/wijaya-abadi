@@ -1105,7 +1105,7 @@ export default function App() {
 
             <nav className="wijaya-enerjik-quick-links" aria-label="Layanan Honda Wijaya Abadi">
               <a href="#simulasi"><Calculator aria-hidden="true" /><span><strong>Simulasi Kredit Honda</strong><small>Hitung angsuran sesuai kebutuhan</small><em>Coba Sekarang <ArrowRight aria-hidden="true" /></em></span></a>
-              <a href="#testimoni"><Sparkles aria-hidden="true" /><span><strong>Artikel & Tips</strong><small>Tips perawatan dan promo terbaru</small><em>Baca Artikel <ArrowRight aria-hidden="true" /></em></span></a>
+              {articles.length > 0 && <a href="#artikel"><Sparkles aria-hidden="true" /><span><strong>Artikel & Tips</strong><small>Tips perawatan dan promo terbaru</small><em>Baca Artikel <ArrowRight aria-hidden="true" /></em></span></a>}
               <a href="#kontak"><MapPin aria-hidden="true" /><span><strong>Lokasi Dealer</strong><small>Temukan dealer terdekat di Bandung</small><em>Lihat Lokasi <ArrowRight aria-hidden="true" /></em></span></a>
               <a className="wijaya-enerjik-quick-links__contact" href={floatingWaUrl} target="_blank" rel="noopener noreferrer"><Phone aria-hidden="true" /><span><strong>Butuh Bantuan?</strong><small>Chat Sales Kami Sekarang</small><em>{settings.phone} <ArrowRight aria-hidden="true" /></em></span></a>
             </nav>

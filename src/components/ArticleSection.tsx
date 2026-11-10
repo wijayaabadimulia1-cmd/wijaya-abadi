@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, Share2, X } from 'lucide-react';
 import type { Article } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from '../catalogAnimation';
 
@@ -21,7 +21,7 @@ function formatDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? 'Artikel terbaru'
-    : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    : date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function getImageStyle(article: Article): React.CSSProperties {
@@ -33,64 +33,120 @@ function getImageStyle(article: Article): React.CSSProperties {
 export function ArticleSection({ articles }: ArticleSectionProps) {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [shareMessage, setShareMessage] = useState('');
   const visibleArticles = articles.filter((article) => article.published);
+
+  useEffect(() => {
+    const openSharedArticle = () => {
+      const match = window.location.hash.match(/^#artikel-(.+)$/);
+      if (!match) return;
+      let slug = match[1];
+      try {
+        slug = decodeURIComponent(slug);
+      } catch {
+        return;
+      }
+      const article = visibleArticles.find((item) => item.slug === slug);
+      if (article) {
+        setSelectedArticle(article);
+        setSelectedImageIndex(0);
+      }
+    };
+
+    openSharedArticle();
+    window.addEventListener('hashchange', openSharedArticle);
+    return () => window.removeEventListener('hashchange', openSharedArticle);
+  }, [articles]);
+
+  const openArticle = (article: Article) => {
+    setSelectedArticle(article);
+    setSelectedImageIndex(0);
+  };
+
+  const closeArticle = () => {
+    setSelectedArticle(null);
+    if (window.location.hash.startsWith('#artikel-')) {
+      window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}#artikel`);
+    }
+  };
+
+  const shareArticle = async (article: Article) => {
+    const articleUrl = new URL(window.location.href);
+    articleUrl.hash = `artikel-${encodeURIComponent(article.slug)}`;
+    const shareData = { title: article.title, text: article.excerpt, url: articleUrl.href };
+    try {
+      const shareNavigator = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+      if (shareNavigator.share) {
+        await shareNavigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(articleUrl.href);
+        setShareMessage('Tautan artikel disalin.');
+      } else {
+        setShareMessage(articleUrl.href);
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setShareMessage('Tautan artikel tidak dapat dibagikan.');
+    }
+  };
 
   if (!visibleArticles.length) return null;
 
   return (
     <>
-      <section id="artikel" className="relative border-y border-white/10 bg-zinc-950 py-16 sm:py-20 lg:py-24">
+      <section id="artikel" className="relative border-y border-zinc-200 bg-white py-12 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-5 border-b border-zinc-200 pb-7 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase text-red-400">
+              <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase text-red-600">
                 <BookOpen className="h-4 w-4" />
                 Wawasan &amp; Panduan
               </div>
-              <h2 className="text-3xl font-black text-white sm:text-4xl">Artikel seputar Honda</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">Panduan memilih motor, memahami pembelian, dan merawat kendaraan untuk perjalanan sehari-hari.</p>
+              <h2 className="text-3xl font-black text-zinc-950 sm:text-4xl">Artikel seputar Honda</h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-600">Panduan memilih motor, memahami pembelian, dan merawat kendaraan untuk perjalanan sehari-hari.</p>
             </div>
-            <span className="text-sm font-semibold text-zinc-400">{visibleArticles.length} artikel</span>
+            <span className="text-sm font-semibold text-zinc-600">{visibleArticles.length} artikel</span>
           </div>
 
-          <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {visibleArticles.map((article, index) => {
+          <div className="mt-7 grid grid-cols-1 items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {visibleArticles.map((article) => {
               const coverImage = getArticleImages(article)[0];
               return (
-                <article key={article.id} className={`group flex min-w-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-zinc-900/60 ${index === 0 ? 'md:col-span-2 lg:row-span-2' : ''}`}>
-                  <button type="button" onClick={() => { setSelectedArticle(article); setSelectedImageIndex(0); }} className="flex h-full flex-col text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500" aria-label={`Baca artikel ${article.title}`}>
+                <article id={`artikel-${article.slug}`} key={article.id} className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
                     {coverImage ? (
-                      <div className={`overflow-hidden bg-black ${index === 0 ? 'aspect-[16/8]' : 'aspect-[16/9]'}`}>
-                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
+                      <div className="aspect-[16/9] overflow-hidden bg-zinc-100">
+                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
                       </div>
                     ) : (
-                      <div className={`flex items-end justify-between bg-gradient-to-br from-red-950 via-zinc-900 to-zinc-950 p-5 ${index === 0 ? 'aspect-[16/8]' : 'aspect-[16/9]'}`}>
-                        <span className="text-5xl font-black text-white/10">{String(index + 1).padStart(2, '0')}</span>
+                      <div className="flex aspect-[16/9] items-end justify-between bg-zinc-100 p-5">
                         <BookOpen className="h-8 w-8 text-red-500/70" aria-hidden="true" />
                       </div>
                     )}
-                    <div className="flex flex-1 flex-col p-5 sm:p-6">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold text-zinc-400">
-                        <span className="text-red-400">{article.category || 'Panduan'}</span>
-                        <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{formatDate(article.created_at)}</span>
-                        <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{getReadingMinutes(article.content)} menit</span>
+                    <div className="flex flex-1 flex-col p-4 sm:p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600"><CalendarDays className="h-4 w-4" />{formatDate(article.created_at)}</span>
+                        <button type="button" onClick={() => void shareArticle(article)} title={`Bagikan artikel ${article.title}`} aria-label={`Bagikan artikel ${article.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-red-300 hover:text-red-600">
+                          <Share2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <h3 className={`mt-3 font-bold leading-snug text-white group-hover:text-red-400 ${index === 0 ? 'text-2xl sm:text-3xl' : 'text-lg'}`}>{article.title}</h3>
-                      <p className={`mt-2 text-sm leading-6 text-zinc-400 ${index === 0 ? 'line-clamp-4' : 'line-clamp-3'}`}>{article.excerpt}</p>
-                      <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-red-400">Baca artikel <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
+                      <h3 className="mt-2 line-clamp-3 min-h-[4.5rem] text-lg font-bold leading-snug text-zinc-950">{article.title}</h3>
+                      <div className="mt-auto pt-5">
+                        <button type="button" onClick={() => openArticle(article)} className="inline-flex items-center gap-3 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:border-red-500 hover:text-red-700" aria-label={`Selengkapnya: ${article.title}`}>
+                          Selengkapnya <ArrowRight className="h-4 w-4 text-red-600" />
+                        </button>
+                      </div>
                     </div>
-                  </button>
                 </article>
               );
             })}
           </div>
+          {shareMessage && <p className="mt-3 text-xs text-zinc-600" role="status" aria-live="polite">{shareMessage}</p>}
         </div>
       </section>
 
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedArticle(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeArticle(); }}>
           <article className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-zinc-950 text-zinc-100 shadow-2xl">
-            <button type="button" onClick={() => setSelectedArticle(null)} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
+            <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
             {getArticleImages(selectedArticle).length > 0 && (
               <div className="relative aspect-[16/9] max-h-80 overflow-hidden bg-black">
                 <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation absolute inset-0 h-full w-full object-cover" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
