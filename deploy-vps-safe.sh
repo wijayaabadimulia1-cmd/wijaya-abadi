@@ -22,7 +22,7 @@ COMMIT="${COMMIT:0:12}"
 RELEASE_DIR="/opt/wijaya-abadi/releases/${COMMIT}-$(date -u +%Y%m%d%H%M%S)"
 BACKUP_DIR="/var/backups/honda-wijaya-abadi"
 DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
-DROPIN_FILE="${DROPIN_DIR}/deploy.conf"
+DROPIN_FILE="${DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
 SATELLITE_PORTS=(3001 3002)
 SATELLITE_DROPIN_FILES=(
@@ -338,6 +338,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart "$SERVICE"
 
 if ! systemctl show "$SERVICE" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
+  systemctl show "$SERVICE" --property=FragmentPath --property=DropInPaths --property=ExecStart --no-pager >&2 || true
   fail "$SERVICE did not start the new release; refusing to validate a different process."
 fi
 
