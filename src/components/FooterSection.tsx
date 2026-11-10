@@ -5,9 +5,10 @@ import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
 
 interface FooterSectionProps {
   settings: DealerSettings;
+  hasArticles: boolean;
 }
 
-export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
+export const FooterSection: React.FC<FooterSectionProps> = ({ settings, hasArticles }) => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || 'Honda Wijaya Abadi Mulia Motor, Bandung')}`;
   const whatsappUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.');
@@ -36,7 +37,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
           <div>
             <h2>Layanan</h2>
             <a href="#simulasi">Simulasi Kredit</a>
-            <a href="#testimoni">Artikel & Tips</a>
+            {hasArticles && <a href="#artikel">Artikel & Tips</a>}
             <a href="#kontak">Kontak</a>
           </div>
           <div>

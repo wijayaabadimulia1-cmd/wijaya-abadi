@@ -822,6 +822,7 @@ export default function App() {
         {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
         <Navbar
           settings={settings}
+          hasArticles={articles.length > 0}
           compareList={compareList}
           onOpenCompare={() => setIsCompareOpen(true)}
           onOpenInterest={handleOpenInterest}
@@ -947,7 +948,7 @@ export default function App() {
           </section>}
         </main>
 
-        <FooterSection settings={settings} />
+        <FooterSection settings={settings} hasArticles={articles.length > 0} />
 
         <CompareModal
           isOpen={isCompareOpen}
@@ -990,6 +991,7 @@ export default function App() {
         {usesAstraHondaHero && <AstraHondaTopBar settings={settings} />}
         <Navbar
           settings={settings}
+          hasArticles={articles.length > 0}
           compareList={compareList}
           onOpenCompare={() => setIsCompareOpen(true)}
           onOpenInterest={handleOpenInterest}
@@ -1009,7 +1011,7 @@ export default function App() {
             </section>
           )}
         </main>
-        <FooterSection settings={settings} />
+        <FooterSection settings={settings} hasArticles={articles.length > 0} />
         <CompareModal
           isOpen={isCompareOpen}
           onClose={() => setIsCompareOpen(false)}
@@ -1037,6 +1039,7 @@ export default function App() {
       {/* Navbar */}
       <Navbar
         settings={settings}
+        hasArticles={articles.length > 0}
         compareList={compareList}
         onOpenCompare={() => setIsCompareOpen(true)}
         onOpenInterest={handleOpenInterest}
@@ -1264,7 +1267,7 @@ export default function App() {
       </main>
 
       {/* Footer & Contact */}
-      <FooterSection settings={settings} />
+      <FooterSection settings={settings} hasArticles={articles.length > 0} />
 
       {/* Comparison Modal */}
       <CompareModal
