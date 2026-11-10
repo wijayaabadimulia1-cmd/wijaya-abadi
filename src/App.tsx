@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { ArrowRight, Bike, Calculator, MapPin, MessageSquare, Phone, Scale, Search, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bike, Calculator, MapPin, MessageSquare, Phone, Scale, Search, Shield, Sparkles } from 'lucide-react';
 import { Motor, Promo, Testimonial, DealerSettings, ManifestoItem, FIFPriceList, SeoLandingPage } from './types';
 import { api } from './services/api';
 import { DEFAULT_FIF_PRICE_LIST, normalizeMotorOtrPrice } from './services/fifPriceList';
@@ -14,7 +14,7 @@ import { ManifestoSection } from './components/ManifestoSection';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { FooterSection } from './components/FooterSection';
 import { InterestModal } from './components/InterestModal';
-import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from './catalogAnimation';
+import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED, isCatalogAnimation, normalizeCatalogAnimationSpeed } from './catalogAnimation';
 import { DEFAULT_FEATURED_MOTOR_ROTATION_INTERVAL, DEFAULT_SEO_CANONICAL_URL, DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_KEYWORDS, DEFAULT_SEO_ROBOTS, DEFAULT_SEO_TITLE, HONDA_WIJAYA_COLOR_PALETTES, WIJAYA_ENERJIK_COLOR_PALETTES } from './constants';
 import { createWhatsAppUrl, trackWhatsAppClick } from './utils/whatsapp';
 import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './utils/seoPosts';
@@ -84,6 +84,7 @@ export default function App() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(initialData?.testimonials || []);
   const [manifesto, setManifesto] = useState<ManifestoItem[]>(initialData?.manifesto || []);
   const [loading, setLoading] = useState<boolean>(!initialData);
+  const [hostPostImageIndex, setHostPostImageIndex] = useState(0);
 
   // Compare list state
   const [compareList, setCompareList] = useState<Motor[]>([]);
@@ -115,6 +116,12 @@ export default function App() {
     : undefined;
   const isSalesCounterSite = Boolean(settings.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
   const hostSeoPost = hostSeoPage ? findSeoLandingPost(hostSeoPage, currentPath) : undefined;
+  const hostPostImages = hostSeoPost?.images?.filter(Boolean) || [];
+  const hostPostAnimation = isCatalogAnimation(hostSeoPost?.animation) ? hostSeoPost.animation : DEFAULT_CATALOG_ANIMATION;
+
+  useEffect(() => {
+    setHostPostImageIndex(0);
+  }, [hostSeoPost?.id]);
 
   useEffect(() => {
     let hideTimeout: number | undefined;
@@ -854,6 +861,29 @@ export default function App() {
           {hostSeoPost && (
             <section className="px-4 pb-12 sm:px-6 lg:px-8">
               <article className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-900/60 p-6 text-zinc-200 sm:p-8">
+                {hostPostImages.length > 0 && (
+                  <div className="relative mb-6 overflow-hidden rounded-xl bg-black">
+                    <img
+                      key={hostPostImages[hostPostImageIndex] || hostPostImages[0]}
+                      src={hostPostImages[hostPostImageIndex] || hostPostImages[0]}
+                      alt={`${hostSeoPost.title}, gambar ${hostPostImageIndex + 1}`}
+                      className="catalog-photo-animation aspect-[16/9] max-h-[34rem] w-full object-cover"
+                      data-catalog-animation={hostPostAnimation}
+                      style={{ '--catalog-animation-duration': `${Math.min(normalizeCatalogAnimationSpeed(hostSeoPost.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED) * 0.3, 3)}s` } as React.CSSProperties}
+                    />
+                    {hostPostImages.length > 1 && (
+                      <>
+                        <button type="button" onClick={() => setHostPostImageIndex((index) => (index - 1 + hostPostImages.length) % hostPostImages.length)} className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Gambar sebelumnya">
+                          <ArrowLeft className="h-5 w-5" />
+                        </button>
+                        <button type="button" onClick={() => setHostPostImageIndex((index) => (index + 1) % hostPostImages.length)} className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Gambar berikutnya">
+                          <ArrowRight className="h-5 w-5" />
+                        </button>
+                        <span className="absolute bottom-3 right-3 rounded bg-black/70 px-2 py-1 text-xs font-semibold text-white">{hostPostImageIndex + 1} / {hostPostImages.length}</span>
+                      </>
+                    )}
+                  </div>
+                )}
                 <h2 className="mb-4 text-xl font-black text-white">{hostSeoPost.title}</h2>
                 <div className="whitespace-pre-line text-sm leading-7 text-zinc-300">{hostSeoPost.content}</div>
               </article>

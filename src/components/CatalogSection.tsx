@@ -193,6 +193,24 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('default');
   const [selectedGallery, setSelectedGallery] = useState<{ images: string[]; index: number; alt: string } | null>(null);
+  const galleryTouchStartX = useRef<number | null>(null);
+
+  const handleGalleryTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    galleryTouchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleGalleryTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touchEndX = event.changedTouches[0]?.clientX;
+    const touchStartX = galleryTouchStartX.current;
+    galleryTouchStartX.current = null;
+    if (touchStartX === null || touchEndX === undefined || Math.abs(touchStartX - touchEndX) < 50) return;
+
+    const direction = touchStartX > touchEndX ? 1 : -1;
+    setSelectedGallery((gallery) => {
+      if (!gallery || gallery.images.length < 2) return gallery;
+      return { ...gallery, index: (gallery.index + direction + gallery.images.length) % gallery.images.length };
+    });
+  };
 
   // Extract unique categories from actual motors data
   const categories = useMemo(() => {
@@ -450,6 +468,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           <div
             className="mobile-gallery-shell relative flex max-h-[92vh] w-fit max-w-[92vw] flex-col items-center justify-center gap-3"
             onClick={(event) => event.stopPropagation()}
+            onTouchStart={handleGalleryTouchStart}
+            onTouchEnd={handleGalleryTouchEnd}
+            style={{ touchAction: 'pan-y' }}
           >
             <img
               src={selectedGallery.images[selectedGallery.index]}

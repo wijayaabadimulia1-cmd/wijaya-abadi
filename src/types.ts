@@ -114,6 +114,9 @@ export interface SeoLandingPost {
   slug: string;
   title: string;
   content: string;
+  images?: string[];
+  animation?: CatalogAnimation;
+  animationSpeed?: number;
   authorUsername?: string;
   authorRole?: string;
   created_at?: string;
