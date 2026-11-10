@@ -376,14 +376,15 @@ function updateSeoJsonLdForPage(
 
 function getGoogleTrackingScript(hostname = '') {
   const host = normalizeAnalyticsHost(hostname);
+  const consentInitialization = `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('consent','default',{'ad_user_data':'denied','ad_personalization':'denied','ad_storage':'denied','analytics_storage':'denied','wait_for_update':500});gtag('js',new Date());</script>`;
   if (host === 'kreditmotorhonda.id' || host.endsWith('.kreditmotorhonda.id')) {
-    return `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());</script><script async src="https://www.googletagmanager.com/gtm.js?id=GTM-W6NNC8TC"></script>`;
+    return `${consentInitialization}<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-W6NNC8TC"></script>`;
   }
   if (host === 'solusikreditmotor.cloud' || host.endsWith('.solusikreditmotor.cloud')) {
-    return `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());</script><script async src="https://www.googletagmanager.com/gtm.js?id=GTM-W7PC28PJ"></script>`;
+    return `${consentInitialization}<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-W7PC28PJ"></script>`;
   }
   if (host === 'kreditmotorhonda.tech' || host.endsWith('.kreditmotorhonda.tech')) {
-    return `<script>window.dataLayer=window.dataLayer||[];function gtag(){window.dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9PJGPJZD6B');</script><script async src="https://www.googletagmanager.com/gtag/js?id=G-9PJGPJZD6B"></script>`;
+    return `${consentInitialization}<script>gtag('config','G-9PJGPJZD6B');</script><script async src="https://www.googletagmanager.com/gtag/js?id=G-9PJGPJZD6B"></script>`;
   }
   return '';
 }
