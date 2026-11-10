@@ -271,7 +271,7 @@ export default function OwnerDashboard() {
     background: analytics?.totalVisits ? `conic-gradient(${donutStops.join(', ')})` : '#e5e7eb',
   };
   const linePoints = visibleDays.map((day, index) => {
-    const x = visibleDays.length <= 1 ? 50 : (index / (visibleDays.length - 1)) * 100;
+    const x = ((index + 0.5) / visibleDays.length) * 100;
     const y = 86 - (day.visits / dailyAxisMax) * 68;
     return `${x},${y}`;
   }).join(' ');
@@ -508,29 +508,31 @@ export default function OwnerDashboard() {
                       <div className="flex h-24 w-7 shrink-0 flex-col justify-between pb-[13px] pr-1 pt-[17px] text-right text-[9px] tabular-nums text-slate-400" aria-hidden="true">
                         {[dailyAxisMax, Math.round(dailyAxisMax * 2 / 3), Math.round(dailyAxisMax / 3), 0].map((tick, index) => <span key={`${tick}-${index}`}>{tick}</span>)}
                       </div>
-                      <div className="relative h-24 min-w-0 flex-1 border-b border-slate-200 pb-2 dark:border-slate-700">
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label="Grafik garis kunjungan harian">
-                          <defs>
-                            <linearGradient id="owner-visits-area" x1="0" x2="0" y1="0" y2="1">
-                              <stop offset="0%" stopColor="#ef233c" stopOpacity="0.28" />
-                              <stop offset="100%" stopColor="#ef233c" stopOpacity="0.02" />
-                            </linearGradient>
-                          </defs>
-                          {[18, 41, 63, 86].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#e8ecf2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />)}
-                          <polygon points={`0,86 ${linePoints} 100,86`} fill="url(#owner-visits-area)" />
-                          <polyline points={linePoints} fill="none" stroke="#e60012" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-                          {visibleDays.map((day, index) => {
-                            const pointX = visibleDays.length <= 1 ? 50 : (index / (visibleDays.length - 1)) * 100;
-                            const pointY = 86 - (day.visits / dailyAxisMax) * 68;
-                            return <g key={day.date}>
-                              <text x={Math.max(4, Math.min(96, pointX))} y={Math.max(8, pointY - 3)} fill="#334155" fontSize="1.5" fontWeight="600" textAnchor="middle">{day.visits}</text>
-                              <circle cx={pointX} cy={pointY} r="1.7" fill="#e60012"><title>{`${day.date}: ${day.visits} kunjungan`}</title></circle>
-                            </g>;
-                          })}
-                        </svg>
-                      </div>
-                      <div className="mt-1 flex gap-1.5 sm:gap-3">
-                        {visibleDays.map((day) => <span key={day.date} className="min-w-0 flex-1 truncate text-center text-[9px] text-slate-500 sm:text-[10px]">{day.label}</span>)}
+                      <div className="min-w-0 flex-1">
+                        <div className="relative h-24 border-b border-slate-200 pb-2 dark:border-slate-700">
+                          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label="Grafik garis kunjungan harian">
+                            <defs>
+                              <linearGradient id="owner-visits-area" x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stopColor="#ef233c" stopOpacity="0.28" />
+                                <stop offset="100%" stopColor="#ef233c" stopOpacity="0.02" />
+                              </linearGradient>
+                            </defs>
+                            {[18, 41, 63, 86].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="#e8ecf2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />)}
+                            <polygon points={`0,86 ${linePoints} 100,86`} fill="url(#owner-visits-area)" />
+                            <polyline points={linePoints} fill="none" stroke="#e60012" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+                            {visibleDays.map((day, index) => {
+                              const pointX = ((index + 0.5) / visibleDays.length) * 100;
+                              const pointY = 86 - (day.visits / dailyAxisMax) * 68;
+                              return <g key={day.date}>
+                                <text x={pointX} y={Math.max(8, pointY - 3)} fill="#334155" fontSize="1.5" fontWeight="600" textAnchor="middle">{day.visits}</text>
+                                <circle cx={pointX} cy={pointY} r="1.7" fill="#e60012"><title>{`${day.date}: ${day.visits} kunjungan`}</title></circle>
+                              </g>;
+                            })}
+                          </svg>
+                        </div>
+                        <div className="mt-1 grid gap-1.5 text-center sm:gap-3" style={{ gridTemplateColumns: `repeat(${visibleDays.length}, minmax(0, 1fr))` }}>
+                          {visibleDays.map((day) => <span key={day.date} className="min-w-0 truncate text-[9px] text-slate-500 sm:text-[10px]">{day.label}</span>)}
+                        </div>
                       </div>
                       </div>
                     </div>
