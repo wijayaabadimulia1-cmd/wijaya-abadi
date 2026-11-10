@@ -2338,8 +2338,8 @@ async function startServer() {
       ...seoPages.map((page: any) => `${String(page.subdomain || '').trim().toLowerCase()}.kreditmotorhonda.tech`),
     ]);
     const disabledHosts = Array.isArray(req.body?.disabledHosts)
-      ? [...new Set(req.body.disabledHosts.map((host: unknown) => String(host || '').trim().toLowerCase()))]
-        .filter((host: string) => allowedHosts.has(host))
+      ? [...new Set<string>(req.body.disabledHosts.map((host: unknown) => String(host || '').trim().toLowerCase()))]
+        .filter((host) => allowedHosts.has(host))
       : [];
 
     promo.disabledHosts = disabledHosts;

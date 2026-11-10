@@ -1598,7 +1598,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         seoKeywords: '',
         seoRobots: 'index, follow',
       });
-      setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '', images: [], animation: DEFAULT_CATALOG_ANIMATION, animationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED, seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
+      setSeoPageEditor({ id: '', slug: '', subdomain: '', title: '', content: '', seoTitle: '', seoDescription: '', seoKeywords: '', seoRobots: 'index, follow' });
       window.setTimeout(() => document.getElementById('seo-post-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       showToast('Pos dan SEO subdomain berhasil disimpan dalam satu form.');
       onRefreshData();
