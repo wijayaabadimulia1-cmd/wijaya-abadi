@@ -482,6 +482,22 @@
   ],
   "auditLogs": [
     {
+      "id": "audit-1794299227477-921b71",
+      "created_at": "2026-11-10T08:27:07.477Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
+      "id": "audit-1794298913740-916122",
+      "created_at": "2026-11-10T08:21:53.740Z",
+      "actor": "@Abadi",
+      "action": "LOGIN",
+      "resource": "admin-session",
+      "details": "Login admin berhasil"
+    },
+    {
       "id": "audit-1792756169005-0e9056",
       "created_at": "2026-10-23T11:49:29.006Z",
       "actor": "@Abadi",
@@ -882,6 +898,30 @@
       "sessionId": "645d4a94-d08f-4422-9c06-a6b7ef49f6b3",
       "timestamp": "2026-10-23T12:10:45.123Z",
       "path": "/"
+    },
+    {
+      "id": "visit-1794298897687-396e93be",
+      "sessionId": "7c75522a-add7-481c-99e1-2f755c0b6c1e",
+      "host": "localhost",
+      "timestamp": "2026-11-10T08:21:37.688Z",
+      "path": "/",
+      "source": "Direct"
+    },
+    {
+      "id": "visit-1794308215264-ef3f5af3",
+      "sessionId": "0e410580-37f5-4a1d-839e-ba19416545c3",
+      "host": "127.0.0.1",
+      "timestamp": "2026-11-10T10:56:55.264Z",
+      "path": "/",
+      "source": "Direct"
+    },
+    {
+      "id": "visit-1794308227677-344e35eb",
+      "sessionId": "d51715aa-9150-4bd9-8c04-e3d8ddc939b6",
+      "host": "127.0.0.1",
+      "timestamp": "2026-11-10T10:57:07.677Z",
+      "path": "/",
+      "source": "Direct"
     }
   ]
 }
