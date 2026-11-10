@@ -1091,9 +1091,16 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
 
 function renderDynamicSitemap(db: any, hostname = '') {
   const post = getSeoPageForHost(db.settings || {}, hostname);
-  const origin = post ? getSeoPageOrigin(post) : getSiteOrigin(db.settings || {});
-  const articleOrigin = hostname ? `https://${String(hostname).toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '')}` : origin;
-  const isPrimaryHost = articleOrigin === origin;
+  const normalizedHostname = normalizeAnalyticsHost(hostname);
+  const isRootSiteHost = SALES_COUNTER_ROOT_DOMAINS.has(normalizedHostname)
+    || normalizedHostname === 'wijaya.kreditmotorhonda.tech';
+  const origin = post
+    ? getSeoPageOrigin(post)
+    : isRootSiteHost
+      ? `https://${normalizedHostname}`
+      : getSiteOrigin(db.settings || {});
+  const articleOrigin = normalizedHostname ? `https://${normalizedHostname}` : origin;
+  const isPrimaryHost = isRootSiteHost || articleOrigin === origin;
   const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
     { path: '/', changefreq: 'daily', priority: '1.0' },
     { path: '/dealer-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
@@ -1111,6 +1118,17 @@ function renderDynamicSitemap(db: any, hostname = '') {
     changefreq: 'weekly',
     priority: '0.8',
     lastmod: motor.updated_at || motor.created_at,
+    imageTitle: String(motor.name || ''),
+    images: [...new Set([motor.image, ...(Array.isArray(motor.images) ? motor.images : [])])]
+      .flatMap((image: unknown) => {
+        if (typeof image !== 'string' || !image.trim()) return [];
+        try {
+          const imageUrl = new URL(image, origin);
+          return ['http:', 'https:'].includes(imageUrl.protocol) ? [imageUrl.href] : [];
+        } catch {
+          return [];
+        }
+      }),
   }));
   const seoPostPages = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
     .filter((page: any) => page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' && page.subdomain)
@@ -1164,9 +1182,10 @@ function renderDynamicSitemap(db: any, hostname = '') {
     const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
     const lastmod = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : today;
     const url = page.absolute ? page.path : `${origin}${page.path}`;
-    return `  <url><loc>${escapeHtmlAttribute(url)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`;
+    const images = (page.images || []).map((image: string) => `<image:image><image:loc>${escapeHtmlAttribute(image)}</image:loc><image:title>${escapeHtmlAttribute(page.imageTitle || '')}</image:title></image:image>`).join('');
+    return `  <url><loc>${escapeHtmlAttribute(url)}</loc><lastmod>${lastmod}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority>${images}</url>`;
   });
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join('\n')}\n</urlset>`;
 }
 
 function writeDb(data: any) {
