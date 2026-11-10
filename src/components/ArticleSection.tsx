@@ -37,9 +37,14 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
   const visibleArticles = articles.filter((article) => article.published);
 
   useEffect(() => {
-    const openSharedArticle = () => {
-      const match = window.location.hash.match(/^#artikel-(.+)$/);
-      if (!match) return;
+    const syncArticleRoute = () => {
+      const pathMatch = window.location.pathname.match(/^\/artikel\/([^/]+)\/?$/);
+      const hashMatch = window.location.hash.match(/^#artikel-(.+)$/);
+      const match = pathMatch || hashMatch;
+      if (!match) {
+        setSelectedArticle(null);
+        return;
+      }
       let slug = match[1];
       try {
         slug = decodeURIComponent(slug);
@@ -53,26 +58,26 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
       }
     };
 
-    openSharedArticle();
-    window.addEventListener('hashchange', openSharedArticle);
-    return () => window.removeEventListener('hashchange', openSharedArticle);
+    syncArticleRoute();
+    window.addEventListener('hashchange', syncArticleRoute);
+    window.addEventListener('popstate', syncArticleRoute);
+    return () => {
+      window.removeEventListener('hashchange', syncArticleRoute);
+      window.removeEventListener('popstate', syncArticleRoute);
+    };
   }, [articles]);
-
-  const openArticle = (article: Article) => {
-    setSelectedArticle(article);
-    setSelectedImageIndex(0);
-  };
 
   const closeArticle = () => {
     setSelectedArticle(null);
-    if (window.location.hash.startsWith('#artikel-')) {
-      window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}#artikel`);
+    if (window.location.pathname.startsWith('/artikel/') || window.location.hash.startsWith('#artikel-')) {
+      window.history.replaceState({}, '', `${window.location.origin}/#artikel`);
     }
   };
 
   const shareArticle = async (article: Article) => {
     const articleUrl = new URL(window.location.href);
-    articleUrl.hash = `artikel-${encodeURIComponent(article.slug)}`;
+    articleUrl.pathname = `/artikel/${encodeURIComponent(article.slug)}/`;
+    articleUrl.hash = '';
     const shareData = { title: article.title, text: article.excerpt, url: articleUrl.href };
     try {
       const shareNavigator = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
@@ -128,11 +133,12 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
                           <Share2 className="h-4 w-4" />
                         </button>
                       </div>
-                      <h3 className="mt-2 line-clamp-3 min-h-[4.5rem] text-lg font-bold leading-snug text-zinc-950">{article.title}</h3>
+                      <h3 className="mt-2 break-words text-lg font-bold leading-snug text-zinc-950">{article.title}</h3>
+                      {article.excerpt && <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-zinc-600">{article.excerpt}</p>}
                       <div className="mt-auto pt-5">
-                        <button type="button" onClick={() => openArticle(article)} className="inline-flex items-center gap-3 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:border-red-500 hover:text-red-700" aria-label={`Selengkapnya: ${article.title}`}>
+                        <a href={`/artikel/${encodeURIComponent(article.slug)}/`} className="inline-flex items-center gap-3 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:border-red-500 hover:text-red-700" aria-label={`Selengkapnya: ${article.title}`}>
                           Selengkapnya <ArrowRight className="h-4 w-4 text-red-600" />
-                        </button>
+                        </a>
                       </div>
                     </div>
                 </article>

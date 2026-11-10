@@ -388,18 +388,37 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   };
   const hostPage = getSeoPageForHost(settings, hostname);
   const hostPost = hostPage ? findSeoLandingPost(hostPage, pathname) : undefined;
+  const articlePath = pathname.match(/^\/artikel\/([^/]+)\/?$/);
+  let articleSlug = '';
+  try {
+    articleSlug = articlePath ? decodeURIComponent(articlePath[1]) : '';
+  } catch {
+    articleSlug = '';
+  }
+  const article = articleSlug
+    ? (Array.isArray((initialData as any)?.articles) ? (initialData as any).articles : []).find((item: any) => item.slug === articleSlug && item.published === true)
+    : undefined;
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
   const pageSettings = getSettingsForSeoPage(settings, hostPage);
   const isHostPost = Boolean(hostPost && hostPage && hostPost.id !== hostPage.id);
-  const title = String(isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
-  const description = String(isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
-  const keywords = String(hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
+  const title = String(article
+    ? `${article.title} | ${pageSettings.name || 'Honda Wijaya Abadi'}`
+    : isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || 'Dealer Motor Honda Bandung | Harga & Kredit').trim();
+  const description = String(article
+    ? article.excerpt || article.content.trim().slice(0, 160)
+    : isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || 'Dealer motor Honda di Bandung: cek katalog terbaru, harga OTR, promo, simulasi kredit, DP dan tenor, serta konsultasi WhatsApp dengan cepat dan transparan.').trim();
+  const keywords = String(article
+    ? [article.title, article.category, pageSettings.seoKeywords].filter(Boolean).join(', ')
+    : hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
   const siteOrigin = hostPage ? `https://${hostPage.subdomain}.kreditmotorhonda.tech` : getSiteOrigin(pageSettings);
+  const articleOrigin = hostname ? `https://${String(hostname).toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '')}` : siteOrigin;
   const logoValue = String(pageSettings.logo || '/uploads/logo.jpeg').trim();
   const logoUrl = /^https?:\/\//i.test(logoValue)
     ? logoValue
     : `${siteOrigin}${logoValue.startsWith('/') ? '' : '/'}${logoValue}`;
-  const canonical = hostPage
+  const canonical = article
+    ? `${articleOrigin}/artikel/${encodeURIComponent(article.slug)}/`
+    : hostPage
     ? `${siteOrigin}${hostPost ? getSeoLandingPostPath(hostPage, hostPost) : '/'}`
     : page
     ? `${siteOrigin}${pathname.replace(/\/+$/, '') || '/'}`
@@ -413,15 +432,33 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
     : '';
+  const articleImages = article
+    ? (Array.isArray(article.images) && article.images.length ? article.images : article.image ? [article.image] : [])
+        .map((image: string) => /^https?:\/\//i.test(image) ? image : `${articleOrigin}${image.startsWith('/') ? '' : '/'}${image}`)
+    : [];
+  const articleStructuredData = article
+    ? `<script type="application/ld+json">${JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        description,
+        image: articleImages.length ? articleImages : undefined,
+        datePublished: article.created_at,
+        dateModified: article.updated_at || article.created_at,
+        author: { '@type': 'Person', name: article.author || pageSettings.name },
+        publisher: { '@type': 'Organization', name: pageSettings.name || 'Honda Wijaya Abadi' },
+        mainEntityOfPage: canonical,
+      }).replace(/</g, '\\u003c')}</script>`
+    : '';
 
   const normalizedSeoPath = pathname.replace(/\/+$/, '') || '/';
-  const fallbackHeading = hostPost?.title || hostPage?.seoTitle || hostPage?.title || (page
+  const fallbackHeading = article?.title || hostPost?.title || hostPage?.seoTitle || hostPage?.title || (page
     ? page.title.split(/[|–—]/)[0].trim()
     : [
         String(pageSettings.heroMainTitle || '').trim(),
         String(pageSettings.heroTitleHighlight || '').trim(),
       ].filter(Boolean).join(' '));
-  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page) || Boolean(hostPage);
+  const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page) || Boolean(hostPage) || Boolean(article);
   const htmlWithH1Fallback =
     shouldAddH1Fallback &&
     fallbackHeading &&
@@ -433,7 +470,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
       : html;
 
   return htmlWithH1Fallback
-    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>`)
+    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>${articleStructuredData}`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
     .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
     .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
@@ -441,11 +478,12 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     .replace(/<link\s+rel="canonical"[^>]*>/i, `<link rel="canonical" href="${escape(canonical)}" />`)
     .replace(/<meta\s+property="og:title"[^>]*>/i, `<meta property="og:title" content="${escape(title)}" />`)
     .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${escape(description)}" />`)
+    .replace(/<meta\s+property="og:type"[^>]*>/i, `<meta property="og:type" content="${article ? 'article' : 'website'}" />`)
     .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${escape(canonical)}" />`)
     .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escape(title)}" />`)
     .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`)
-    .replace(/<meta\s+property="og:image"[^>]*>/i, `<meta property="og:image" content="${escape(logoUrl)}" />`)
-    .replace(/<meta\s+name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escape(logoUrl)}" />`)
+    .replace(/<meta\s+property="og:image"[^>]*>/i, `<meta property="og:image" content="${escape(articleImages[0] || logoUrl)}" />`)
+    .replace(/<meta\s+name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escape(articleImages[0] || logoUrl)}" />`)
     .replace(/https:\/\/kreditmotorhonda\.tech\/uploads\/logo\.jpeg/g, escape(logoUrl))
     .replace(/https:\/\/kreditmotorhonda\.tech/g, escape(siteOrigin))
     .replace(
@@ -456,9 +494,9 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
 
 function getSiteOrigin(settings: any = {}) {
   try {
-    return new URL(String(settings.seoCanonicalUrl || process.env.APP_URL || 'https://www.solusikreditmotor.cloud/')).origin;
+    return new URL(String(settings.seoCanonicalUrl || process.env.APP_URL || 'https://kreditmotorhonda.tech/')).origin;
   } catch {
-    return String(process.env.APP_URL || 'https://www.solusikreditmotor.cloud').replace(/\/$/, '');
+    return String(process.env.APP_URL || 'https://kreditmotorhonda.tech').replace(/\/$/, '');
   }
 }
 
@@ -931,6 +969,8 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
 function renderDynamicSitemap(db: any, hostname = '') {
   const post = getSeoPageForHost(db.settings || {}, hostname);
   const origin = post ? getSeoPageOrigin(post) : getSiteOrigin(db.settings || {});
+  const articleOrigin = hostname ? `https://${String(hostname).toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '')}` : origin;
+  const isPrimaryHost = articleOrigin === origin;
   const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
     { path: '/', changefreq: 'daily', priority: '1.0' },
     { path: '/dealer-honda-bandung/', changefreq: 'weekly', priority: '0.9' },
@@ -982,8 +1022,22 @@ function renderDynamicSitemap(db: any, hostname = '') {
           lastmod: seoPost.updated_at || post.updated_at,
         }))
     : [];
+  const articlePages = (Array.isArray(db.articles) ? db.articles : [])
+    .filter((article: any) => article.published === true && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(String(article.slug || '')))
+    .map((article: any) => ({
+      path: `${articleOrigin}/artikel/${encodeURIComponent(article.slug)}/`,
+      changefreq: 'weekly',
+      priority: '0.7',
+      lastmod: article.updated_at || article.created_at,
+      absolute: true,
+    }));
   const today = new Date().toISOString().slice(0, 10);
-  const urls = (post ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...hostPostPages, ...motorPages] : [...staticPages, ...motorPages, ...seoPostPages]).map((page: any) => {
+  const sitemapPages = post
+    ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...hostPostPages, ...motorPages, ...articlePages]
+    : isPrimaryHost
+      ? [...staticPages, ...motorPages, ...seoPostPages, ...articlePages]
+      : articlePages;
+  const urls = sitemapPages.map((page: any) => {
     const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
     const lastmod = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : today;
     const url = page.absolute ? page.path : `${origin}${page.path}`;
@@ -3523,15 +3577,18 @@ async function startServer() {
 
   app.get('/sitemap.xml', (req, res) => {
     res.set('Cache-Control', 'no-cache');
-    res.type('application/xml').send(renderDynamicSitemap(readDb(), req.hostname));
+    const db = readDb();
+    db.articles = readSiteDb().articles;
+    res.type('application/xml').send(renderDynamicSitemap(db, req.hostname));
   });
 
-  app.get('/robots.txt', (req, res, next) => {
+  app.get('/robots.txt', (req, res) => {
     const db = readDb();
     const page = getSeoPageForHost(db.settings || {}, req.hostname);
-    if (!page) return next();
-    const indexRule = page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' ? 'Allow: /' : 'Disallow: /';
-    return res.type('text/plain').send(`User-agent: *\n${indexRule}\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://${page.subdomain}.kreditmotorhonda.tech/sitemap.xml\n`);
+    const indexRule = !page || (page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow') ? 'Allow: /' : 'Disallow: /';
+    const sitemapOrigin = page ? getSeoPageOrigin(page) : `https://${normalizeAdminHost(req.hostname)}`;
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.type('text/plain').send(`User-agent: *\n${indexRule}\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /login\nDisallow: /api\nDisallow: /tmp\n\nSitemap: ${sitemapOrigin}/sitemap.xml\n`);
   });
 
   app.get('/motor/:slug', (req, res) => {
@@ -3575,6 +3632,21 @@ async function startServer() {
         const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
         const initialData = await createSsrInitialData(db, req.hostname);
+        res.set('Cache-Control', 'no-cache');
+        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, initialData, req.hostname));
+      } catch (error) {
+        next(error);
+      }
+    });
+    app.get('/artikel/:slug', async (req, res, next) => {
+      try {
+        const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+        const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
+        const db = readDb();
+        db.articles = readSiteDb().articles;
+        const initialData = await createSsrInitialData(db, req.hostname);
+        const article = (initialData as any).articles?.find((item: any) => item.slug === req.params.slug && item.published === true);
+        if (!article) return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
         res.set('Cache-Control', 'no-cache');
         res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, initialData, req.hostname));
       } catch (error) {
@@ -3628,8 +3700,14 @@ async function startServer() {
       if (path.extname(req.path)) return res.sendStatus(404);
       const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       const db = readDb();
+      db.articles = readSiteDb().articles;
+      const initialData = createPublicInitialData(db, req.hostname);
+      const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
+      if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
+        return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
+      }
       res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
+      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
     });
   }
 

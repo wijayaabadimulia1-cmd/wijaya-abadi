@@ -72,7 +72,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       animation: DEFAULT_CATALOG_ANIMATION,
       animationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
       author: 'Honda Wijaya Abadi',
-      published: false,
+      published: true,
     });
   };
 
