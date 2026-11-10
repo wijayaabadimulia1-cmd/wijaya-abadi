@@ -535,7 +535,11 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     );;
 }
 
-function getSiteOrigin(settings: any = {}) {
+function getSiteOrigin(settings: any = {}, hostname = '') {
+  const normalizedHostname = normalizeAnalyticsHost(hostname);
+  const rootDomain = getSalesCounterRootDomain(normalizedHostname)
+    || (normalizedHostname === 'wijaya.kreditmotorhonda.tech' ? normalizedHostname : undefined);
+  if (rootDomain) return `https://${rootDomain}`;
   try {
     return new URL(String(settings.seoCanonicalUrl || process.env.APP_URL || 'https://kreditmotorhonda.tech/')).origin;
   } catch {
@@ -990,8 +994,9 @@ function getSeoMotorPages(db: any): Array<{ motor: any; slug: string; path: stri
   });
 }
 
-function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
-  const origin = getSiteOrigin(settings);
+function renderMotorSeoPage(motor: any, slug: string, settings: any = {}, hostname = '') {
+  const hostPage = getSeoPageForHost(settings, hostname);
+  const origin = hostPage ? getSeoPageOrigin(hostPage) : getSiteOrigin(settings, hostname);
   const canonical = `${origin}/motor/${slug}/`;
   const name = String(motor.name || 'Motor Honda').trim();
   const category = String(motor.category || 'Sepeda Motor Honda').trim();
@@ -1004,9 +1009,17 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
   const priceLabel = String(motor.price || (price ? `Rp ${new Intl.NumberFormat('id-ID').format(price)}` : 'Hubungi dealer untuk harga')).trim();
   const priceText = escapeHtmlAttribute(priceLabel);
   const specs = Array.isArray(motor.specs) ? motor.specs.filter(Boolean).map((spec: unknown) => String(spec)) : [];
-  const imagePath = [motor.image, ...(Array.isArray(motor.images) ? motor.images : [])]
-    .find((image: unknown) => typeof image === 'string' && image.startsWith('/uploads/'));
-  const image = imagePath ? new URL(String(imagePath), origin).href : '';
+  const images = [...new Set([motor.image, ...(Array.isArray(motor.images) ? motor.images : [])])]
+    .flatMap((image: unknown) => {
+      if (typeof image !== 'string' || !image.trim()) return [];
+      try {
+        const imageUrl = new URL(image, origin);
+        return ['http:', 'https:'].includes(imageUrl.protocol) ? [imageUrl.href] : [];
+      } catch {
+        return [];
+      }
+    });
+  const image = images[0] || '';
   const phone = String(settings.phone || '6282129358899').replace(/[^0-9]/g, '');
   const whatsappText = encodeURIComponent(
     `Halo, saya ingin bertanya tentang ${name} di ${settings.name || 'Honda Wijaya Abadi Mulia Motor'}.\n\nLink website: ${canonical}`
@@ -1020,7 +1033,7 @@ function renderMotorSeoPage(motor: any, slug: string, settings: any = {}) {
     brand: { '@type': 'Brand', name: 'Honda' },
     category,
     sku: String(motor.id || slug),
-    ...(image ? { image } : {}),
+    ...(images.length ? { image: images } : {}),
     offers: {
       '@type': 'Offer',
       url: canonical,
@@ -1106,7 +1119,7 @@ function renderDynamicSitemap(db: any, hostname = '') {
     : isRootSiteHost
       ? `https://${normalizedHostname}`
       : getSiteOrigin(db.settings || {});
-  const articleOrigin = normalizedHostname ? `https://${normalizedHostname}` : origin;
+  const articleOrigin = post ? origin : normalizedHostname ? `https://${normalizedHostname}` : origin;
   const isPrimaryHost = isRootSiteHost || articleOrigin === origin;
   const staticPages: Array<{ path: string; changefreq: string; priority: string; lastmod?: string }> = [
     { path: '/', changefreq: 'daily', priority: '1.0' },
@@ -1137,29 +1150,6 @@ function renderDynamicSitemap(db: any, hostname = '') {
         }
       }),
   }));
-  const seoPostPages = (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [])
-    .filter((page: any) => page.sslStatus === 'active' && page.seoRobots !== 'noindex, follow' && page.subdomain)
-    .flatMap((page: any) => {
-      const pageOrigin = getSeoPageOrigin(page);
-      return [
-      {
-        path: `${pageOrigin}/`,
-        changefreq: 'weekly',
-        priority: '0.7',
-        lastmod: page.updated_at,
-        absolute: true,
-      },
-      ...getSeoLandingPosts(page)
-        .filter((post) => post.id !== page.id)
-        .map((post) => ({
-          path: `${pageOrigin}${getSeoLandingPostPath(page, post)}`,
-          changefreq: 'weekly',
-          priority: '0.7',
-          lastmod: post.updated_at || page.updated_at,
-          absolute: true,
-        })),
-      ];
-    });
   const hostPostPages = post
     ? getSeoLandingPosts(post)
         .filter((seoPost) => seoPost.id !== post.id)
@@ -1183,7 +1173,7 @@ function renderDynamicSitemap(db: any, hostname = '') {
   const sitemapPages = post
     ? [{ path: '/', changefreq: 'weekly', priority: '1.0' }, ...hostPostPages, ...motorPages, ...articlePages]
     : isPrimaryHost
-      ? [...staticPages, ...motorPages, ...seoPostPages, ...articlePages]
+      ? [...staticPages, ...motorPages, ...articlePages]
       : articlePages;
   const urls = sitemapPages.map((page: any) => {
     const parsedDate = page.lastmod ? new Date(page.lastmod) : null;
@@ -3751,7 +3741,7 @@ async function startServer() {
     res.set('Cache-Control', 'public, max-age=300');
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const hostSettings = hostPage ? getSettingsForSeoPage(db.settings || {}, hostPage) : db.settings || {};
-    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, hostSettings));
+    return res.type('html').send(renderMotorSeoPage(productPage.motor, productPage.slug, hostSettings, req.hostname));
   });
 
   // Vite middleware in dev or static files in production

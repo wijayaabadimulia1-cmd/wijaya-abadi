@@ -109,12 +109,15 @@ export default function App() {
     return 'light';
   });
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
-  const hostname = window.location.hostname.toLocaleLowerCase('en-US');
-  const subdomain = hostname.endsWith('.kreditmotorhonda.tech')
-    ? hostname.slice(0, -'.kreditmotorhonda.tech'.length)
+  const hostname = window.location.hostname.toLocaleLowerCase('en-US').replace(/^www\./, '');
+  const seoRootDomains = ['kreditmotorhonda.tech', 'kreditmotorhonda.id', 'solusikreditmotor.cloud'];
+  const seoRootDomain = seoRootDomains.find((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+  const subdomain = seoRootDomain && hostname !== seoRootDomain
+    ? hostname.slice(0, -(seoRootDomain.length + 1))
     : '';
+  const currentSeoOrigin = seoRootDomain ? `https://${hostname}` : window.location.origin;
   const hostSeoPage: SeoLandingPage | undefined = subdomain && !['www', 'wijaya'].includes(subdomain)
-    ? settings.seoPages?.find((page) => page.subdomain === subdomain)
+    ? settings.seoPages?.find((page) => page.subdomain === subdomain && (page.domainSuffix || 'kreditmotorhonda.tech') === seoRootDomain)
     : undefined;
   const isSalesCounterSite = Boolean(settings.seoPostHost && settings.seoPages?.some((page) => page.siteType === 'sales-counter'));
   const hostSeoPost = hostSeoPage ? findSeoLandingPost(hostSeoPage, currentPath) : undefined;
@@ -459,18 +462,27 @@ export default function App() {
     } as const;
 
     const activeLandingSeo = landingSeo[currentPath as keyof typeof landingSeo];
+    const articleSlug = currentPath.match(/^\/artikel\/([^/]+)$/)?.[1];
+    const activeArticle = articles.find((article) => article.slug === articleSlug && article.published);
     const title = hostSeoPost && hostSeoPost.id !== hostSeoPage?.id
       ? hostSeoPost.title
-      : hostSeoPage?.seoTitle?.trim() || activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
+      : activeArticle
+        ? `${activeArticle.title} | ${settings.name || 'Honda Wijaya Abadi'}`
+        : hostSeoPage?.seoTitle?.trim() || activeLandingSeo?.title || settings.seoTitle?.trim() || DEFAULT_SEO_TITLE;
     const description = hostSeoPost && hostSeoPost.id !== hostSeoPage?.id
       ? hostSeoPost.content.trim().slice(0, 160)
-      : hostSeoPage?.seoDescription?.trim() || activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
-    const keywords = hostSeoPage?.seoKeywords?.trim() || activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
+      : activeArticle
+        ? activeArticle.excerpt || activeArticle.content.trim().slice(0, 160)
+        : hostSeoPage?.seoDescription?.trim() || activeLandingSeo?.description || settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
+    const keywords = activeArticle
+      ? [activeArticle.title, activeArticle.category, settings.seoKeywords].filter(Boolean).join(', ')
+      : hostSeoPage?.seoKeywords?.trim() || activeLandingSeo?.keywords || settings.seoKeywords?.trim() || DEFAULT_SEO_KEYWORDS;
+    const canonicalPath = currentPath === '/' ? '/' : `${currentPath}/`;
     const canonicalUrl = hostSeoPage
-      ? `https://${hostSeoPage.subdomain}.kreditmotorhonda.tech${hostSeoPost ? getSeoLandingPostPath(hostSeoPage, hostSeoPost) : '/'}`
-      : activeLandingSeo
-      ? `https://kreditmotorhonda.tech${currentPath}`
-      : settings.seoCanonicalUrl?.trim() || DEFAULT_SEO_CANONICAL_URL;
+      ? `${currentSeoOrigin}${hostSeoPost ? getSeoLandingPostPath(hostSeoPage, hostSeoPost) : '/'}`
+      : seoRootDomain
+        ? `${currentSeoOrigin}${canonicalPath}`
+        : settings.seoCanonicalUrl?.trim() || DEFAULT_SEO_CANONICAL_URL;
     const robots = hostSeoPage?.seoRobots?.trim() || settings.seoRobots?.trim() || DEFAULT_SEO_ROBOTS;
     document.title = title;
 
@@ -489,9 +501,18 @@ export default function App() {
     setMeta('name', 'robots', robots);
     setMeta('property', 'og:title', title);
     setMeta('property', 'og:description', description);
+    setMeta('property', 'og:type', activeArticle ? 'article' : 'website');
     setMeta('property', 'og:url', canonicalUrl);
     setMeta('name', 'twitter:title', title);
     setMeta('name', 'twitter:description', description);
+    const articleImage = activeArticle && (activeArticle.images?.[0] || activeArticle.image);
+    if (articleImage) {
+      const imageUrl = /^https?:\/\//i.test(articleImage)
+        ? articleImage
+        : new URL(articleImage, `${currentSeoOrigin}/`).href;
+      setMeta('property', 'og:image', imageUrl);
+      setMeta('name', 'twitter:image', imageUrl);
+    }
 
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) {
@@ -500,7 +521,7 @@ export default function App() {
       document.head.appendChild(canonical);
     }
     canonical.href = canonicalUrl;
-  }, [isAdminOpen, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath, hostSeoPage, hostSeoPost]);
+  }, [isAdminOpen, articles, settings.name, settings.seoCanonicalUrl, settings.seoDescription, settings.seoKeywords, settings.seoRobots, settings.seoTitle, currentPath, currentSeoOrigin, seoRootDomain, hostSeoPage, hostSeoPost]);
 
   // Comparison toggle handler
   const handleToggleCompare = (motor: Motor) => {
