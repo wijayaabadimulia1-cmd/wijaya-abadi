@@ -90,6 +90,8 @@ const getAdminCanonicalUrl = () => {
   }
   return DEFAULT_SEO_CANONICAL_URL;
 };
+const getAdminDomainSuffix = (): SalesCounterRootDomain =>
+  getSalesCounterDomainSuffix(window.location.hostname) || 'kreditmotorhonda.tech';
 
 const SEO_KEYWORD_CONCEPTS: Record<string, string> = {
   angsuran: 'kredit',
@@ -1676,6 +1678,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     const now = new Date().toISOString();
     const page: SeoLandingPage = {
       ...seoSubdomainEditor,
+      domainSuffix: seoSubdomainEditor.domainSuffix || getAdminDomainSuffix(),
       id: existingPage?.id || `seo-page-${Date.now()}`,
       subdomain,
       adminUserId: adminUser.id,
@@ -3721,6 +3724,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                             seoDescription: '',
                             seoKeywords: '',
                             seoRobots: 'index, follow',
+                            domainSuffix: getAdminDomainSuffix(),
                           })}
                           className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-500"
                         >
@@ -3749,7 +3753,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 {page.sslStatus !== 'active' && (
                                   <button type="button" onClick={() => void handleProvisionSeoPageSsl(page)} className="rounded-lg border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/10">Coba SSL lagi</button>
                                 )}
-                                <button type="button" onClick={() => setSeoSubdomainEditor({ ...page, adminUserId: page.adminUserId || adminSession.id })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit SEO</button>
+                                <button type="button" onClick={() => setSeoSubdomainEditor({ ...page, domainSuffix: page.domainSuffix || getAdminDomainSuffix(), adminUserId: page.adminUserId || adminSession.id })} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800">Edit SEO</button>
                                 <button type="button" onClick={() => void handleDeleteSeoPage(page)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"><Trash2 className="h-3.5 w-3.5" />Hapus SEO</button>
                               </div>
                             </div>
