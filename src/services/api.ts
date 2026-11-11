@@ -224,7 +224,7 @@ export const api = {
 
   // Settings
   async getSettings(): Promise<DealerSettings> {
-    const res = await fetch('/api/settings');
+    const res = await fetch('/api/settings', { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil pengaturan dealer');
     return res.json();
   },

@@ -2143,6 +2143,9 @@ async function startServer() {
 
   // Settings
   app.get('/api/settings', (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     const db = readCatalogDb();
     const requestDomain = getSalesCounterRootDomain(req.hostname);
     const baseSettings = db.settings || {};
