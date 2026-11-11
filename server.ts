@@ -3089,7 +3089,7 @@ async function startServer() {
     const allowedHosts = new Set([
       'kreditmotorhonda.tech',
       ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
-      ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech`),
+      ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`),
     ]);
     const requestedHosts = Array.isArray(req.body?.hosts) ? req.body.hosts : [];
     const hosts = [...new Set(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
