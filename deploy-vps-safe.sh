@@ -461,7 +461,7 @@ Environment=PORT=3003
 Environment=APP_URL=https://kreditmotorhonda.id
 Environment=DATA_DIR=$ID_DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
-Environment=CATALOG_API_URL=http://127.0.0.1:3000
+Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 Environment=CATALOG_ADMIN_URL=https://kreditmotorhonda.tech/admin
 ExecStart=
@@ -476,7 +476,7 @@ sudo install -d -m 755 "$ID_DROPIN_DIR"
 sudo tee "$ID_DEPLOY_DROPIN" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
-Environment=CATALOG_API_URL=http://127.0.0.1:3000
+Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs

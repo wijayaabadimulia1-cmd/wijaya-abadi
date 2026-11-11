@@ -291,7 +291,7 @@ function createPublicInitialData(db: any, hostname?: string) {
 async function createSsrInitialData(db: any, hostname?: string) {
   if (!CATALOG_API_URL) return createPublicInitialData(readCatalogDb(), hostname);
 
-  const catalogApiUrl = `http://127.0.0.1:${PORT}`;
+  const catalogApiUrl = CATALOG_API_URL;
   const options = { cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
 
   try {
@@ -1956,15 +1956,15 @@ async function startServer() {
 
   app.use((req, res, next) => {
     if (!CATALOG_API_URL || !isSharedCatalogRequest(req)) return next();
-    if (!CATALOG_SERVICE_TOKEN) {
-      return res.status(503).json({ error: 'Shared catalog proxy belum dikonfigurasi.' });
-    }
-
     const requestPath = req.originalUrl.split('?')[0];
     const needsAdmin = !['GET', 'HEAD'].includes(req.method)
       || requestPath === '/api/motors/export.xlsx'
       || requestPath === '/api/motors/template.xlsx'
       || requestPath === '/api/fif-price-list/template';
+    if (needsAdmin && !CATALOG_SERVICE_TOKEN) {
+      return res.status(503).json({ error: 'Shared catalog proxy belum dikonfigurasi.' });
+    }
+
     const session = needsAdmin ? getSession(req) : null;
     if (needsAdmin && !session) {
       return res.status(401).json({ error: 'Sesi admin tidak valid atau sudah berakhir' });
