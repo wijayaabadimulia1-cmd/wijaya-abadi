@@ -166,6 +166,15 @@ export default function App() {
     }
   }, [currentPath, isAdminRoute]);
 
+  useEffect(() => {
+    if (isAdminRoute) return;
+    const handleSettingsUpdated = (event: StorageEvent) => {
+      if (event.key === 'hwa-settings-updated-at') void loadData();
+    };
+    window.addEventListener('storage', handleSettingsUpdated);
+    return () => window.removeEventListener('storage', handleSettingsUpdated);
+  }, [isAdminRoute]);
+
   // Fetch initial data from dynamic database
   const loadData = async () => {
     try {

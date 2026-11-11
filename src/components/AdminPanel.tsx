@@ -1536,6 +1536,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition || isLeavingManagedPalette ? { customization } : {}),
       });
       setSettings({ ...nextSettings, ...saved });
+      localStorage.setItem('hwa-settings-updated-at', new Date().toISOString());
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);
       onRefreshData();
     } catch (err: any) {
