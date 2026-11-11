@@ -2144,7 +2144,20 @@ async function startServer() {
   // Settings
   app.get('/api/settings', (req, res) => {
     const db = readCatalogDb();
-    const settings = db.settings || {};
+    const requestDomain = getSalesCounterRootDomain(req.hostname);
+    const baseSettings = db.settings || {};
+    const settings = requestDomain
+      ? {
+          ...baseSettings,
+          // Older SEO records were created before domainSuffix was stored.
+          // Resolve those records from the domain currently being opened so
+          // the .id admin never displays the historical .tech fallback.
+          seoPages: (Array.isArray(baseSettings.seoPages) ? baseSettings.seoPages : []).map((page: any) => ({
+            ...page,
+            ...(page.domainSuffix ? {} : { domainSuffix: requestDomain }),
+          })),
+        }
+      : baseSettings;
     const page = getSeoPageForHost(settings, req.hostname);
     if (page) return res.json(publicSettings(getSettingsForSeoPage(settings, page)));
     const session = getSession(req);
