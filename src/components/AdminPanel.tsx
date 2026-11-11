@@ -1131,6 +1131,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   // silently fell back to the first card, making the active theme appear to
   // be missing and making it easy to overwrite it accidentally.
   const activeTemplateValue = settings?.websiteTemplate || 'classic';
+  const activeSeoDomainSuffix = getAdminDomainSuffix();
+  const scopedSeoPages = (settings?.seoPages || []).filter((page) =>
+    (page.domainSuffix || activeSeoDomainSuffix) === activeSeoDomainSuffix,
+  );
   const activeTemplate = templateOptions.find((item) => item.value === activeTemplateValue);
   const visibleTemplateOptions = activeTemplate
     ? templateOptions
@@ -3734,9 +3738,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200">
                         Subdomain baru memerlukan wildcard DNS dan sertifikat HTTPS wildcard sebelum link dapat dibuka publik.
                       </div>
-                      {activeTab !== 'seo-posts' && settings.seoPages?.length ? (
+                      {activeTab !== 'seo-posts' && scopedSeoPages.length ? (
                         <div className="divide-y divide-white/10 rounded-xl border border-white/10">
-                          {settings.seoPages.map((page) => (
+                          {scopedSeoPages.map((page) => (
                             <div key={page.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-white">{page.seoTitle || page.title || page.subdomain}</p>
@@ -4020,7 +4024,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white focus:border-red-500 focus:outline-none"
                         >
                           <option value="">Tanpa admin pos</option>
-                            {(settings?.seoPages || []).map((page) => (
+                            {scopedSeoPages.map((page) => (
                             <option key={page.id} value={page.id}>{page.subdomain}.{page.domainSuffix || 'kreditmotorhonda.tech'}</option>
                           ))}
                         </select>
@@ -4121,7 +4125,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                                 className="w-full max-w-xs rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-[11px] text-white focus:border-red-500 focus:outline-none"
                               >
                                 <option value="">Tanpa admin pos</option>
-                                {(settings?.seoPages || []).map((page) => (
+                                {scopedSeoPages.map((page) => (
                                   <option key={page.id} value={page.id}>{page.subdomain}.{page.domainSuffix || 'kreditmotorhonda.tech'}</option>
                                 ))}
                               </select>
