@@ -2153,11 +2153,11 @@ async function startServer() {
       ? {
           ...baseSettings,
           // Older SEO records were created before domainSuffix was stored.
-          // Resolve those records from the domain currently being opened so
-          // the .id admin never displays the historical .tech fallback.
+          // They belong to the original .tech catalog; do not reassign them
+          // to whichever domain admin happens to open the panel.
           seoPages: (Array.isArray(baseSettings.seoPages) ? baseSettings.seoPages : []).map((page: any) => ({
             ...page,
-            ...(page.domainSuffix ? {} : { domainSuffix: requestDomain }),
+            ...(page.domainSuffix ? {} : { domainSuffix: 'kreditmotorhonda.tech' }),
           })),
         }
       : baseSettings;
