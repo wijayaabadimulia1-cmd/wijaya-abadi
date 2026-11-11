@@ -209,7 +209,7 @@ for service in "${SATELLITE_SERVICES[@]}"; do
     continue
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
-  if [ "$catalog_api_url" != "http://127.0.0.1:3000" ]; then
+  if [ "$catalog_api_url" != "https://kreditmotorhonda.tech" ]; then
     fail "$service is not configured to use the main catalog API; refusing deployment."
   fi
 done
