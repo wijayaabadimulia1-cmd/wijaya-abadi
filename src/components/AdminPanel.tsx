@@ -4049,7 +4049,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                           { host: 'wijaya.kreditmotorhonda.tech', label: 'Wijaya Kredit Motor' },
                           { host: 'solusikreditmotor.cloud', label: 'Solusi Kredit Motor' },
                           ...(settings?.seoPages || []).map((page) => ({
-                            host: `${page.subdomain}.kreditmotorhonda.tech`,
+                            host: `${page.subdomain}.${page.domainSuffix || 'kreditmotorhonda.tech'}`,
                             label: page.title || page.subdomain,
                           })),
                         ].map((site) => (
