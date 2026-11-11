@@ -993,6 +993,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
   const configuredSites = (process.env.GSC_SITE_URLS || '')
     .split(',')
     .map((site) => site.trim())
+    .map((site) => site === 'sc-domain:kreditmotorhonda.id' ? 'https://kreditmotorhonda.id/' : site)
     .filter(Boolean);
   const fallbackSites = selectGoogleSearchConsoleSites([], configuredSites);
   const today = new Date();
