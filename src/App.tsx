@@ -212,6 +212,20 @@ export default function App() {
     }
   };
 
+  // SSR data can be cached or berasal dari database katalog lama. Always
+  // refresh settings from the API so a newly selected website template wins
+  // over the fallback/default template after navigation or deployment.
+  useEffect(() => {
+    if (isAdminRoute) return;
+    let active = true;
+    void api.getSettings().then((settingsData) => {
+      if (active && settingsData?.name) setSettings(settingsData);
+    }).catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [isAdminRoute]);
+
   useEffect(() => {
     if (isAdminRoute) {
       void loadData();
