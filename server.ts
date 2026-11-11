@@ -3081,13 +3081,15 @@ async function startServer() {
     const db = readCatalogDb();
     const config = db.settings?.ownerDashboard || {};
     const token = String(config.token || '');
-    const selectedHosts = Array.isArray(config.hosts)
-      ? config.hosts
-      : Array.isArray(config.selectedHosts)
-        ? config.selectedHosts
-        : Array.isArray(config.allowedHosts)
-          ? config.allowedHosts
-          : [];
+    const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+    const selectedHosts = [...new Set([
+      'kreditmotorhonda.tech',
+      'kreditmotorhonda.id',
+      'solusikreditmotor.cloud',
+      'wijaya.kreditmotorhonda.tech',
+      ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
+      ...seoPages.map((page: any) => `${String(page.subdomain || '').trim().toLowerCase()}.${getSeoPageDomainSuffix(page)}`),
+    ])];
     return res.json({
       selectedHosts,
       dashboardUrl: token ? `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}` : '',
@@ -3107,9 +3109,7 @@ async function startServer() {
       ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
       ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`),
     ]);
-    const requestedHosts = Array.isArray(req.body?.hosts) ? req.body.hosts : [];
-    const hosts = [...new Set(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
-      .filter((host) => allowedHosts.has(host));
+    const hosts = [...allowedHosts];
     if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
 
     const token = String(db.settings?.ownerDashboard?.token || crypto.randomBytes(32).toString('base64url'));
