@@ -67,8 +67,8 @@ function readDb() {
   for (const candidatePath of Array.from(
     new Set(
       [
-        CATALOG_OWNER_DATA_FILE,
         PERSISTENT_DB_FILE,
+        CATALOG_OWNER_DATA_FILE,
         FALLBACK_DB_FILE,
         DB_FILE,
       ].filter((value): value is string => Boolean(value))
