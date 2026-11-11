@@ -3082,7 +3082,7 @@ async function startServer() {
     const config = db.settings?.ownerDashboard || {};
     const token = String(config.token || '');
     const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
-    const selectedHosts = [...new Set([
+    const allHosts = [...new Set([
       'kreditmotorhonda.tech',
       'kreditmotorhonda.id',
       'solusikreditmotor.cloud',
@@ -3090,6 +3090,8 @@ async function startServer() {
       ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
       ...seoPages.map((page: any) => `${String(page.subdomain || '').trim().toLowerCase()}.${getSeoPageDomainSuffix(page)}`),
     ])];
+    const disabledHosts = new Set(Array.isArray(config.disabledHosts) ? config.disabledHosts : []);
+    const selectedHosts = allHosts.filter((host) => !disabledHosts.has(host));
     return res.json({
       selectedHosts,
       dashboardUrl: token ? `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}` : '',
@@ -3109,7 +3111,11 @@ async function startServer() {
       ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
       ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`),
     ]);
-    const hosts = [...allowedHosts];
+    const requestedHosts = Array.isArray(req.body?.hosts) ? req.body.hosts : [];
+    const hosts = [...new Set(requestedHosts.map((host: unknown) => String(host || '').trim().toLocaleLowerCase('en-US')))]
+      .filter((host) => allowedHosts.has(host));
+    const disabledHosts = [...allowedHosts].filter((host) => !hosts.includes(host));
+    if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
     if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
 
     const token = String(db.settings?.ownerDashboard?.token || crypto.randomBytes(32).toString('base64url'));
@@ -3121,6 +3127,7 @@ async function startServer() {
         hosts,
         selectedHosts: hosts,
         allowedHosts: hosts,
+        disabledHosts,
       },
       updated_at: new Date().toISOString(),
     };
