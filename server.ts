@@ -3075,8 +3075,15 @@ async function startServer() {
     const db = readCatalogDb();
     const config = db.settings?.ownerDashboard || {};
     const token = String(config.token || '');
+    const selectedHosts = Array.isArray(config.hosts)
+      ? config.hosts
+      : Array.isArray(config.selectedHosts)
+        ? config.selectedHosts
+        : Array.isArray(config.allowedHosts)
+          ? config.allowedHosts
+          : [];
     return res.json({
-      selectedHosts: Array.isArray(config.hosts) ? config.hosts : [],
+      selectedHosts,
       dashboardUrl: token ? `https://kreditmotorhonda.tech/owner-dashboard?key=${encodeURIComponent(token)}` : '',
     });
   });
@@ -3100,7 +3107,17 @@ async function startServer() {
     if (!hosts.length) return res.status(400).json({ error: 'Pilih setidaknya satu website untuk dashboard owner.' });
 
     const token = String(db.settings?.ownerDashboard?.token || crypto.randomBytes(32).toString('base64url'));
-    db.settings = { ...db.settings, ownerDashboard: { token, hosts }, updated_at: new Date().toISOString() };
+    db.settings = {
+      ...db.settings,
+      ownerDashboard: {
+        ...db.settings?.ownerDashboard,
+        token,
+        hosts,
+        selectedHosts: hosts,
+        allowedHosts: hosts,
+      },
+      updated_at: new Date().toISOString(),
+    };
     appendAudit(db, { actor: session.username, action: 'UPDATE_OWNER_DASHBOARD', resource: 'owner-dashboard', details: `Website owner: ${hosts.join(', ')}` });
     if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan konfigurasi dashboard owner.' });
 
