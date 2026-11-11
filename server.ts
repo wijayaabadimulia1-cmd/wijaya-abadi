@@ -2242,13 +2242,18 @@ async function startServer() {
       }
       const requestDomain = getSalesCounterRootDomain(req.hostname);
       if (requestDomain && Array.isArray(settingsUpdates.seoPages)) {
-        settingsUpdates.seoPages = settingsUpdates.seoPages.map((page: any) => ({
+        const existingPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
+        const submittedPages = settingsUpdates.seoPages.map((page: any) => ({
           ...page,
-          // A root-domain admin owns the SEO entries for that root. Always
-          // persist the current root domain instead of carrying a stale .tech
-          // value from an older record or browser form state.
           domainSuffix: requestDomain,
         }));
+        // A domain admin may replace only its own SEO pages. Keep pages owned
+        // by the other root domains untouched, even when the browser submits
+        // a filtered list from the current domain panel.
+        settingsUpdates.seoPages = [
+          ...existingPages.filter((page: any) => getSeoPageDomainSuffix(page) !== requestDomain),
+          ...submittedPages,
+        ];
       }
     }
     let hasExternalImage = false;
