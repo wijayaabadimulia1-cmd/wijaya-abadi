@@ -588,7 +588,12 @@ function getSeoPageForHost(settings: any = {}, hostname: string) {
   const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
   const pages = Array.isArray(settings.seoPages) ? settings.seoPages : [];
   return pages.find((page: any) => {
-    const suffix = `.${getSeoPageDomainSuffix(page)}`;
+    // Older SEO records may not have domainSuffix. In that case resolve the
+    // suffix from the current request host so an .id admin does not fall back
+    // to the historical .tech default.
+    const requestDomain = [...SALES_COUNTER_ROOT_DOMAINS].find((domain) => host.endsWith(`.${domain}`));
+    const pageDomain = page?.domainSuffix || requestDomain || 'kreditmotorhonda.tech';
+    const suffix = `.${pageDomain}`;
     if (!host.endsWith(suffix)) return false;
     const subdomain = host.slice(0, -suffix.length);
     return page.subdomain === subdomain
@@ -2216,6 +2221,13 @@ async function startServer() {
           return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengelola post subdomain.' });
         }
       }
+      const requestDomain = getSalesCounterRootDomain(req.hostname);
+      if (requestDomain && Array.isArray(settingsUpdates.seoPages)) {
+        settingsUpdates.seoPages = settingsUpdates.seoPages.map((page: any) => ({
+          ...page,
+          domainSuffix: page.domainSuffix || requestDomain,
+        }));
+      }
     }
     let hasExternalImage = false;
     mapImageReferences(settingsUpdates, (url) => {
@@ -2235,6 +2247,7 @@ async function startServer() {
       }
       const nextPage = {
         ...hostPage,
+        domainSuffix: hostPage.domainSuffix || getSalesCounterRootDomain(req.hostname) || 'kreditmotorhonda.tech',
         siteSettings,
         ...(typeof settingsUpdates.seoTitle === 'string' ? { seoTitle: settingsUpdates.seoTitle.trim() } : {}),
         ...(typeof settingsUpdates.seoDescription === 'string' ? { seoDescription: settingsUpdates.seoDescription.trim() } : {}),
