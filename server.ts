@@ -145,15 +145,21 @@ function setSiteArticles(db: any, hostname: string, articles: any[]) {
 
 function readCatalogDb() {
   const ownerDb = readJsonDbFile(CATALOG_OWNER_DATA_FILE) || readJsonDbFile(PERSISTENT_DB_FILE) || readJsonDbFile(FALLBACK_DB_FILE) || readJsonDbFile(DB_FILE);
-  const primaryDb = readDb();
+  // The local persistent DB contains the latest website/admin writes. The
+  // catalog-owner DB is used as a fallback/source for shared catalog data,
+  // but must not hide newer website settings.
+  const primaryDb = readJsonDbFile(PERSISTENT_DB_FILE) || readDb();
   const baseDb = ownerDb && typeof ownerDb === 'object' ? ownerDb : primaryDb;
 
   return {
     ...primaryDb,
     ...baseDb,
     settings: {
-      ...(primaryDb.settings || {}),
       ...(baseDb.settings || {}),
+      // Website/admin updates are persisted in the primary database. Keep
+      // them last so an older catalog-owner snapshot cannot overwrite the
+      // newly selected template or domain settings on the next request.
+      ...(primaryDb.settings || {}),
     },
     motors: Array.isArray(ownerDb?.motors) && ownerDb.motors.length > 0
       ? ownerDb.motors
@@ -2186,7 +2192,7 @@ async function startServer() {
   });
 
   app.put('/api/settings', requireAdmin, (req, res) => {
-    const db = readDb();
+    const db = readCatalogDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const settingsUpdates = { ...(req.body || {}) };
     if (hostPage) {
