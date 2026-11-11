@@ -1535,10 +1535,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         ...headlineSettings,
         ...(isMuliaCerah || isHondaWijaya || isWijayaMeriah || isShowcaseWijaya2 || isAstraHondaRedWhite || isTokyoRacingEdition || isNovemberEdition || isElectricFlameEdition || isLeavingManagedPalette ? { customization } : {}),
       });
-      setSettings({ ...nextSettings, ...saved });
+      // The API response may come from a stale merged catalog snapshot. The
+      // value submitted by this action is authoritative for this save.
+      setSettings({ ...nextSettings, ...saved, websiteTemplate: template });
       localStorage.setItem('hwa-settings-updated-at', new Date().toISOString());
       showToast(`Template website diubah ke "${templateOptions.find((item) => item.value === template)?.label || 'Classic'}"`);
-      onRefreshData();
     } catch (err: any) {
       alert('Gagal menyimpan template website: ' + err.message);
     }
