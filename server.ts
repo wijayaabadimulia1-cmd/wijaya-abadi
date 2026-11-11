@@ -976,19 +976,13 @@ async function getGoogleSearchConsoleSites(token: string, configuredSites: strin
     errors.push(`Daftar properti Search Console tidak dapat dimuat: ${String(error?.message || 'permintaan gagal')}`);
   }
 
-  const accessibleConfiguredSites = discoveredSites.length
-    ? configuredSites.filter((configuredSite) => discoveredSites.some((discoveredSite) => (
-        discoveredSite === configuredSite
-        || getGoogleSearchConsoleSiteHost(discoveredSite) === getGoogleSearchConsoleSiteHost(configuredSite)
-      )))
-    : configuredSites;
   const result = {
     expiresAt: Date.now() + 15 * 60 * 1000,
     configuredKey,
-    // Only query configured properties that the service account can actually
-    // see. This prevents one missing Search Console permission from breaking
-    // the whole owner dashboard.
-    sites: selectGoogleSearchConsoleSites(discoveredSites, accessibleConfiguredSites),
+    // Keep configured properties in the request even when sites.list does not
+    // return them yet. The API response then exposes the exact property that
+    // still needs access instead of silently omitting it.
+    sites: selectGoogleSearchConsoleSites(discoveredSites, configuredSites),
     errors,
   };
   cachedGoogleSearchConsoleSites = result;
