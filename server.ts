@@ -1840,13 +1840,10 @@ function isAdminAuthorizedForHost(session: any, hostname: string, db: any = read
   if (!assignedSeoPage) return false;
 
   const assignedHost = String(assignedSeoPage.subdomain || '').trim().toLowerCase();
+  const assignedDomainSuffix = getSeoPageDomainSuffix(assignedSeoPage);
   if (!assignedHost) return false;
 
-  const permittedHosts = new Set([
-    `${assignedHost}.kreditmotorhonda.tech`,
-    `${assignedHost}.solusikreditmotor.cloud`,
-    `${assignedHost}.kreditmotorhonda.id`,
-  ]);
+  const permittedHosts = new Set([`${assignedHost}.${assignedDomainSuffix}`]);
   return permittedHosts.has(host);
 }
 
@@ -2188,7 +2185,7 @@ async function startServer() {
     }
   });
 
-  app.put('/api/settings', (req, res) => {
+  app.put('/api/settings', requireAdmin, (req, res) => {
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const settingsUpdates = { ...(req.body || {}) };
@@ -2224,7 +2221,7 @@ async function startServer() {
       const siteSettingFields = [
         'name', 'tagline', 'phone', 'address', 'email', 'workingHours', 'logo', 'heroImage', 'heroImages',
         'heroTitle', 'heroMainTitle', 'heroTitleHighlight', 'heroSubtitle', 'heroBadge', 'heroCaption', 'footerText',
-        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'customization',
+        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'featuredMotorRotationInterval', 'customization',
       ];
       const siteSettings = { ...(hostPage.siteSettings || {}) };
       for (const field of siteSettingFields) {
@@ -2637,7 +2634,7 @@ async function startServer() {
     res.json(hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : db.promos || []);
   });
 
-  app.post('/api/promos', (req, res) => {
+  app.post('/api/promos', requireAdmin, (req, res) => {
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const images = Array.isArray(req.body.images)
@@ -2667,7 +2664,7 @@ async function startServer() {
     res.status(201).json(newPromo);
   });
 
-  app.put('/api/promos/:id', (req, res) => {
+  app.put('/api/promos/:id', requireAdmin, (req, res) => {
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     const promos = hostPage ? (Array.isArray(hostPage.promos) ? hostPage.promos : []) : (db.promos || []);
@@ -2691,7 +2688,7 @@ async function startServer() {
     res.json(promos[index]);
   });
 
-  app.delete('/api/promos/:id', (req, res) => {
+  app.delete('/api/promos/:id', requireAdmin, (req, res) => {
     const db = readDb();
     const hostPage = getSeoPageForHost(db.settings || {}, req.hostname);
     if (hostPage) hostPage.promos = (Array.isArray(hostPage.promos) ? hostPage.promos : []).filter((p: any) => p.id !== req.params.id);
@@ -2711,7 +2708,7 @@ async function startServer() {
     res.json(visibleArticles.sort((left: any, right: any) => String(right.created_at || '').localeCompare(String(left.created_at || ''))));
   });
 
-  app.post('/api/articles', (req, res) => {
+  app.post('/api/articles', requireAdmin, (req, res) => {
     const db = readSiteDb();
     const articles = getSiteArticles(db, req.hostname);
     const title = String(req.body.title || '').trim();
@@ -2745,7 +2742,7 @@ async function startServer() {
     res.status(201).json(article);
   });
 
-  app.put('/api/articles/:id', (req, res) => {
+  app.put('/api/articles/:id', requireAdmin, (req, res) => {
     const db = readSiteDb();
     const articles = getSiteArticles(db, req.hostname);
     const index = articles.findIndex((article: any) => article.id === req.params.id);
@@ -2780,7 +2777,7 @@ async function startServer() {
     res.json(articles[index]);
   });
 
-  app.delete('/api/articles/:id', (req, res) => {
+  app.delete('/api/articles/:id', requireAdmin, (req, res) => {
     const db = readSiteDb();
     const articles = getSiteArticles(db, req.hostname).filter((article: any) => article.id !== req.params.id);
     setSiteArticles(db, req.hostname, articles);
@@ -2870,9 +2867,14 @@ async function startServer() {
   });
 
   // Leads / Interests (Peminat & Konsultasi)
-  app.get('/api/interests', (req, res) => {
+  app.get('/api/interests', requireAdmin, (req, res) => {
     const db = readDb();
-    res.json(db.interests || []);
+    const session = (req as any).adminSession;
+    const host = normalizeAnalyticsHost(req.hostname);
+    const interests = session?.role === 'Super Admin'
+      ? (db.interests || [])
+      : (db.interests || []).filter((item: any) => normalizeAnalyticsHost(item.host || '') === host);
+    res.json(interests);
   });
 
   app.post('/api/interests', (req, res) => {
@@ -2903,17 +2905,26 @@ async function startServer() {
     res.status(201).json(newLead);
   });
 
-  app.patch('/api/interests/:id/status', (req, res) => {
+  app.patch('/api/interests/:id/status', requireAdmin, (req, res) => {
     const db = readDb();
     const index = (db.interests || []).findIndex((i: any) => i.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Lead not found' });
+    const session = (req as any).adminSession;
+    if (session?.role !== 'Super Admin' && normalizeAnalyticsHost(db.interests[index].host || '') !== normalizeAnalyticsHost(req.hostname)) {
+      return res.status(403).json({ error: 'Peminat ini bukan milik domain admin Anda.' });
+    }
     db.interests[index].status = req.body.status || 'Dihubungi';
     writeDb(db);
     res.json(db.interests[index]);
   });
 
-  app.delete('/api/interests/:id', (req, res) => {
+  app.delete('/api/interests/:id', requireAdmin, (req, res) => {
     const db = readDb();
+    const session = (req as any).adminSession;
+    const target = (db.interests || []).find((item: any) => item.id === req.params.id);
+    if (target && session?.role !== 'Super Admin' && normalizeAnalyticsHost(target.host || '') !== normalizeAnalyticsHost(req.hostname)) {
+      return res.status(403).json({ error: 'Peminat ini bukan milik domain admin Anda.' });
+    }
     db.interests = (db.interests || []).filter((i: any) => i.id !== req.params.id);
     writeDb(db);
     res.json({ success: true });
@@ -3506,6 +3517,9 @@ async function startServer() {
   });
 
   app.get('/api/admin/users', requireAdmin, (req, res) => {
+    if ((req as any).adminSession?.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Hanya Super Admin yang dapat melihat daftar admin.' });
+    }
     const db = readDb();
     res.json(ensureAdminUsers(db).map((user: any) => publicAdminUser(user, db)));
   });
@@ -3727,7 +3741,15 @@ async function startServer() {
     if (users.some((item: any) => item.username.toLowerCase() === username.toLowerCase())) {
       return res.status(409).json({ error: 'Username sudah digunakan' });
     }
-    const newUser = { id: `admin-${Date.now()}`, username, passwordHash: hashPassword(password), role: req.body?.role === 'Super Admin' ? 'Super Admin' : 'Staff Admin', created_at: new Date().toISOString() };
+    const role = req.body?.role === 'Super Admin' ? 'Super Admin' : 'Staff Admin';
+    if (role === 'Staff Admin' && !assignedSeoPageId) {
+      return res.status(400).json({ error: 'Staff Admin wajib ditugaskan ke satu post/domain.' });
+    }
+    const assignedPage = assignedSeoPageId
+      ? (Array.isArray(db.settings?.seoPages) ? db.settings.seoPages.find((page: any) => page.id === assignedSeoPageId) : undefined)
+      : undefined;
+    if (assignedSeoPageId && !assignedPage) return res.status(404).json({ error: 'Post/domain admin tidak ditemukan.' });
+    const newUser = { id: `admin-${Date.now()}`, username, passwordHash: hashPassword(password), role, created_at: new Date().toISOString() };
     db.adminUsers.push(newUser);
     syncAdminPostAssignment(db, newUser.id, assignedSeoPageId || null);
     appendAudit(db, { actor: session.username, action: 'CREATE_ADMIN', resource: newUser.id, details: `Membuat admin ${username}` });
@@ -3748,7 +3770,16 @@ async function startServer() {
     const hasAssignmentUpdate = Object.prototype.hasOwnProperty.call(req.body || {}, 'assignedSeoPageId');
     const assignedSeoPageId = hasAssignmentUpdate ? String(req.body.assignedSeoPageId || '').trim() : undefined;
     if (!username || (password && password.length < 8)) return res.status(400).json({ error: 'Username wajib diisi dan password minimal 8 karakter' });
-    users[index] = { ...current, username, ...(password ? { passwordHash: hashPassword(password) } : {}), ...(session.role === 'Super Admin' && req.body?.role ? { role: req.body.role } : {}), updated_at: new Date().toISOString() };
+    const nextRole = session.role === 'Super Admin' && req.body?.role
+      ? (req.body.role === 'Super Admin' ? 'Super Admin' : 'Staff Admin')
+      : current.role;
+    if (nextRole === 'Staff Admin' && hasAssignmentUpdate && !assignedSeoPageId) {
+      return res.status(400).json({ error: 'Staff Admin wajib ditugaskan ke satu post/domain.' });
+    }
+    if (hasAssignmentUpdate && assignedSeoPageId && !(Array.isArray(db.settings?.seoPages) && db.settings.seoPages.some((page: any) => page.id === assignedSeoPageId))) {
+      return res.status(404).json({ error: 'Post/domain admin tidak ditemukan.' });
+    }
+    users[index] = { ...current, username, role: nextRole, ...(password ? { passwordHash: hashPassword(password) } : {}), updated_at: new Date().toISOString() };
     if (hasAssignmentUpdate) syncAdminPostAssignment(db, users[index].id, assignedSeoPageId || null);
     appendAudit(db, { actor: session.username, action: 'UPDATE_ADMIN', resource: current.id, details: `Mengubah akun ${current.username}` });
     writeDb(db);
