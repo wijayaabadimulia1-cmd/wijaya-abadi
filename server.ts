@@ -2225,7 +2225,10 @@ async function startServer() {
       if (requestDomain && Array.isArray(settingsUpdates.seoPages)) {
         settingsUpdates.seoPages = settingsUpdates.seoPages.map((page: any) => ({
           ...page,
-          domainSuffix: page.domainSuffix || requestDomain,
+          // A root-domain admin owns the SEO entries for that root. Always
+          // persist the current root domain instead of carrying a stale .tech
+          // value from an older record or browser form state.
+          domainSuffix: requestDomain,
         }));
       }
     }
@@ -2247,7 +2250,7 @@ async function startServer() {
       }
       const nextPage = {
         ...hostPage,
-        domainSuffix: hostPage.domainSuffix || getSalesCounterRootDomain(req.hostname) || 'kreditmotorhonda.tech',
+        domainSuffix: getSalesCounterRootDomain(req.hostname) || hostPage.domainSuffix || 'kreditmotorhonda.tech',
         siteSettings,
         ...(typeof settingsUpdates.seoTitle === 'string' ? { seoTitle: settingsUpdates.seoTitle.trim() } : {}),
         ...(typeof settingsUpdates.seoDescription === 'string' ? { seoDescription: settingsUpdates.seoDescription.trim() } : {}),
