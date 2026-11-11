@@ -3072,7 +3072,7 @@ async function startServer() {
     if (session.role !== 'Super Admin') {
       return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengatur dashboard owner.' });
     }
-    const db = readDb();
+    const db = readCatalogDb();
     const config = db.settings?.ownerDashboard || {};
     const token = String(config.token || '');
     return res.json({
@@ -3087,7 +3087,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Hanya Super Admin yang dapat mengatur dashboard owner.' });
     }
 
-    const db = readDb();
+    const db = readCatalogDb();
     const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
     const allowedHosts = new Set([
       'kreditmotorhonda.tech',
