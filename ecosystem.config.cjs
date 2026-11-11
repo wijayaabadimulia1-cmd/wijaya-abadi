@@ -57,7 +57,7 @@ module.exports = {
       CATALOG_SERVICE_TOKEN: catalogServiceToken,
       CATALOG_ADMIN_URL: 'https://kreditmotorhonda.tech/admin',
       ...(site.catalogOwner ? {} : {
-        CATALOG_API_URL: 'http://127.0.0.1:3000',
+        CATALOG_API_URL: 'https://kreditmotorhonda.tech',
         CATALOG_OWNER_DATA_FILE: sharedCatalogDb,
       }),
     },
