@@ -4054,7 +4054,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
 
                       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {[
-                          { host: 'kreditmotorhonda.tech', label: 'Website utama' },
+                          { host: 'kreditmotorhonda.tech', label: 'Website utama' }, { host: 'kreditmotorhonda.id', label: 'Kredit Motor Honda ID' },
                           { host: 'wijaya.kreditmotorhonda.tech', label: 'Wijaya Kredit Motor' },
                           { host: 'solusikreditmotor.cloud', label: 'Solusi Kredit Motor' },
                           ...(settings?.seoPages || []).map((page) => ({
