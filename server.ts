@@ -26,7 +26,7 @@ const DB_FILE = fs.existsSync(PERSISTENT_DB_FILE)
   : FALLBACK_DB_FILE;
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
-  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
+  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),   'kreditmotorhonda.id': path.resolve(process.env.OWNER_ANALYTICS_ID_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'id', 'data', 'db.json')),
   'solusikreditmotor.cloud': path.resolve(process.env.OWNER_ANALYTICS_SOLUSI_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json')),
 };
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
@@ -1070,7 +1070,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
       aggregate.impressions += impressions;
       aggregate.positionWeight += impressions;
       aggregate.positionTotal += Number(row.position || 0) * impressions;
-      aggregate.sites.add(result.site);
+      aggregate.sites.add(result.site.replace(/^sc-domain:/i, '').replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLocaleLowerCase('en-US'));
       keywordTotals.set(normalizedKeyword, aggregate);
     }
   }
@@ -1080,7 +1080,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
       ...row,
       ctr: row.impressions ? row.clicks / row.impressions : 0,
       position: positionWeight ? positionTotal / positionWeight : 0,
-      siteCount: matchedSites.size,
+      sites: [...matchedSites].sort((left, right) => left.localeCompare(right, 'en')), siteCount: matchedSites.size,
     }))
     .sort((left, right) => right.impressions - left.impressions || right.clicks - left.clicks)
     .slice(0, 50);
@@ -2640,7 +2640,7 @@ async function startServer() {
     if (!promo) return res.status(404).json({ error: 'Promo global tidak ditemukan.' });
 
     const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
-    const allowedHosts = new Set([
+    const allowedHosts = new Set(['kreditmotorhonda.id','kreditmotorhonda.id',
       'kreditmotorhonda.tech',
       'kreditmotorhonda.id',
       'solusikreditmotor.cloud',
@@ -3106,7 +3106,7 @@ async function startServer() {
 
     const db = readCatalogDb();
     const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
-    const allowedHosts = new Set([
+    const allowedHosts = new Set(['kreditmotorhonda.id','kreditmotorhonda.id',
       'kreditmotorhonda.tech',
       ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
       ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`),
@@ -3192,7 +3192,7 @@ async function startServer() {
       const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
       const sourceDb = databaseContents.get(sourceFile) || {};
       const assignedSeoPage = (Array.isArray(sourceDb.settings?.seoPages) ? sourceDb.settings.seoPages : [])
-        .find((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.kreditmotorhonda.tech` === host);
+        .find((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}` === host);
       const hasSeoPost = assignedSeoPage && getSeoLandingPosts(assignedSeoPage).length > 0;
       const admins = (hasSeoPost ? (Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : []) : [])
         .filter((user: any) => user.role !== 'Super Admin' && user.id === assignedSeoPage.adminUserId)
