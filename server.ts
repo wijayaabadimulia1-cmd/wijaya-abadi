@@ -3149,7 +3149,7 @@ async function startServer() {
       return res.status(404).json({ error: 'Tautan dashboard tidak valid atau sudah dinonaktifkan.' });
     }
 
-    const validHosts = new Set<string>(Array.isArray(config.hosts) ? config.hosts.map(String) : []);
+    const validHosts = new Set<string>([...getOwnerDashboardHosts(db), 'kreditmotorhonda.id', ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES), ...(Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : []).map((page: any) => `${String(page.subdomain || '').trim().toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`)].filter((host) => !host.startsWith('.') && !(Array.isArray(config.disabledHosts) ? config.disabledHosts : []).includes(host)));
     const validStart = isValidDateKey(req.body?.startDate) ? req.body.startDate : '';
     const validEnd = isValidDateKey(req.body?.endDate) ? req.body.endDate : '';
     let startDate = validStart;
