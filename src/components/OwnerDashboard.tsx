@@ -44,7 +44,7 @@ interface OwnerAnalytics {
     startDate?: string;
     endDate?: string;
     sites: string[];
-    rows: Array<{ keyword: string; clicks: number; impressions: number; ctr: number; position: number; siteCount: number }>;
+    rows: Array<{ keyword: string; clicks: number; impressions: number; ctr: number; position: number; sites: string[]; siteCount: number }>;
     errors: string[];
   };
   whatsappClicks: Array<{ host: string; path: string; menu: string; clicks: number; uniqueVisitors: number }>;
@@ -890,10 +890,10 @@ export default function OwnerDashboard() {
                         Sebagian properti tidak dapat dibaca: {analytics.googleSearchConsole.errors.join(' ')}
                       </p>
                     )}
-                    <table className="w-full min-w-[680px] border-collapse text-left">
+                    <table className="w-full min-w-[820px] border-collapse text-left">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
-                          <th className="px-5 py-3.5 sm:px-6">Query Google</th>
+                          <th className="px-5 py-3.5 sm:px-6">Query Google</th><th className="px-5 py-3.5">Domain</th>
                           <th className="px-5 py-3.5 text-right">Klik</th>
                           <th className="px-5 py-3.5 text-right">Impresi</th>
                           <th className="px-5 py-3.5 text-right">CTR</th>
@@ -903,7 +903,7 @@ export default function OwnerDashboard() {
                       <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
                         {analytics.googleSearchConsole.rows.map((row) => (
                           <tr key={row.keyword} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                            <td className="max-w-[28rem] break-words px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200 sm:px-6">{row.keyword}</td>
+                            <td className="max-w-[28rem] break-words px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200 sm:px-6">{row.keyword}</td><td className="max-w-[16rem] break-all px-5 py-3.5 text-[10px] text-slate-600 dark:text-slate-300">{row.sites.join(', ')}</td>
                             <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white">{row.clicks.toLocaleString('id-ID')}</td>
                             <td className="px-5 py-3.5 text-right font-medium tabular-nums text-slate-600 dark:text-slate-300">{row.impressions.toLocaleString('id-ID')}</td>
                             <td className="px-5 py-3.5 text-right font-medium tabular-nums text-slate-600 dark:text-slate-300">{(row.ctr * 100).toFixed(1)}%</td>
