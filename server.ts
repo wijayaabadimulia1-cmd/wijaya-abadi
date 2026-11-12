@@ -2640,7 +2640,7 @@ async function startServer() {
     if (!promo) return res.status(404).json({ error: 'Promo global tidak ditemukan.' });
 
     const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
-    const allowedHosts = new Set(['kreditmotorhonda.id','kreditmotorhonda.id',
+    const allowedHosts = new Set([
       'kreditmotorhonda.tech',
       'kreditmotorhonda.id',
       'solusikreditmotor.cloud',
@@ -3106,7 +3106,7 @@ async function startServer() {
 
     const db = readCatalogDb();
     const seoPages = Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : [];
-    const allowedHosts = new Set(['kreditmotorhonda.id','kreditmotorhonda.id',
+    const allowedHosts = new Set([
       'kreditmotorhonda.tech',
       ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES),
       ...seoPages.map((page: any) => `${String(page.subdomain || '').toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`),
