@@ -1,18 +1,128 @@
+name: Deploy to Ubuntu VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ubuntu-vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup SSH
         env:
           VPS_SSH_KEY_B64: ${{ secrets.VPS_SSH_KEY_B64 }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
-          test -n "$VPS_SSH_KEY_B64"
+          test -n "$VPS_SSH_KEY_B64" || { echo "ERROR: VPS_SSH_KEY_B64 is empty."; exit 1; }
+          test -n "$VPS_KNOWN_HOSTS" || { echo "ERROR: VPS_KNOWN_HOSTS is empty."; exit 1; }
+          test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty."; exit 1; }
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s' "$VPS_SSH_KEY_B64" | base64 --decode > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
           cat > ~/.ssh/config <<'EOF'
           Host *
             IdentityFile ~/.ssh/deploy_key
             IdentitiesOnly yes
             StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
           EOF
           chmod 600 ~/.ssh/config
+
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_SITE_URLS: ${{ vars.GSC_SITE_URLS || 'sc-domain:kreditmotorhonda.tech,https://kreditmotorhonda.id/,sc-domain:solusikreditmotor.cloud' }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty."; exit 1; }
+          test -n "$VPS_USER" || { echo "ERROR: VPS_USER is empty."; exit 1; }
+          if [[ ! "$GSC_SITE_URLS" =~ ^[A-Za-z0-9:.,/_-]+$ ]]; then
+            echo "GSC_SITE_URLS contains unsupported characters." >&2
+            exit 1
+          fi
+          ssh "${VPS_USER}@${VPS_HOST}" 'sudo -n true || { echo "ERROR: Passwordless sudo is not configured for the VPS deploy user." >&2; exit 1; }'
+          ssh "${VPS_USER}@${VPS_HOST}" 'bash -s' <<'CLEANUP'
+          set -euo pipefail
+          RELEASE_ROOT="/opt/wijaya-abadi/releases"
+          for release in "$RELEASE_ROOT"/*; do
+            [ -d "$release" ] || continue
+            [[ "$release" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]] || continue
+            [ -f "$release/dist/server.cjs" ] && continue
+            referenced=0
+            for service in kreditmotorhonda-tech.service kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+              if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
+                referenced=1
+                break
+              fi
+            done
+            if [ "$referenced" -eq 0 ]; then
+              echo "Removing incomplete deployment release: $release"
+              sudo rm -rf -- "$release"
+            fi
+          done
+          mapfile -t releases < <(find "$RELEASE_ROOT" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}' -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
+          retained_backups=0
+          for release in "${releases[@]}"; do
+            [ -f "$release/dist/server.cjs" ] || continue
+            referenced=0
+            for service in kreditmotorhonda-tech.service kreditmotorhonda-id.service kreditmotorhonda.service solusikreditmotor.service; do
+              if systemctl show "$service" --property=ExecStart --value | grep -Fq -- "$release/dist/server.cjs"; then
+                referenced=1
+                break
+              fi
+            done
+            [ "$referenced" -eq 0 ] || continue
+            if [ "$retained_backups" -lt 2 ]; then
+              retained_backups=$((retained_backups + 1))
+              continue
+            fi
+            echo "Removing inactive old deployment release: $release"
+            sudo rm -rf -- "$release"
+          done
+          find /tmp -maxdepth 1 -type f -name 'wijaya-abadi-*.tar' -print -delete
+          df -h / /tmp /opt
+          df -i / /tmp /opt
+          CLEANUP
+          if [ -n "$GSC_SERVICE_ACCOUNT_JSON" ]; then
+            printf '%s' "$GSC_SERVICE_ACCOUNT_JSON" | ssh "${VPS_USER}@${VPS_HOST}" 'sudo install -d -m 700 /etc/wijaya-abadi && sudo tee /etc/wijaya-abadi/gsc-service-account.json >/dev/null && sudo chmod 600 /etc/wijaya-abadi/gsc-service-account.json'
+          fi
+          ARCHIVE_PATH="$(mktemp)"
+          trap 'rm -f "$ARCHIVE_PATH"' EXIT
+          git archive --format=tar HEAD > "$ARCHIVE_PATH"
+          REMOTE_ARCHIVE="/tmp/wijaya-abadi-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar"
+          scp "$ARCHIVE_PATH" "${VPS_USER}@${VPS_HOST}:${REMOTE_ARCHIVE}"
+          ssh "${VPS_USER}@${VPS_HOST}" "DEPLOY_COMMIT='$GITHUB_SHA' GSC_SITE_URLS='$GSC_SITE_URLS' REMOTE_ARCHIVE='$REMOTE_ARCHIVE' bash -s" <<'SSH'
+          set -euo pipefail
+          SOURCE_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy-src.XXXXXX)"
+          cleanup() {
+            rm -rf "$SOURCE_DIR"
+            rm -f "$REMOTE_ARCHIVE"
+          }
+          trap cleanup EXIT
+          tar -xf "$REMOTE_ARCHIVE" -C "$SOURCE_DIR"
+          bash "$SOURCE_DIR/deploy-vps-safe.sh"
+          SSH
