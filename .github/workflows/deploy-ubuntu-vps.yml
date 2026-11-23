@@ -25,6 +25,7 @@ jobs:
         env:
           VPS_SSH_KEY_B64: ${{ secrets.VPS_SSH_KEY_B64 }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_KEY_PASSPHRASE: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
@@ -32,25 +33,35 @@ jobs:
           test -n "$VPS_SSH_KEY_B64" || { echo "ERROR: VPS_SSH_KEY_B64 is empty."; exit 1; }
           test -n "$VPS_KNOWN_HOSTS" || { echo "ERROR: VPS_KNOWN_HOSTS is empty."; exit 1; }
           test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty."; exit 1; }
+          umask 077
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+          validate_and_unlock_key() {
+            if ! ssh-keygen -y -P "$VPS_SSH_KEY_PASSPHRASE" -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+              return 1
+            fi
+            if ! ssh-keygen -p -P "$VPS_SSH_KEY_PASSPHRASE" -N "" -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+              return 1
+            fi
+            ssh-keygen -y -P "" -f ~/.ssh/deploy_key > /dev/null 2>&1
+          }
           load_ssh_key() {
             local candidate="$1"
             [ -n "$candidate" ] || return 1
             if printf '%s' "$candidate" | base64 --decode > ~/.ssh/deploy_key 2>/dev/null \
-              && ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+              && validate_and_unlock_key; then
               return 0
             fi
             case "$candidate" in
               "-----BEGIN "*)
                 printf '%s\n' "$candidate" > ~/.ssh/deploy_key
-                ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1 && return 0
+                validate_and_unlock_key && return 0
                 ;;
             esac
             return 1
           }
           if ! load_ssh_key "$VPS_SSH_KEY_B64" && ! load_ssh_key "$VPS_SSH_KEY"; then
-            echo "ERROR: Neither VPS_SSH_KEY_B64 nor VPS_SSH_KEY contains a valid supported private key." >&2
+            echo "ERROR: No supported private key was loaded. Check both SSH key secrets and VPS_SSH_KEY_PASSPHRASE if the key is encrypted." >&2
             exit 1
           fi
           chmod 600 ~/.ssh/deploy_key
