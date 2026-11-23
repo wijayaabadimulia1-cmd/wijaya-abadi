@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent } from 'lucide-react';
+import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent, Search } from 'lucide-react';
 import { Motor, DealerSettings, FIFPriceList } from '../types';
 import { formatRupiah } from '../services/api';
 import { getFIFPriceListModel, getMotorOtrPrice } from '../services/fifPriceList';
@@ -23,6 +23,26 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const [currentMotorId, setCurrentMotorId] = useState<string>(
     selectedMotor ? selectedMotor.id : motors[0]?.id || ''
   );
+  const [motorSearch, setMotorSearch] = useState('');
+  const [motorCategory, setMotorCategory] = useState('Semua');
+
+  const motorCategories = useMemo(() => {
+    return ['Semua', ...Array.from(new Set(motors.map((motor) => motor.category).filter(Boolean)))];
+  }, [motors]);
+
+  const filteredMotors = useMemo(() => {
+    const keyword = motorSearch.trim().toLowerCase();
+    return motors.filter((motor) => {
+      const matchesCategory = motorCategory === 'Semua' || motor.category === motorCategory;
+      const matchesSearch =
+        !keyword ||
+        motor.name.toLowerCase().includes(keyword) ||
+        motor.category.toLowerCase().includes(keyword) ||
+        motor.description?.toLowerCase().includes(keyword) ||
+        motor.specs?.some((spec) => spec.toLowerCase().includes(keyword));
+      return matchesCategory && matchesSearch;
+    });
+  }, [motors, motorCategory, motorSearch]);
 
   // Sync when selectedMotor changes from outside
   useEffect(() => {
@@ -32,6 +52,13 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
       setCurrentMotorId(motors[0].id);
     }
   }, [selectedMotor, motors]);
+
+  useEffect(() => {
+    if (filteredMotors.length === 0) return;
+    if (!filteredMotors.some((motor) => motor.id === currentMotorId)) {
+      setCurrentMotorId(filteredMotors[0].id);
+    }
+  }, [currentMotorId, filteredMotors]);
 
   const activeMotor = useMemo(() => {
     return motors.find((m) => m.id === currentMotorId) || motors[0];
@@ -108,6 +135,41 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
             <div className="lg:col-span-7 space-y-6">
               {/* Select Motor */}
               <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label htmlFor="simulator-motor-search" className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                      Cari Motor
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        id="simulator-motor-search"
+                        type="search"
+                        value={motorSearch}
+                        onChange={(event) => setMotorSearch(event.target.value)}
+                        placeholder="Nama, tipe, atau spesifikasi..."
+                        className="w-full rounded-xl border border-white/15 bg-zinc-950 py-3 pl-10 pr-4 text-sm font-medium text-white outline-none placeholder:text-zinc-500 focus:border-red-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="simulator-motor-category" className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                      Jenis Motor
+                    </label>
+                    <select
+                      id="simulator-motor-category"
+                      value={motorCategory}
+                      onChange={(event) => setMotorCategory(event.target.value)}
+                      className="w-full rounded-xl border border-white/15 bg-zinc-950 px-4 py-3 text-sm font-medium text-white outline-none focus:border-red-500"
+                    >
+                      {motorCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <label htmlFor="simulator-motor" className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
                   Pilih Unit Motor Honda
                 </label>
@@ -117,11 +179,15 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                   onChange={(e) => setCurrentMotorId(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500 font-medium"
                 >
-                  {motors.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} — ({formatRupiah(getMotorOtrPrice(m))})
-                    </option>
-                  ))}
+                  {filteredMotors.length > 0 ? (
+                    filteredMotors.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} — ({formatRupiah(getMotorOtrPrice(m, priceList))})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>Motor tidak ditemukan</option>
+                  )}
                 </select>
               </div>
 

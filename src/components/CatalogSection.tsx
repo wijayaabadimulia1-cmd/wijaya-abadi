@@ -40,7 +40,7 @@ export function filterCatalogMotors(
   motors: Motor[],
   activeCategory: string,
   searchQuery: string,
-  sortBy: 'default' | 'price-asc' | 'price-desc' | 'bestseller' = 'bestseller',
+  sortBy: 'default' | 'price-asc' | 'price-desc' | 'bestseller' = 'default',
 ) {
   return motors
     .filter((motor) => {
@@ -191,7 +191,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('bestseller');
+  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('default');
   const [selectedGallery, setSelectedGallery] = useState<{ images: string[]; index: number; alt: string } | null>(null);
   const galleryTouchStartX = useRef<number | null>(null);
 
@@ -307,7 +307,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                 className="bg-zinc-900 border border-white/10 rounded-xl text-xs text-zinc-300 py-2.5 px-3 focus:outline-none focus:border-red-500"
               >
                 <option value="default">Paling Relevan</option>
-                <option value="bestseller">🔥 Terlaris / Bestseller</option>
+                <option value="bestseller">Terlaris / Bestseller</option>
                 <option value="price-asc">Harga Terendah</option>
                 <option value="price-desc">Harga Tertinggi</option>
               </select>
