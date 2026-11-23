@@ -57,12 +57,17 @@ for (const inspectionUrl of urls) {
 
 const passed = results.filter((item) => item.verdict === 'PASS').length;
 console.log(`Inspected ${results.length} URLs; ${passed} returned PASS.`);
+for (const item of results.filter((result) => result.verdict !== 'PASS')) {
+  console.warn(
+    `Search Console ${item.verdict}: ${item.url}; coverage=${item.coverage || 'unknown'}; indexing=${item.indexing || 'unknown'}; canonical=${item.canonical || 'unknown'}`
+  );
+}
 if (process.env.GITHUB_STEP_SUMMARY) {
   const rows = results.map((item) => `| [${new URL(item.url).pathname}](${item.url}) | ${item.verdict} | ${item.coverage} | ${item.indexing} | ${item.canonical || '-'} |`);
   await appendFile(process.env.GITHUB_STEP_SUMMARY, [
     '# Search Console URL Inspection', '',
     `Inspected ${results.length} URLs for ${siteUrl}; ${passed} returned PASS.`, '',
-    'This reports indexed status only. It does not request indexing.', '',
+    'Workflow success means the inspection API completed; PASS indicates Google currently reports the URL as indexed. This does not request indexing.', '',
     '| URL | Verdict | Coverage | Indexing | Canonical |', '| --- | --- | --- | --- | --- |', ...rows, '',
   ].join('\n'));
 }
