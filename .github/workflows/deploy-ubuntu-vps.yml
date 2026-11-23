@@ -21,52 +21,76 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+     
       - name: Setup SSH
         env:
           VPS_SSH_KEY_B64: ${{ secrets.VPS_SSH_KEY_B64 }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_SSH_KEY_PASSPHRASE: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
-          test -n "$VPS_SSH_KEY_B64" || { echo "ERROR: VPS_SSH_KEY_B64 is empty."; exit 1; }
-          test -n "$VPS_KNOWN_HOSTS" || { echo "ERROR: VPS_KNOWN_HOSTS is empty."; exit 1; }
-          test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty."; exit 1; }
-          umask 077
+
+          test -n "$VPS_SSH_KEY_B64" || {
+            echo "ERROR: VPS_SSH_KEY_B64 is empty."
+            exit 1
+          }
+
+          test -n "$VPS_KNOWN_HOSTS" || {
+            echo "ERROR: VPS_KNOWN_HOSTS is empty."
+            exit 1
+          }
+
+          test -n "$VPS_HOST" || {
+            echo "ERROR: VPS_HOST is empty."
+            exit 1
+          }
+
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          validate_and_unlock_key() {
-            if ! ssh-keygen -y -P "$VPS_SSH_KEY_PASSPHRASE" -f ~/.ssh/deploy_key > /dev/null 2>&1; then
-              return 1
-            fi
-            if ! ssh-keygen -p -P "$VPS_SSH_KEY_PASSPHRASE" -N "" -f ~/.ssh/deploy_key > /dev/null 2>&1; then
-              return 1
-            fi
-            ssh-keygen -y -P "" -f ~/.ssh/deploy_key > /dev/null 2>&1
-          }
+          umask 077
+
           load_ssh_key() {
             local candidate="$1"
+
             [ -n "$candidate" ] || return 1
-            if printf '%s' "$candidate" | base64 --decode > ~/.ssh/deploy_key 2>/dev/null \
-              && validate_and_unlock_key; then
-              return 0
+
+            if printf '%s' "$candidate" |
+              tr -d '[:space:]' |
+              base64 --decode > ~/.ssh/deploy_key 2>/dev/null; then
+
+              if ssh-keygen -y -P "" -f ~/.ssh/deploy_key \
+                > /dev/null 2>&1; then
+                return 0
+              fi
             fi
+
             case "$candidate" in
               "-----BEGIN "*)
                 printf '%s\n' "$candidate" > ~/.ssh/deploy_key
-                validate_and_unlock_key && return 0
+
+                if ssh-keygen -y -P "" -f ~/.ssh/deploy_key \
+                  > /dev/null 2>&1; then
+                  return 0
+                fi
                 ;;
             esac
+
             return 1
           }
-          if ! load_ssh_key "$VPS_SSH_KEY_B64" && ! load_ssh_key "$VPS_SSH_KEY"; then
-            echo "ERROR: No supported private key was loaded. Check both SSH key secrets and VPS_SSH_KEY_PASSPHRASE if the key is encrypted." >&2
-            exit 1
+
+          if ! load_ssh_key "$VPS_SSH_KEY_B64"; then
+            if ! load_ssh_key "$VPS_SSH_KEY"; then
+              echo "ERROR: Private key could not be decoded or validated."
+              exit 1
+            fi
           fi
+
           chmod 600 ~/.ssh/deploy_key
+
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
           cat > ~/.ssh/config <<'EOF'
           Host *
             IdentityFile ~/.ssh/deploy_key
@@ -74,7 +98,10 @@ jobs:
             StrictHostKeyChecking yes
             UserKnownHostsFile ~/.ssh/known_hosts
           EOF
+
           chmod 600 ~/.ssh/config
+
+          echo "SUCCESS: SSH private key loaded and validated."
 
       - name: Deploy to VPS
         env:
