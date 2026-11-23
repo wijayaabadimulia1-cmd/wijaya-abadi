@@ -33,9 +33,22 @@ jobs:
           test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty."; exit 1; }
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s' "$VPS_SSH_KEY_B64" | base64 --decode > ~/.ssh/deploy_key
+          if ! printf '%s' "$VPS_SSH_KEY_B64" | base64 --decode > ~/.ssh/deploy_key 2>/dev/null; then
+            case "$VPS_SSH_KEY_B64" in
+              "-----BEGIN "*)
+                printf '%s\n' "$VPS_SSH_KEY_B64" > ~/.ssh/deploy_key
+                ;;
+              *)
+                echo "ERROR: VPS_SSH_KEY_B64 must contain a valid base64-encoded key or a PEM/OpenSSH private key." >&2
+                exit 1
+                ;;
+            esac
+          fi
           chmod 600 ~/.ssh/deploy_key
-          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+            echo "ERROR: The configured VPS SSH key is invalid or has an unsupported passphrase." >&2
+            exit 1
+          fi
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
           cat > ~/.ssh/config <<'EOF'
