@@ -242,6 +242,7 @@ export interface DealerSettings {
   socialLinks?: {
     youtube?: string;
     instagram?: string;
+    tiktok?: string;
     facebook?: string;
     x?: string;
     linkedin?: string;
