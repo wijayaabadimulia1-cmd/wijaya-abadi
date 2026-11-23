@@ -3388,7 +3388,8 @@ async function startServer() {
       return res.status(404).json({ error: 'Tautan dashboard tidak valid atau sudah dinonaktifkan.' });
     }
 
-    const validHosts = new Set<string>([...getOwnerDashboardHosts(db), 'kreditmotorhonda.id', ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES), ...(Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : []).map((page: any) => `${String(page.subdomain || '').trim().toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`)].filter((host) => !host.startsWith('.') && !(Array.isArray(config.disabledHosts) ? config.disabledHosts : []).includes(host)));
+    const catalogOwnerPages = getOwnerSeoPages(readCatalogDb());
+    const validHosts = new Set<string>([...getOwnerDashboardHosts(db), 'kreditmotorhonda.id', ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES), ...(Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : []).map((page: any) => `${String(page.subdomain || '').trim().toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`), ...catalogOwnerPages.map((page: any) => `${String(page.subdomain || '').trim().toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`)].filter((host) => !host.startsWith('.') && !(Array.isArray(config.disabledHosts) ? config.disabledHosts : []).includes(host)));
     const validStart = isValidDateKey(req.body?.startDate) ? req.body.startDate : '';
     const validEnd = isValidDateKey(req.body?.endDate) ? req.body.endDate : '';
     let startDate = validStart;
@@ -3439,7 +3440,7 @@ async function startServer() {
         .filter((user: any) => user.username);
       return { host, dataAvailable: databaseContents.has(sourceFile), admins };
     });
-    const ownerPages = getOwnerSeoPages(db);
+    const ownerPages = catalogOwnerPages;
     const ownerPageRows = ownerPages.map((page: any) => ({
       host: `${String(page.subdomain || '').trim().toLowerCase()}.${getSeoPageDomainSuffix(page)}`,
       title: String(page.title || page.seoTitle || page.subdomain || 'Tanpa judul'),
