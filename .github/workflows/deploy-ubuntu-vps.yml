@@ -34,20 +34,22 @@ jobs:
           test -n "$VPS_HOST" || { echo "ERROR: VPS_HOST is empty."; exit 1; }
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          key_loaded=false
-          if printf '%s' "$VPS_SSH_KEY_B64" | base64 --decode > ~/.ssh/deploy_key 2>/dev/null \
-            && ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
-            key_loaded=true
-          fi
-          if [[ "$key_loaded" != true && "$VPS_SSH_KEY_B64" == "-----BEGIN "* ]]; then
-            printf '%s\n' "$VPS_SSH_KEY_B64" > ~/.ssh/deploy_key
-            ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1 && key_loaded=true
-          fi
-          if [[ "$key_loaded" != true && "$VPS_SSH_KEY" == "-----BEGIN "* ]]; then
-            printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
-            ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1 && key_loaded=true
-          fi
-          if [[ "$key_loaded" != true ]]; then
+          load_ssh_key() {
+            local candidate="$1"
+            [ -n "$candidate" ] || return 1
+            if printf '%s' "$candidate" | base64 --decode > ~/.ssh/deploy_key 2>/dev/null \
+              && ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+              return 0
+            fi
+            case "$candidate" in
+              "-----BEGIN "*)
+                printf '%s\n' "$candidate" > ~/.ssh/deploy_key
+                ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1 && return 0
+                ;;
+            esac
+            return 1
+          }
+          if ! load_ssh_key "$VPS_SSH_KEY_B64" && ! load_ssh_key "$VPS_SSH_KEY"; then
             echo "ERROR: Neither VPS_SSH_KEY_B64 nor VPS_SSH_KEY contains a valid supported private key." >&2
             exit 1
           fi
