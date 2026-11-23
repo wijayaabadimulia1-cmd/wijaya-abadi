@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, MessageSquare, Bike, ArrowUp, Facebook, Instagram, Linkedin, Youtube } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageSquare, Bike, ArrowUp, Facebook, Instagram, Linkedin, Music2, Youtube } from 'lucide-react';
 import { DealerSettings } from '../types';
 import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
 
@@ -13,6 +13,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ settings }) => {
   const whatsappUrl = createWhatsAppUrl(settings.phone, 'Halo Honda Wijaya Abadi, saya ingin konsultasi motor Honda.');
   const socialLinks = [
     { label: 'Instagram', href: settings.socialLinks?.instagram || 'https://www.instagram.com/wijayaabadimulia', icon: Instagram },
+    { label: 'TikTok', href: settings.socialLinks?.tiktok || 'https://www.tiktok.com/@wijayaabadimulia', icon: Music2 },
     { label: 'Facebook', href: settings.socialLinks?.facebook || 'https://www.facebook.com/people/Honda-wijaya-abadi-mulia', icon: Facebook },
     { label: 'YouTube', href: settings.socialLinks?.youtube || 'https://www.youtube.com/@welovehondaindonesia', icon: Youtube },
     { label: 'X', href: settings.socialLinks?.x || 'https://x.com/welovehonda', icon: null },
