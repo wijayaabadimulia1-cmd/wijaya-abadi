@@ -1,4 +1,4 @@
-import { Motor, Promo, Article, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite } from '../types';
+import { Motor, Promo, Article, ArticleAnalytics, Testimonial, DealerSettings, ManifestoItem, LeadInterest, AdminSession, AdminUser, AuditLog, FIFPriceList, SalesCounterSite } from '../types';
 
 interface MotorSaveData extends Partial<Motor> {
   fifPriceListModel?: {
@@ -411,6 +411,72 @@ export const api = {
     const res = await fetch('/api/articles', { headers: adminHeaders(), cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil daftar artikel');
     return res.json();
+  },
+
+  async getArticleAnalytics(): Promise<ArticleAnalytics> {
+    const res = await fetch('/api/articles/analytics', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal mengambil analitik artikel');
+    return result;
+  },
+
+  async getArticleAiStatus(): Promise<{ configured: boolean }> {
+    const res = await fetch('/api/articles/ai-status', { headers: adminHeaders(), cache: 'no-store' });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal memeriksa konfigurasi AI');
+    return result;
+  },
+
+  async generateArticleDraft(input: { sourceText: string; template: string; title?: string }): Promise<{
+    title: string;
+    excerpt: string;
+    content: string;
+    metaTitle: string;
+    metaDescription: string;
+    metaKeywords: string;
+    faqItems: string;
+    whatsappCta: string;
+  }> {
+    const res = await fetch('/api/articles/ai-draft', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(input),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(result.error || 'Gagal membuat draf dengan AI');
+    return result;
+  },
+
+  async uploadArticleVideo(file: File): Promise<string> {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension !== 'mp4' || (file.type && file.type !== 'video/mp4' && file.type !== 'application/octet-stream')) {
+      throw new Error('Pilih file MP4 yang valid.');
+    }
+    if (file.size === 0 || file.size > 250 * 1024 * 1024) {
+      throw new Error('Ukuran video harus lebih dari 0 dan maksimal 250 MB.');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 600_000);
+    try {
+      const res = await fetch('/api/articles/video-upload', {
+        method: 'POST',
+        headers: {
+          ...adminHeaders(),
+          'Content-Type': file.type || 'application/octet-stream',
+        },
+        body: file,
+        signal: controller.signal,
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.url) throw new Error(result.error || `Upload video gagal (HTTP ${res.status})`);
+      return result.url;
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Upload video melewati batas waktu. Periksa koneksi atau gunakan video lebih kecil.');
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   },
 
   async createArticle(data: Partial<Article>): Promise<Article> {

@@ -982,7 +982,7 @@ export default function App() {
           {promos.length > 0 && (
             <PromoSection promos={promos.slice(0, 4)} settings={settings} showMore={promos.length > 4} />
           )}
-          <ArticleSection articles={articles} />
+          <ArticleSection articles={articles} whatsappNumber={settings.phone} />
           <ManifestoSection items={manifesto} />
           <TestimonialsSection
             testimonials={testimonials}
@@ -1300,7 +1300,7 @@ export default function App() {
           <PromoSection promos={promos.slice(0, 4)} settings={settings} showMore={promos.length > 4} />
         )}
 
-        <ArticleSection articles={articles} />
+        <ArticleSection articles={articles} whatsappNumber={settings.phone} />
 
         {/* 4 Pillars Manifesto / Nilai Kami */}
         <ManifestoSection items={manifesto} />
