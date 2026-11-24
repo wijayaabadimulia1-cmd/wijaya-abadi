@@ -3697,7 +3697,7 @@ async function startServer() {
   });
 
   // File Upload (Base64)
-  app.post('/api/upload', express.raw({ type: ['image/*', 'application/octet-stream'], limit: MAX_IMAGE_UPLOAD_BYTES }), (req, res) => {
+  app.post('/api/upload', express.raw({ type: ['image/*', 'video/mp4', 'video/webm', 'video/quicktime', 'application/octet-stream'], limit: MAX_IMAGE_UPLOAD_BYTES }), (req, res) => {
     try {
       let buffer: Buffer;
       let ext = 'png';
@@ -3712,11 +3712,15 @@ async function startServer() {
         }
         const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
         const knownImageExtension = ['avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp'].includes(fileExtension);
-        if (!mimeType.startsWith('image/') && !(mimeType === 'application/octet-stream' && knownImageExtension)) {
-          return res.status(415).json({ error: 'File yang diunggah harus berupa gambar' });
+        const knownVideoExtension = ['mp4', 'webm', 'mov'].includes(fileExtension);
+        const isImage = mimeType.startsWith('image/') && knownImageExtension;
+        const isVideo = ['video/mp4', 'video/webm', 'video/quicktime'].includes(mimeType) && knownVideoExtension;
+        const isLegacyImage = mimeType === 'application/octet-stream' && knownImageExtension;
+        if (!isImage && !isVideo && !isLegacyImage) {
+          return res.status(415).json({ error: 'Format file tidak didukung. Gunakan gambar atau video MP4, WebM, dan MOV.' });
         }
         buffer = req.body;
-        ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+        ext = isVideo ? fileExtension : (mimeType.split('/')[1]?.replace('jpeg', 'jpg') || fileExtension || 'png');
       } else {
         const { filename: legacyFilename, base64Data } = req.body || {};
         if (!base64Data) {
@@ -3734,7 +3738,7 @@ async function startServer() {
       }
 
       if (buffer.length === 0) {
-        return res.status(400).json({ error: 'File gambar kosong' });
+        return res.status(400).json({ error: 'File yang diunggah kosong' });
       }
 
       const requestedName = (filename || `upload.${ext}`).replace(/[^a-zA-Z0-9._-]/g, '_');
