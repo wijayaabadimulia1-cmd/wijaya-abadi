@@ -86,6 +86,8 @@ node scripts/migrate-shared-catalog.mjs --apply
 
 Migrasi membuat backup database owner, menggabungkan motor berdasarkan nama yang dinormalisasi, menggabungkan model FIF, dan menyalin foto katalog ke folder uploads bersama. Jangan hapus backup DB atau uploads lama sampai foto dan katalog di semua domain terverifikasi.
 
+Untuk pemulihan backup katalog 21 Oktober, dispatch workflow deploy dengan `allow_empty_catalog=true`. Deploy hanya mengimpor backup jika katalog live kosong dan marker `/var/lib/honda-wijaya-abadi/data/.catalog-2026-10-21-imported` belum ada. Impor mencadangkan DB, hanya mengubah motor dan price list FIF, mempertahankan model FIF live yang sudah ada, serta tidak menyertakan foto. Marker mencegah impor ulang otomatis.
+
 ## 7. Jalankan empat situs dengan PM2
 
 Pastikan `.env` memiliki satu secret internal yang sama untuk semua proses:

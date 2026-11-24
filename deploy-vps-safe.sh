@@ -256,6 +256,25 @@ if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
   fail "Could not verify the Wijaya and Solusi site databases for owner analytics."
 fi
 
+CATALOG_RESTORE_FILE="$SOURCE_DIR/data/catalog-transfer-2026-10-21.json"
+CATALOG_RESTORE_SCRIPT="$SOURCE_DIR/scripts/import-catalog.mjs"
+CATALOG_RESTORE_MARKER="$DATA_DIR/.catalog-2026-10-21-imported"
+if [ "$ALLOW_EMPTY_CATALOG" = "true" ] && [ -s "$CATALOG_RESTORE_FILE" ] && [ ! -e "$CATALOG_RESTORE_MARKER" ]; then
+  CURRENT_MOTORS="$(node -e 'const db = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (!Array.isArray(db.motors)) process.exit(2); console.log(db.motors.length)' "$DATA_DIR/db.json")"
+  if [ "$CURRENT_MOTORS" -eq 0 ]; then
+    if [ ! -s "$CATALOG_RESTORE_SCRIPT" ]; then
+      fail "Catalog backup is present but its import script is missing."
+    fi
+    echo "Restoring the 2026-10-21 catalog backup because the live catalog is empty."
+    NODE_BIN="$(command -v node)"
+    sudo "$NODE_BIN" "$CATALOG_RESTORE_SCRIPT" "$CATALOG_RESTORE_FILE" "$DATA_DIR/db.json"
+    printf '2026-10-21\n' | sudo tee "$CATALOG_RESTORE_MARKER" >/dev/null
+    sudo chmod 600 "$CATALOG_RESTORE_MARKER"
+  else
+    echo "Live catalog already contains $CURRENT_MOTORS motors; skipping backup restore."
+  fi
+fi
+
 EXPECTED_MOTORS="$(node -e 'const db = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (!Array.isArray(db.motors)) process.exit(2); console.log(db.motors.length)' "$DATA_DIR/db.json")"
 if [ "$EXPECTED_MOTORS" -lt 1 ] && [ "$ALLOW_EMPTY_CATALOG" != "true" ]; then
   fail "The live catalog is empty; refusing deployment."

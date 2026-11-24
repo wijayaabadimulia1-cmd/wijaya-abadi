@@ -821,7 +821,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
       name: '',
       category: 'Matic',
       price: '20.000.000',
-      specs: ['110cc', 'eSP'],
+      specs: [],
       description: '',
       image: '',
       images: Array(MAX_MOTOR_IMAGES).fill(''),
@@ -4652,10 +4652,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   onChange={(e) =>
                     setEditingMotor({
                       ...editingMotor,
-                      specs: e.target.value.split(',').map((s) => s.trim()),
+                      specs: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
                     })
                   }
-                  placeholder="160cc, ABS, Smart Key, LED"
                   className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500 focus:outline-none"
                 />
               </div>

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       allow_empty_catalog:
-        description: Allow deploy when the catalog is intentionally empty
+        description: Allow empty catalog; restore bundled backup when available
         required: true
         default: false
         type: boolean

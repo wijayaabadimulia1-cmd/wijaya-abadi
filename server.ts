@@ -1808,6 +1808,14 @@ function normalizeMotorImages(value: unknown, fallback: unknown = []): string[] 
   return source.map((image: unknown) => String(image || '').trim()).filter(Boolean);
 }
 
+function normalizeMotorSpecs(value: unknown): string[] {
+  const source = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  return source
+    .filter((spec): spec is string => typeof spec === 'string')
+    .map((spec) => spec.trim())
+    .filter(Boolean);
+}
+
 function isSharedCatalogImageUrl(value: string) {
   try {
     const url = new URL(value);
@@ -2753,7 +2761,7 @@ async function startServer() {
       numericPrice: req.body.numericPrice || Number(String(req.body.price).replace(/[^0-9]/g, '')) || 20000000,
       image: images[0] || '',
       images,
-      specs: Array.isArray(req.body.specs) ? req.body.specs : (typeof req.body.specs === 'string' ? req.body.specs.split(',').map((s: string) => s.trim()) : ['110cc']),
+      specs: normalizeMotorSpecs(req.body.specs),
       description: req.body.description || '',
       is_bestseller: Boolean(req.body.is_bestseller),
       interest_count: req.body.interest_count || 0,
@@ -2791,7 +2799,7 @@ async function startServer() {
       image: images[0] || '',
       images,
       numericPrice: req.body.numericPrice || (req.body.price ? Number(String(req.body.price).replace(/[^0-9]/g, '')) : db.motors[index].numericPrice),
-      specs: Array.isArray(req.body.specs) ? req.body.specs : (typeof req.body.specs === 'string' ? req.body.specs.split(',').map((s: string) => s.trim()) : db.motors[index].specs),
+      specs: req.body.specs === undefined ? db.motors[index].specs : normalizeMotorSpecs(req.body.specs),
       updated_at: new Date().toISOString()
     };
     db.motors[index] = updated;
