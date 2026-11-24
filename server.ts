@@ -26,7 +26,8 @@ const DB_FILE = fs.existsSync(PERSISTENT_DB_FILE)
   : FALLBACK_DB_FILE;
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
-  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),   'kreditmotorhonda.id': path.resolve(process.env.OWNER_ANALYTICS_ID_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'id', 'data', 'db.json')),
+  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
+  'kreditmotorhonda.id': path.resolve(process.env.OWNER_ANALYTICS_ID_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'kreditmotorhonda-id', 'data', 'db.json')),
   'solusikreditmotor.cloud': path.resolve(process.env.OWNER_ANALYTICS_SOLUSI_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json')),
 };
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));

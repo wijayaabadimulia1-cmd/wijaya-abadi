@@ -62,7 +62,7 @@ Sebelum mengubah route Nginx atau me-reload PM2:
 2. Salin database situs utama ke `/var/lib/honda-wijaya-abadi/data/db.json`.
 3. Salin database situs `wijaya` ke `/var/lib/honda-wijaya-abadi/sites/wijaya/data/db.json`.
 4. Salin database `solusikreditmotor.cloud` ke `/var/lib/honda-wijaya-abadi/sites/solusi/data/db.json`.
-5. Salin database `kreditmotorhonda.id` ke `/var/lib/honda-wijaya-abadi/sites/id/data/db.json`.
+5. Salin database `kreditmotorhonda.id` ke `/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data/db.json`.
 6. Salin semua folder uploads lama ke `/var/lib/honda-wijaya-abadi/uploads/` tanpa menimpa nama file yang sudah ada.
 
 Jangan gunakan satu `db.json` untuk semua situs: file per situs tetap menyimpan tema, promo, identitas, prospek, dan analitik masing-masing. Semua proses memakai `OWNER_ANALYTICS_ROOT_DIR=/var/lib/honda-wijaya-abadi` agar Dashboard Owner dapat menemukan database lintas situs.
