@@ -267,6 +267,30 @@ get_service_environment_value() {
   done <<< "$environment_files"
 }
 
+get_pm2_catalog_service_token() {
+  local process_names="$1"
+  pm2 jlist | node -e '
+    let input = "";
+    process.stdin.on("data", (chunk) => input += chunk).on("end", () => {
+      try {
+        const names = process.argv[1].split(",").filter(Boolean);
+        const apps = JSON.parse(input);
+        const tokens = names.map((name) => {
+          const app = apps.find((item) => item.name === name);
+          return app?.pm2_env?.env?.CATALOG_SERVICE_TOKEN;
+        });
+        if (!tokens.length || tokens.some((token) => typeof token !== "string" || !/^[a-f0-9]{64}$/i.test(token))) {
+          process.exit(1);
+        }
+        if (new Set(tokens).size !== 1) process.exit(1);
+        process.stdout.write(tokens[0]);
+      } catch {
+        process.exit(1);
+      }
+    });
+  ' "$process_names"
+}
+
 OWNER_ANALYTICS_ROOT_DIR="$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_ROOT_DIR)"
 OWNER_ANALYTICS_ROOT_DIR="${OWNER_ANALYTICS_ROOT_DIR:-$(dirname "$DATA_DIR")}"
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
@@ -593,9 +617,19 @@ if [ "${#PM2_SITE_NAMES[@]}" -gt 0 ]; then
   if [ ! -f "$PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" ]; then
     fail "Previous PM2 release does not contain ecosystem.config.cjs; refusing an unsafe satellite update."
   fi
-  PM2_CATALOG_TOKEN="$(get_service_environment_value "$SERVICE" CATALOG_SERVICE_TOKEN)"
+  system_catalog_token="$(get_service_environment_value "$SERVICE" CATALOG_SERVICE_TOKEN)"
+  satellite_catalog_token="$(get_pm2_catalog_service_token "$PM2_SITE_NAMES_CSV" || true)"
+  if [[ "$system_catalog_token" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    if [[ "$satellite_catalog_token" =~ ^[a-fA-F0-9]{64}$ ]] \
+      && [ "$system_catalog_token" != "$satellite_catalog_token" ]; then
+      fail "Systemd and PM2 satellite catalog service tokens do not match."
+    fi
+    PM2_CATALOG_TOKEN="$system_catalog_token"
+  else
+    PM2_CATALOG_TOKEN="$satellite_catalog_token"
+  fi
   if ! [[ "$PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
-    fail "Could not load a valid CATALOG_SERVICE_TOKEN for PM2-managed satellite sites."
+    fail "Could not load a valid CATALOG_SERVICE_TOKEN from the systemd service or PM2 satellite processes."
   fi
   mkdir -p "$RELEASE_DIR/logs"
   SATELLITE_PM2_UPDATES_STARTED=1
