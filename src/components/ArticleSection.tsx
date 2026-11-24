@@ -37,6 +37,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
   const visibleArticles = articles.filter((article) => article.published);
+  const isDirectArticlePage = /^\/artikel\/[^/]+\/?$/.test(window.location.pathname);
 
   useEffect(() => {
     const syncArticleRoute = () => {
@@ -121,7 +122,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
 
   return (
     <>
-      <section id="artikel" className="relative overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24">
+      <section id="artikel" className={`relative overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24 ${isDirectArticlePage ? 'hidden' : ''}`}>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 border-b border-stone-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
@@ -173,8 +174,16 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
       </section>
 
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-3 backdrop-blur-md sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeArticle(); }}>
-          <article className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
+        <div
+          className={isDirectArticlePage
+            ? 'fixed inset-0 z-50 overflow-y-auto bg-[#fffefa]'
+            : 'fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-3 backdrop-blur-md sm:p-6'}
+          onMouseDown={!isDirectArticlePage ? (event) => { if (event.target === event.currentTarget) closeArticle(); } : undefined}
+        >
+          <article className={isDirectArticlePage
+            ? 'relative mx-auto min-h-screen w-full max-w-4xl bg-[#fffefa] text-stone-900'
+            : 'relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]'}
+          >
             <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/70 bg-stone-950/70 text-white shadow-lg backdrop-blur hover:bg-red-700" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
             {getArticleImages(selectedArticle).length > 0 && (
               <div className="relative aspect-[16/9] max-h-[18rem] overflow-hidden bg-stone-100">
