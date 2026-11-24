@@ -142,10 +142,13 @@ const apps = config.apps.filter(({ name }) => names.has(name));
 if (apps.length !== names.size) throw new Error('Could not restore every PM2 satellite process.');
 module.exports = { apps };
 EOF
+for process_name in "${PM2_SITE_NAMES[@]}"; do
+  pm2 delete "$process_name" || true
+done
       HWA_PM2_ROLLBACK_CONFIG="$PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" \
         HWA_PM2_SITE_NAMES="$(IFS=,; echo "${PM2_SITE_NAMES[*]}")" \
         CATALOG_SERVICE_TOKEN="$PM2_CATALOG_TOKEN" \
-        pm2 startOrReload "$rollback_config" --update-env || true
+  pm2 start "$rollback_config" --update-env || true
     else
       echo "Warning: previous PM2 release could not be determined; leaving the new PM2 process configuration in place." >&2
     fi
@@ -633,8 +636,11 @@ if [ "${#PM2_SITE_NAMES[@]}" -gt 0 ]; then
   fi
   mkdir -p "$RELEASE_DIR/logs"
   SATELLITE_PM2_UPDATES_STARTED=1
+  for process_name in "${PM2_SITE_NAMES[@]}"; do
+    pm2 delete "$process_name"
+  done
   HWA_PM2_SITE_NAMES="$PM2_SITE_NAMES_CSV" CATALOG_SERVICE_TOKEN="$PM2_CATALOG_TOKEN" \
-    pm2 startOrReload "$RELEASE_DIR/ecosystem.config.cjs" --update-env
+    pm2 start "$RELEASE_DIR/ecosystem.config.cjs" --update-env
   for index in "${!SATELLITE_PM2_PRESENT[@]}"; do
     if [ "${SATELLITE_PM2_PRESENT[$index]}" -ne 1 ]; then
       continue
