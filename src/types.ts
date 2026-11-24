@@ -51,6 +51,8 @@ export interface Promo {
   disabledHosts?: string[];
 }
 
+export type ArticleTemplate = 'blog' | 'news' | 'guide' | 'review' | 'promotion' | 'faq' | 'listicle';
+
 export interface Article {
   id: string;
   title: string;
@@ -58,8 +60,20 @@ export interface Article {
   category: string;
   excerpt: string;
   content: string;
+  template?: ArticleTemplate;
+  motorModel?: string;
+  promoPeriod?: string;
+  faqItems?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
   image?: string;
   images?: string[];
+  video?: string;
+  sourceUrl?: string;
+  readTime?: number;
+  theme?: string;
+  publishedAt?: string;
   animation?: CatalogAnimation;
   animationSpeed?: number;
   author: string;
