@@ -2090,6 +2090,15 @@ html[data-color-mode="dark"] body {
   -webkit-text-fill-color: transparent;
 }
 
+.website-shell.website-template-mulia-cerah.site-mode-light #home .hero-badge-text,
+.website-shell.website-template-mulia-cerah.site-mode-light #home .hero-main-title {
+  color: var(--ui-text-primary) !important;
+}
+
+.website-shell.website-template-mulia-cerah.site-mode-light #home .hero-subtitle {
+  color: var(--ui-text-secondary) !important;
+}
+
 .website-shell.website-template-mulia-cerah [class*="bg-gradient-to-r"] {
   background-image: linear-gradient(120deg, var(--ui-primary), var(--ui-secondary), var(--ui-accent)) !important;
 }
@@ -3398,4 +3407,14 @@ html[data-color-mode="dark"] body {
   .website-shell.website-template-wijaya-cool .natural-cool-haze {
     animation: none !important;
   }
+}
+
+.article-management-studio .article-studio-template,
+.article-management-studio .article-studio-choice {
+  color: #292524 !important;
+  opacity: 1 !important;
+}
+
+.article-management-studio .article-studio-choice[aria-pressed="true"] {
+  color: #ffffff !important;
 }
