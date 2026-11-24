@@ -201,13 +201,13 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 text-stone-800">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#9f1018] via-[#c71924] to-[#650b11] p-6 text-white shadow-lg sm:p-8">
+    <div className="space-y-7 animate-in fade-in duration-300 text-slate-800">
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#7f1018] via-[#bd1723] to-[#e12b35] p-6 text-white shadow-[0_22px_60px_rgba(153,27,36,0.22)] sm:p-8">
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full border-[28px] border-white/10" />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-100">Honda Wijaya Abadi Mulia</p>
-            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Studio Artikel</h2>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Studio Artikel</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-red-50/90">Kelola cerita, panduan, berita, review motor, dan promo dalam satu ruang editorial.</p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
               <span className="rounded-full bg-white/15 px-3 py-1.5">{articles.length} total artikel</span>
@@ -215,18 +215,18 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               <span className="rounded-full bg-white/15 px-3 py-1.5">{articles.filter((item) => !item.published).length} draf</span>
             </div>
           </div>
-          <button type="button" onClick={openNewArticle} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-xs font-bold text-red-800 shadow-lg transition hover:bg-red-50">
+          <button type="button" onClick={openNewArticle} className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-red-50">
             <Plus className="h-4 w-4" /> Buat artikel
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-3 shadow-sm sm:flex-row">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.045)] sm:flex-row">
         <label className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-          <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Cari judul, kategori, atau slug artikel..." className="w-full rounded-xl border border-stone-200 bg-stone-50 py-3 pl-10 pr-3 text-sm text-stone-900 outline-none focus:border-red-400 focus:bg-white" />
+          <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Cari judul, kategori, atau slug artikel..." className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-red-400 focus:bg-white focus:ring-4 focus:ring-red-500/10" />
         </label>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-700 outline-none focus:border-red-400">
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-red-400 focus:ring-4 focus:ring-red-500/10">
           <option value="all">Semua status</option><option value="published">Sudah terbit</option><option value="draft">Draf</option>
         </select>
       </div>
@@ -241,19 +241,19 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       {isLoading ? (
         <div className="py-16 text-center text-sm text-stone-500">Memuat artikel...</div>
       ) : filteredArticles.length ? (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
           {filteredArticles.map((article) => (
-            <article key={article.id} className="flex min-w-0 gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_6px_24px_rgba(41,37,36,0.04)] transition hover:border-red-200 hover:shadow-md sm:p-5">
+            <article key={article.id} className="flex min-w-0 gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-red-200 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)] sm:p-5">
               {getArticleImages(article)[0] ? <img src={getArticleImages(article)[0]} alt="" className="h-24 w-28 shrink-0 rounded-xl bg-stone-100 object-cover" /> : <div className="grid h-20 w-24 shrink-0 place-items-center rounded-md bg-red-950/50 text-red-400"><FileText className="h-6 w-6" /></div>}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${article.published ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>{article.published ? 'Terbit' : 'Draf'}</span>
+                  <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${article.published ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{article.published ? 'Terbit' : 'Draf'}</span>
                   <span className="text-[10px] font-medium text-stone-600">{article.category}</span>
-                  <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">{templateInfo(article.template).label}</span>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{templateInfo(article.template).label}</span>
                   <span className="text-[10px] text-stone-500">/{article.slug}</span>
                 </div>
-                <h3 className="mt-2 truncate text-base font-semibold text-stone-900">{article.title}</h3>
-                <p className="mt-1 line-clamp-2 text-sm leading-6 text-stone-600">{article.excerpt}</p>
+                <h3 className="mt-2 truncate text-base font-bold tracking-tight text-slate-900">{article.title}</h3>
+                <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">{article.excerpt}</p>
                 <div className="mt-3 flex items-center justify-end gap-3">
                   <button type="button" onClick={() => { setErrorMessage(null); setIsSlugManuallyEdited(true); setEditingArticle({ ...article, images: getArticleImages(article) }); }} className="inline-flex items-center gap-1 text-xs font-semibold text-stone-700 hover:text-red-700" aria-label={`Edit ${article.title}`}><Edit2 className="h-3.5 w-3.5" /> Edit</button>
                   <button type="button" onClick={() => void handleDeleteArticle(article)} className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300" aria-label={`Hapus ${article.title}`}><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
@@ -271,17 +271,17 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       )}
 
       {editingArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-5">
-          <div className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-stone-200 bg-[#fffefa] p-5 text-xs text-stone-800 shadow-2xl sm:p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-5">
+          <div className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[1.75rem] border border-white/70 bg-white p-5 text-sm text-slate-800 shadow-[0_30px_100px_rgba(0,0,0,0.28)] sm:p-8">
             <div className="mb-5 flex items-center justify-between border-b border-stone-200 pb-4">
               <div>
-                <h3 className="font-serif text-xl font-semibold text-stone-950">{editingArticle.id ? 'Edit Artikel' : 'Buat Artikel Baru'}</h3>
+                <h3 className="text-xl font-extrabold tracking-tight text-slate-950">{editingArticle.id ? 'Edit Artikel' : 'Buat Artikel Baru'}</h3>
                 <p className="mt-1 text-xs text-stone-500">Editor editorial khusus domain ini. SEO Post tetap terpisah.</p>
               </div>
               <button type="button" onClick={() => setEditingArticle(null)} className="grid h-9 w-9 place-items-center rounded-lg text-stone-500 hover:bg-zinc-900 hover:text-white" aria-label="Tutup formulir"><X className="h-4 w-4" /></button>
             </div>
             <form onSubmit={handleSaveArticle} className="space-y-4">
-              <section className="rounded-2xl border border-red-100 bg-red-50/60 p-4">
+              <section className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm">
                 <label className="block space-y-2 font-semibold text-stone-800">
                   <span className="text-xs font-bold uppercase tracking-wide text-red-800">Pilih template artikel</span>
                   <select value={editingArticle.template || 'blog'} onChange={(event) => { const selected = templateInfo(event.target.value); setEditingArticle({ ...editingArticle, template: event.target.value as Article['template'], category: selected.category }); }} className="w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none focus:border-red-500">
@@ -312,29 +312,29 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 </div>
                 {showPreview && <div className="rounded-xl border border-stone-200 bg-white p-5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-red-700">{editingArticle.category || 'Artikel Honda'}</p>
-                  <h4 className="mt-2 font-serif text-xl font-semibold text-stone-950">{editingArticle.title || 'Judul artikel'}</h4>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">{editingArticle.excerpt || 'Ringkasan artikel akan tampil di sini.'}</p>
+                  <h4 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">{editingArticle.title || 'Judul artikel'}</h4>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{editingArticle.excerpt || 'Ringkasan artikel akan tampil di sini.'}</p>
                   <div className="mt-4 space-y-3 text-sm leading-7 text-stone-700">{(editingArticle.content || 'Isi artikel akan tampil di sini.').split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
                 </div>}
               </section>
 
-              <section className="space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-4">
+              <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div><h4 className="font-bold text-white">Galeri artikel</h4><p className="mt-1 text-[11px] text-stone-500">Unggah hingga {MAX_MOTOR_IMAGES} gambar; gambar pertama menjadi sampul.</p></div>
-                  <button type="button" disabled={isUploadingImages || getArticleImages(editingArticle).length >= MAX_MOTOR_IMAGES} onClick={() => imagesInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"><Upload className="h-4 w-4" />{isUploadingImages ? 'Mengunggah...' : 'Unggah gambar'}</button>
+                  <div><h4 className="font-bold text-slate-900">Galeri artikel</h4><p className="mt-1 text-[11px] text-stone-500">Unggah hingga {MAX_MOTOR_IMAGES} gambar; gambar pertama menjadi sampul.</p></div>
+                  <button type="button" disabled={isUploadingImages || getArticleImages(editingArticle).length >= MAX_MOTOR_IMAGES} onClick={() => imagesInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"><Upload className="h-4 w-4" />{isUploadingImages ? 'Mengunggah...' : 'Unggah gambar'}</button>
                   <input ref={imagesInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUploadImages} />
                 </div>
                 {getArticleImages(editingArticle).length ? (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {getArticleImages(editingArticle).map((image, index) => (
-                      <div key={`${image}-${index}`} className="relative overflow-hidden rounded-md border border-white/10">
+                      <div key={`${image}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200">
                         <img src={image} alt={`Gambar artikel ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
                         <button type="button" onClick={() => updateCover(image)} className="absolute bottom-2 left-2 rounded bg-black/75 px-2 py-1 text-[10px] font-bold text-white hover:bg-black">{index === 0 ? 'Sampul' : 'Jadikan sampul'}</button>
                         <button type="button" onClick={() => removeImage(index)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/75 text-white hover:bg-red-700" aria-label={`Hapus gambar ${index + 1}`}><X className="h-3.5 w-3.5" /></button>
                       </div>
                     ))}
                   </div>
-                ) : <p className="border border-dashed border-white/15 px-3 py-5 text-center text-xs text-stone-500">Belum ada gambar yang diunggah.</p>}
+                ) : <p className="border border-dashed border-slate-300 px-3 py-5 text-center text-xs text-slate-500">Belum ada gambar yang diunggah.</p>}
               </section>
 
               <section className="space-y-3 rounded-2xl border border-stone-200 bg-white p-4">
@@ -352,12 +352,12 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 <label className="block space-y-1.5 font-semibold text-stone-700">Penulis<input value={editingArticle.author || ''} onChange={(event) => setEditingArticle({ ...editingArticle, author: event.target.value })} className="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10" /></label>
                 <label className="block space-y-1.5 font-semibold text-stone-700">Animasi gambar<select value={editingArticle.animation || DEFAULT_CATALOG_ANIMATION} onChange={(event) => setEditingArticle({ ...editingArticle, animation: event.target.value as Article['animation'] })} className="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10">{CATALOG_ANIMATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
               </div>
-              <label className="block space-y-1.5 font-semibold text-stone-700">Kecepatan animasi<span className="flex items-center gap-3 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5"><input type="range" min={MIN_CATALOG_ANIMATION_SPEED} max={MAX_CATALOG_ANIMATION_SPEED} step={1} value={normalizeCatalogAnimationSpeed(editingArticle.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} onChange={(event) => setEditingArticle({ ...editingArticle, animationSpeed: Number(event.target.value) })} className="min-w-0 flex-1 accent-red-600" /><output className="w-12 text-right tabular-nums text-white">{normalizeCatalogAnimationSpeed(editingArticle.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} dtk</output></span></label>
+              <label className="block space-y-1.5 font-semibold text-stone-700">Kecepatan animasi<span className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5"><input type="range" min={MIN_CATALOG_ANIMATION_SPEED} max={MAX_CATALOG_ANIMATION_SPEED} step={1} value={normalizeCatalogAnimationSpeed(editingArticle.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} onChange={(event) => setEditingArticle({ ...editingArticle, animationSpeed: Number(event.target.value) })} className="min-w-0 flex-1 accent-red-600" /><output className="w-12 text-right tabular-nums text-slate-700">{normalizeCatalogAnimationSpeed(editingArticle.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED)} dtk</output></span></label>
               <label className="flex items-center gap-2.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 font-semibold text-stone-800"><input type="checkbox" checked={editingArticle.published === true} onChange={(event) => setEditingArticle({ ...editingArticle, published: event.target.checked, publishedAt: event.target.checked ? (editingArticle.publishedAt || new Date().toISOString()) : editingArticle.publishedAt })} className="h-4 w-4 accent-red-600" />Terbitkan artikel di website</label>
               <p className="text-[11px] leading-5 text-stone-500">Jika tidak dicentang, artikel disimpan sebagai draf dan tidak tampil di website publik.</p>
               <div className="flex justify-end gap-2 border-t border-stone-200 pt-5">
-                <button type="button" onClick={() => setEditingArticle(null)} className="rounded-lg border border-white/10 px-4 py-2.5 font-semibold text-stone-700 hover:bg-zinc-900">Batal</button>
-                <button type="submit" disabled={isSaving || isUploadingImages} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-4 w-4" />{isSaving ? 'Menyimpan...' : 'Simpan Artikel'}</button>
+                <button type="button" onClick={() => setEditingArticle(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-50">Batal</button>
+                <button type="submit" disabled={isSaving || isUploadingImages} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-700 to-red-600 px-5 py-2.5 font-bold text-white shadow-lg shadow-red-700/20 transition hover:-translate-y-0.5 hover:from-red-800 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-4 w-4" />{isSaving ? 'Menyimpan...' : 'Simpan Artikel'}</button>
               </div>
             </form>
           </div>
