@@ -152,10 +152,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
-for host in "$DOMAIN" "www.${DOMAIN}"; do
+for host in "$DOMAIN" "www.${DOMAIN}" "wijaya.kreditmotorhonda.tech" "solusikreditmotor.cloud" "www.solusikreditmotor.cloud"; do
   resolved_ips="$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)"
   if [ "$resolved_ips" != "$EXPECTED_VPS_IP" ]; then
     fail "DNS preflight failed for $host: expected only $EXPECTED_VPS_IP, got '${resolved_ips:-no IPv4 address}'."
+  fi
+done
+ID_DNS_READY=1
+for host in "kreditmotorhonda.id" "www.kreditmotorhonda.id"; do
+  resolved_ips="$(getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true)"
+  if [ "$resolved_ips" != "$EXPECTED_VPS_IP" ]; then
+    ID_DNS_READY=0
+    echo "Notice: DNS for $host is not ready; the .id service will be verified locally and public checks skipped."
   fi
 done
 
@@ -430,6 +438,12 @@ fi
 check_http_200 "https://${DOMAIN}/"
 check_http_200 "https://${DOMAIN}/sitemap.xml"
 check_http_200 "https://${DOMAIN}/owner-dashboard"
+check_http_200 "https://wijaya.kreditmotorhonda.tech/"
+check_http_200 "https://www.solusikreditmotor.cloud/"
+if [ "$ID_DNS_READY" -eq 1 ]; then
+  check_http_200 "https://kreditmotorhonda.id/"
+  check_http_200 "https://www.kreditmotorhonda.id/"
+fi
 
 for index in "${!SATELLITE_SERVICES[@]}"; do
   if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
@@ -552,7 +566,6 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl reset-failed "$ID_SERVICE" || true
 sudo systemctl stop "$ID_SERVICE" || true
-sudo pkill -f "server\.cjs.*3003|PORT=3003" || true
 sudo systemctl enable "$ID_SERVICE"
 sudo systemctl restart "$ID_SERVICE"
 if ! systemctl is-active --quiet "$ID_SERVICE" \

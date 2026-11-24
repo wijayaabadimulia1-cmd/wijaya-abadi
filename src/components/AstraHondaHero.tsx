@@ -133,6 +133,9 @@ export function AstraHondaHero({
   if (isWijayaEnerjik) {
     return (
       <section id="home" className="wijaya-enerjik-hero">
+        {settings.customization?.themeBackgroundImage && (
+          <div className="theme-background-layer" aria-hidden="true" />
+        )}
         <div className="wijaya-enerjik-hero__image" aria-hidden="true">
           {heroSlides.map((image, index) => (
             <img key={image} src={image} alt="" className={index === activeHeroSlide ? 'is-active' : ''} />
@@ -188,6 +191,9 @@ export function AstraHondaHero({
 
   return (
     <section id="home" className="astra-honda-hero">
+      {settings.customization?.themeBackgroundImage && (
+        <div className="theme-background-layer" aria-hidden="true" />
+      )}
       <div className="astra-honda-hero__inner">
         <div className="astra-honda-hero__copy">
           <span className="astra-honda-hero__badge">

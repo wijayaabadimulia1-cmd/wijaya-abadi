@@ -3001,7 +3001,7 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // Articles are stored independently from SEO subdomain posts.
+  // Articles are stored independently for each domain and from SEO subdomain posts.
   app.get('/api/articles', (req, res) => {
     const db = readSiteDb();
     const session = getSession(req);
@@ -4549,7 +4549,7 @@ async function startServer() {
       '/honda-vario-bandung',
       '/honda-pcx-bandung',
       '/honda-adv-bandung',
-    ], (req, res, next) => {
+    ], async (req, res, next) => {
       try {
         // Serve the dedicated, pre-rendered SEO document for the primary
         // kreditmotorhonda.tech landing pages instead of the generic SPA shell.
@@ -4573,7 +4573,8 @@ async function startServer() {
         const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
         const db = readDb();
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
+        const initialData = await createSsrInitialData(db, req.hostname);
+        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
       } catch (error) {
         next(error);
       }
@@ -4597,47 +4598,50 @@ async function startServer() {
         res.setHeader('Cache-Control', cacheControl);
       },
     }));
-    app.get('*', (req, res) => {
-      if (path.extname(req.path)) return res.sendStatus(404);
-      const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-      const db = readDb();
-      db.articles = getSiteArticles(readSiteDb(), req.hostname);
-      const initialData = createPublicInitialData(db, req.hostname);
-      const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
-      if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
-        return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
-      }
-
-      // The primary .tech site has a defined set of public routes. Do not
-      // return the SPA shell with HTTP 200 for arbitrary, nonexistent URLs.
-      if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
-        const normalizedPath = req.path.replace(/\/+$/, '') || '/';
-        const knownLandingPaths = new Set([
-          '/',
-          '/dealer-honda-bandung',
-          '/kredit-motor-honda-bandung',
-          '/simulasi-kredit-honda',
-          '/harga-motor-honda-bandung',
-          '/honda-beat-bandung',
-          '/honda-scoopy-bandung',
-          '/honda-vario-bandung',
-          '/honda-pcx-bandung',
-          '/honda-adv-bandung',
-          '/honda-stylo-bandung',
-          '/owner-dashboard',
-          '/admin',
-          '/login',
-          '/masuk',
-          '/dashboard',
-        ]);
-        const isPublishedArticle = articlePath
-          && initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true);
-        if (!knownLandingPaths.has(normalizedPath) && !isPublishedArticle) {
-          return res.status(404).type('html').send('<!doctype html><html lang="id"><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Halaman tidak ditemukan | Kredit Motor Honda</title><body><main><h1>Halaman tidak ditemukan</h1><p>Halaman yang Anda cari tidak tersedia.</p><a href="/">Kembali ke beranda</a></main></body></html>');
+    app.get('*', async (req, res, next) => {
+      try {
+        if (path.extname(req.path)) return res.sendStatus(404);
+        const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+        const db = readDb();
+        const initialData = await createSsrInitialData(db, req.hostname);
+        const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
+        if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
+          return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
         }
+
+        // The primary .tech site has a defined set of public routes. Do not
+        // return the SPA shell with HTTP 200 for arbitrary, nonexistent URLs.
+        if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
+          const normalizedPath = req.path.replace(/\/+$/, '') || '/';
+          const knownLandingPaths = new Set([
+            '/',
+            '/dealer-honda-bandung',
+            '/kredit-motor-honda-bandung',
+            '/simulasi-kredit-honda',
+            '/harga-motor-honda-bandung',
+            '/honda-beat-bandung',
+            '/honda-scoopy-bandung',
+            '/honda-vario-bandung',
+            '/honda-pcx-bandung',
+            '/honda-adv-bandung',
+            '/honda-stylo-bandung',
+            '/owner-dashboard',
+            '/admin',
+            '/login',
+            '/masuk',
+            '/dashboard',
+          ]);
+          const isPublishedArticle = articlePath
+            && initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true);
+          if (!knownLandingPaths.has(normalizedPath) && !isPublishedArticle) {
+            return res.status(404).type('html').send('<!doctype html><html lang="id"><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Halaman tidak ditemukan | Kredit Motor Honda</title><body><main><h1>Halaman tidak ditemukan</h1><p>Halaman yang Anda cari tidak tersedia.</p><a href="/">Kembali ke beranda</a></main></body></html>');
+          }
+        }
+        res.set('Cache-Control', 'no-cache');
+        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
+      } catch (error) {
+        next(error);
       }
-      res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
     });
   }
 

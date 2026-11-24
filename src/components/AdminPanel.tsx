@@ -3386,7 +3386,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         </label>
                       ))}
                     </div>
-                    <p className="mt-2 text-[11px] text-zinc-500">TikTok menggunakan profil Wijaya Abadi Mulia; tautan lain yang kosong memakai akun sosial Honda bawaan.</p>
+                    <p className="mt-2 text-[11px] text-zinc-500">Media sosial diatur dan disimpan sendiri untuk website ini; masukkan tautan akun yang sesuai dengan situsnya.</p>
                     </div>
                   </details>
                   </>

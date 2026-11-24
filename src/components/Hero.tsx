@@ -71,6 +71,9 @@ export const Hero: React.FC<HeroProps> = ({ settings, onOpenSimulator, onOpenInt
         '--hero-caption-font-size': `${settings.customization?.heroCaptionFontSize || 12}px`,
       } as React.CSSProperties}
     >
+      {settings.customization?.themeBackgroundImage && (
+        <div className="theme-background-layer" aria-hidden="true" />
+      )}
       <div className="natural-cool-scene" aria-hidden="true">
         <div className="natural-cool-landscape" />
           <div className="natural-cool-haze natural-cool-haze-left" />

@@ -351,6 +351,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
               <div>
                 <label className="block text-sm font-semibold">Foto Banner Hero</label>
                 <span className="text-xs text-zinc-400">{heroImages.length} / {MAX_HERO_IMAGES} foto</span>
+                <p className="mt-1 text-[11px] text-zinc-500">Banner hero tersimpan khusus untuk website ini dan tidak mengubah domain lain.</p>
               </div>
               <button
                 type="button"
@@ -405,7 +406,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
           <div>
             <h3 className="text-sm font-semibold">Background Tema</h3>
             <p className="mt-1 text-xs text-zinc-400">
-              Ganti gambar latar Wijaya Cool, Wijaya Meriah, atau Showcase Wijaya 2. Seret pratinjau untuk mengatur posisinya.
+              Gambar latar berlaku untuk semua tema di website ini dan tidak mengubah domain lain. Seret pratinjau untuk mengatur posisinya.
             </p>
           </div>
           <div className="flex items-center gap-2">
