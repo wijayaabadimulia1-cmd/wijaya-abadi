@@ -164,6 +164,29 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                         : 'Tidak ada unit yang cocok.'
                       : `${motors.length} unit tersedia.`}
                 </p>
+                {motorSearch.trim() && filteredMotors.length > 0 && (
+                  <div className="mb-2 grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2" role="group" aria-label="Pilih hasil pencarian unit motor">
+                    {filteredMotors.map((motor) => (
+                      <button
+                        key={motor.id}
+                        type="button"
+                        aria-pressed={currentMotorId === motor.id}
+                        onClick={() => setCurrentMotorId(motor.id)}
+                        className={`rounded-xl border px-3 py-2 text-left transition ${
+                          currentMotorId === motor.id
+                            ? 'border-red-500 bg-red-500/10'
+                            : 'border-white/10 bg-zinc-950/70 hover:border-red-500/50'
+                        }`}
+                      >
+                        <span className="block text-xs font-bold text-white">{motor.name}</span>
+                        <span className="mt-1 flex justify-between gap-2 text-[11px] text-zinc-400">
+                          <span>{motor.category}</span>
+                          <span>{formatRupiah(getMotorOtrPrice(motor))}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <select
                   id="simulator-motor"
                   value={currentMotorId}
