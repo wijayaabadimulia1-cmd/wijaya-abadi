@@ -204,8 +204,12 @@ get_service_environment_value() {
   done <<< "$environment_files"
 }
 
+OWNER_ANALYTICS_ROOT_DIR="$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_ROOT_DIR)"
+OWNER_ANALYTICS_ROOT_DIR="${OWNER_ANALYTICS_ROOT_DIR:-$(dirname "$DATA_DIR")}"
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
+WIJAYA_DATA_DIR="${WIJAYA_DATA_DIR:-${OWNER_ANALYTICS_ROOT_DIR}/sites/wijaya/data}"
 SOLUSI_DATA_DIR="$(get_service_environment_value solusikreditmotor.service DATA_DIR)"
+SOLUSI_DATA_DIR="${SOLUSI_DATA_DIR:-${OWNER_ANALYTICS_ROOT_DIR}/sites/solusi/data}"
 ID_SOURCE_DATA_DIR=""
 if systemctl is-active --quiet "$ID_SERVICE"; then
   ID_SOURCE_DATA_DIR="$(get_service_environment_value "$ID_SERVICE" DATA_DIR)"
@@ -220,7 +224,9 @@ for service in "${SATELLITE_SERVICES[@]}"; do
     fail "$service is not configured to use the main catalog API; refusing deployment."
   fi
 done
+OWNER_ANALYTICS_WIJAYA_DB_FILE="${OWNER_ANALYTICS_WIJAYA_DB_FILE:-$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_WIJAYA_DB_FILE)}"
 OWNER_ANALYTICS_WIJAYA_DB_FILE="${OWNER_ANALYTICS_WIJAYA_DB_FILE:-${WIJAYA_DATA_DIR}/db.json}"
+OWNER_ANALYTICS_SOLUSI_DB_FILE="${OWNER_ANALYTICS_SOLUSI_DB_FILE:-$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_SOLUSI_DB_FILE)}"
 OWNER_ANALYTICS_SOLUSI_DB_FILE="${OWNER_ANALYTICS_SOLUSI_DB_FILE:-${SOLUSI_DATA_DIR}/db.json}"
 if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
   || [ ! -s "$OWNER_ANALYTICS_WIJAYA_DB_FILE" ] \
