@@ -213,7 +213,7 @@ function readCatalogDb() {
 }
 
 function isSharedCatalogPath(pathname: string) {
-  return /^\/api\/(?:motors(?:\/|$)|fif-price-list(?:\/|$)|promos\/global(?:\/|$))/.test(pathname.split('?')[0]);
+  return /^\/api\/(?:motors(?:\/|$)|fif-price-list(?:\/|$)|catalog\/order(?:\/|$)|promos\/global(?:\/|$))/.test(pathname.split('?')[0]);
 }
 
 function isSharedCatalogRequest(req: express.Request) {
@@ -304,6 +304,7 @@ function createPublicInitialData(db: any, hostname?: string) {
     testimonials,
     manifesto: Array.isArray(db.manifesto) ? db.manifesto : [],
     fifPriceList: currentFifPriceList(db),
+    catalogOrder: Array.isArray(db.settings?.catalogMotorOrder) ? db.settings.catalogMotorOrder : [],
   };
 }
 
@@ -314,16 +315,26 @@ async function createSsrInitialData(db: any, hostname?: string) {
   const options = { cache: 'no-store' as RequestCache, signal: AbortSignal.timeout(5000) };
 
   try {
-    const [motorsResponse, priceListResponse] = await Promise.all([
+    const [motorsResponse, priceListResponse, orderResponse] = await Promise.all([
       fetch(`${catalogApiUrl}/api/motors`, options),
       fetch(`${catalogApiUrl}/api/fif-price-list`, options),
+      fetch(`${catalogApiUrl}/api/catalog/order`, options),
     ]);
     if (!motorsResponse.ok) throw new Error(`Catalog API returned HTTP ${motorsResponse.status}`);
+    if (!orderResponse.ok) throw new Error(`Catalog order API returned HTTP ${orderResponse.status}`);
 
     const motors = await motorsResponse.json();
     if (!Array.isArray(motors)) throw new Error('Catalog API returned invalid motor data');
+    const catalogOrder = await orderResponse.json();
+    if (!Array.isArray(catalogOrder) || catalogOrder.some((motorId: unknown) => typeof motorId !== 'string')) {
+      throw new Error('Catalog API returned invalid motor order');
+    }
 
-    const catalogDb = { ...db, motors };
+    const catalogDb = {
+      ...db,
+      motors,
+      settings: { ...db.settings, catalogMotorOrder: catalogOrder },
+    };
     if (priceListResponse.ok) catalogDb.fifPriceList = await priceListResponse.json();
     return createPublicInitialData(catalogDb, hostname);
   } catch (error) {
@@ -512,7 +523,13 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     : String(hostPage?.seoRobots || pageSettings.seoRobots || 'index, follow').trim();
   const escape = escapeHtmlAttribute;
   const googleTrackingScript = getGoogleTrackingScript(hostname);
-  const initialSettings = JSON.stringify(publicSettings(pageSettings)).replace(/</g, '\\u003c');
+  const settingsForClient = {
+    ...publicSettings(pageSettings),
+    ...(Array.isArray((initialData as any)?.catalogOrder)
+      ? { catalogMotorOrder: (initialData as any).catalogOrder }
+      : {}),
+  };
+  const initialSettings = JSON.stringify(settingsForClient).replace(/</g, '\\u003c');
   const initialPublicData = JSON.stringify(initialData).replace(/</g, '\\u003c');
   const heroImagePreload = settings.websiteTemplate === 'wijaya-cool'
     ? '<link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape-mobile.webp" media="(max-width: 640px)" fetchpriority="high"><link rel="preload" as="image" href="/images/wijaya-cool-bandung-landscape.webp" media="(min-width: 641px)" fetchpriority="high">'
@@ -1509,9 +1526,6 @@ function writeDb(data: any) {
     const targetDir = path.dirname(targetDbFile);
     fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(targetDbFile, JSON.stringify(data, null, 2), 'utf-8');
-    if (targetDbFile !== FALLBACK_DB_FILE && fs.existsSync(FALLBACK_DB_FILE)) {
-      fs.writeFileSync(FALLBACK_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    }
     return true;
   } catch (err) {
     console.error('Error writing db:', err);
@@ -2400,6 +2414,12 @@ async function startServer() {
 
   app.get('/api/fif-price-list', (req, res) => {
     res.json(currentFifPriceList());
+  });
+
+  app.get('/api/catalog/order', (req, res) => {
+    const db = readDb();
+    res.set('Cache-Control', 'no-store');
+    res.json(Array.isArray(db.settings?.catalogMotorOrder) ? db.settings.catalogMotorOrder : []);
   });
 
   app.get('/api/catalog/status', requireAdmin, (req, res) => {

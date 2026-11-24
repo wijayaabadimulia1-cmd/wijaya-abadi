@@ -1378,17 +1378,24 @@ html[data-color-mode="dark"] body {
     var(--theme-background-image);
   background-position: center, var(--theme-background-position, center);
   background-size: cover;
+  transform: scale(var(--theme-background-zoom, 1));
+  transform-origin: var(--theme-background-position, center);
   pointer-events: none;
 }
 
 .website-shell #home.astra-honda-hero {
   position: relative;
   isolation: isolate;
+  overflow: hidden;
 }
 
 .website-shell #home.astra-honda-hero > .theme-background-layer,
 .website-shell.website-template-wijaya-enerjik #home > .theme-background-layer {
   z-index: -1;
+}
+
+.website-shell.website-template-wijaya-enerjik #home {
+  overflow: hidden;
 }
 
 .website-shell #home.astra-honda-hero .astra-honda-hero__inner {
@@ -3280,6 +3287,8 @@ html[data-color-mode="dark"] body {
     var(--theme-background-image, var(--natural-cool-landscape-image, url('/images/wijaya-cool-bandung-landscape.webp')));
   background-position: center, center, var(--theme-background-position, 52% 48%);
   background-size: cover;
+  transform: scale(var(--theme-background-zoom, 1));
+  transform-origin: var(--theme-background-position, 52% 48%);
   opacity: 0.9;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.34) 12%, #000 34%);
 }

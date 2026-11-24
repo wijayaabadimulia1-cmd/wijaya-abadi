@@ -1599,6 +1599,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
   };
 
   const handleSaveCatalogOrder = async (catalogMotorOrder: string[]) => {
+    if (!isCatalogOwner) {
+      alert('Urutan katalog motor hanya dapat diubah dari katalog pusat kreditmotorhonda.tech.');
+      return;
+    }
+
     try {
       await api.updateSettings({ catalogMotorOrder });
       setSettings((current) => current ? { ...current, catalogMotorOrder } : current);
@@ -2158,6 +2163,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             ].filter((tab) => {
               if (tab.id === 'sales-counter') return canManageSalesCounters;
               if (tab.id === 'motors') return isSuperAdmin;
+              if (tab.id === 'catalog-order') return isCatalogOwner && (isSuperAdmin || Boolean(allowedAdminTabs?.has(tab.id)));
               if (tab.id === 'credit') return isSuperAdmin && canManageCatalog;
               return isSuperAdmin || Boolean(allowedAdminTabs?.has(tab.id));
             }).map((tab) => {
@@ -2208,7 +2214,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         ) : (
           <>
             {activeTab === 'articles' && <ArticleManager onRefreshData={onRefreshData} />}
-            {activeTab === 'catalog-order' && settings && (
+            {activeTab === 'catalog-order' && isCatalogOwner && settings && (
               <CatalogOrderPanel
                 motors={motors}
                 savedOrder={settings.catalogMotorOrder || []}

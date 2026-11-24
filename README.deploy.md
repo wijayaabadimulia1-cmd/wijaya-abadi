@@ -116,6 +116,8 @@ pm2 status
 
 Proses `honda-wijaya-abadi` (3000) memiliki API katalog; `wijaya-kreditmotor` (3001), `solusi-kreditmotor` (3002), dan `kreditmotorhonda-id` (3003) mem-proxy operasi katalog motor dan price list ke port 3000. Artikel/video, banner hero, background tema, media sosial, dan pengaturan situs lainnya dibaca serta dikelola lokal per domain. Perubahan struktur aplikasi—termasuk fitur artikel/video dan pencarian motor pada simulasi kredit—dibangun dari satu rilis dan dijalankan pada semua situs. Semua proses memakai satu `UPLOADS_DIR` dan root analytics bersama.
 
+Workflow deploy aman mengelola situs utama dan `.id` melalui systemd. Untuk Wijaya dan Solusi, workflow memakai unit systemd bila tersedia; jika tidak, ia memperbarui proses PM2 yang sudah ada, bukan melewatkannya. Sebelum selesai, deploy memeriksa bahwa setiap domain menyajikan bundle frontend dari rilis yang sama. Urutan motor dibaca dari katalog `.tech`, sedangkan isi dan pengaturan lainnya tetap lokal.
+
 ## 8. Konfigurasi Nginx
 
 File [nginx.conf.example](nginx.conf.example) berisi keempat virtual host. Pasang tanpa menghapus konfigurasi situs lain:

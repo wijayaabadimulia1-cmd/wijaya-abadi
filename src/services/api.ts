@@ -266,9 +266,22 @@ export const api = {
 
   // Settings
   async getSettings(): Promise<DealerSettings> {
-    const res = await fetch(`/api/settings?_=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Gagal mengambil pengaturan dealer');
-    return res.json();
+    const [settingsResponse, catalogOrder] = await Promise.all([
+      fetch(`/api/settings?_=${Date.now()}`, { cache: 'no-store' }),
+      this.getCatalogOrder(),
+    ]);
+    if (!settingsResponse.ok) throw new Error('Gagal mengambil pengaturan dealer');
+    return { ...await settingsResponse.json(), catalogMotorOrder: catalogOrder };
+  },
+
+  async getCatalogOrder(): Promise<string[]> {
+    const res = await fetch('/api/catalog/order', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal mengambil urutan katalog motor');
+    const order: unknown = await res.json();
+    if (!Array.isArray(order) || order.some((motorId) => typeof motorId !== 'string')) {
+      throw new Error('Urutan katalog motor dari server tidak valid');
+    }
+    return order;
   },
 
   async getAdminSettings(): Promise<DealerSettings> {

@@ -226,7 +226,9 @@ export default function App() {
     let active = true;
     void api.getSettings().then((settingsData) => {
       if (active && settingsData?.name) setSettings(settingsData);
-    }).catch(() => undefined);
+    }).catch((error) => {
+      console.error('Error fetching initial settings and shared catalog order:', error);
+    });
     return () => {
       active = false;
     };
@@ -306,13 +308,15 @@ export default function App() {
     let isCurrent = true;
     const refreshCatalog = async () => {
       try {
-        const [motorsData, priceListData] = await Promise.all([
+        const [motorsData, priceListData, catalogOrder] = await Promise.all([
           api.getMotors(),
           api.getFifPriceList().catch(() => DEFAULT_FIF_PRICE_LIST),
+          api.getCatalogOrder(),
         ]);
         if (!isCurrent) return;
 
         setFifPriceList(priceListData);
+        setSettings((currentSettings) => ({ ...currentSettings, catalogMotorOrder: catalogOrder }));
         setMotors(motorsData.map((motor) => normalizeMotorOtrPrice(motor, priceListData)));
       } catch (err) {
         console.error('Failed to refresh shared catalog:', err);
@@ -840,6 +844,7 @@ export default function App() {
     '--theme-background-position': customization.themeBackgroundPosition
       ? `${Math.max(0, Math.min(100, customization.themeBackgroundPosition.x))}% ${Math.max(0, Math.min(100, customization.themeBackgroundPosition.y))}%`
       : undefined,
+    '--theme-background-zoom': `${Math.max(100, Math.min(200, customization.themeBackgroundZoom ?? 100)) / 100}`,
   } as React.CSSProperties;
   const customizationClass = `site-font-${activePalette.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
   const gradientMotionClass = settings.websiteTemplate === 'mulia-cerah' && customization.themeBackgroundAnimation !== false

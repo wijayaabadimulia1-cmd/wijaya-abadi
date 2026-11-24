@@ -42,8 +42,20 @@ const sites = [
   },
 ];
 
+const requestedSiteNames = String(process.env.HWA_PM2_SITE_NAMES || '')
+  .split(',')
+  .map((name) => name.trim())
+  .filter(Boolean);
+const selectedSites = requestedSiteNames.length
+  ? sites.filter((site) => requestedSiteNames.includes(site.name))
+  : sites;
+
+if (requestedSiteNames.some((name) => !sites.some((site) => site.name === name))) {
+  throw new Error('HWA_PM2_SITE_NAMES contains an unknown site.');
+}
+
 module.exports = {
-  apps: sites.map((site) => ({
+  apps: selectedSites.map((site) => ({
     name: site.name,
     script: 'npm',
     args: 'start',

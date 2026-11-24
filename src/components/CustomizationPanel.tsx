@@ -19,6 +19,7 @@ interface CustomizationPanelProps {
 }
 
 const clampBackgroundPosition = (value: number) => Math.round(Math.max(0, Math.min(100, value)));
+const clampBackgroundZoom = (value: number) => Math.round(Math.max(100, Math.min(200, value)));
 
 const getDefaultThemeBackgroundPosition = (template: string | undefined): ThemeBackgroundPosition => {
   if (template === 'wijaya-meriah') return { x: 50, y: 58 };
@@ -40,6 +41,9 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   const defaultBackgroundPosition = getDefaultThemeBackgroundPosition(settings.websiteTemplate);
   const [backgroundPosition, setBackgroundPosition] = useState<ThemeBackgroundPosition>(
     () => customization.themeBackgroundPosition || defaultBackgroundPosition,
+  );
+  const [backgroundZoom, setBackgroundZoom] = useState<number>(
+    () => clampBackgroundZoom(customization.themeBackgroundZoom ?? 100),
   );
   const backgroundDragRef = useRef<{
     pointerId: number;
@@ -102,6 +106,10 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
     customization.themeBackgroundPosition?.y,
     settings.websiteTemplate,
   ]);
+
+  useEffect(() => {
+    setBackgroundZoom(clampBackgroundZoom(customization.themeBackgroundZoom ?? 100));
+  }, [customization.themeBackgroundZoom, settings.websiteTemplate]);
 
   const handleImageUpload = async (
     file: File,
@@ -209,6 +217,15 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
     onSettingsChange({
       ...settings,
       customization: { ...customization, themeBackgroundPosition: nextPosition },
+    });
+  };
+
+  const updateThemeBackgroundZoom = (zoom: number) => {
+    const nextZoom = clampBackgroundZoom(zoom);
+    setBackgroundZoom(nextZoom);
+    onSettingsChange({
+      ...settings,
+      customization: { ...customization, themeBackgroundZoom: nextZoom },
     });
   };
 
@@ -421,6 +438,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                       ...customization,
                       themeBackgroundImage: '',
                       themeBackgroundPosition: undefined,
+                      themeBackgroundZoom: undefined,
                     },
                   });
                 }}
@@ -467,7 +485,11 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
               alt="Pratinjau background tema. Seret gambar untuk mengatur posisinya."
               draggable={false}
               onDragStart={(event) => event.preventDefault()}
-              style={{ objectPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%` }}
+              style={{
+                objectPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%`,
+                transform: `scale(${backgroundZoom / 100})`,
+                transformOrigin: `${backgroundPosition.x}% ${backgroundPosition.y}%`,
+              }}
               className="pointer-events-none h-full w-full select-none object-cover"
             />
           </div>
@@ -499,6 +521,19 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                 value={backgroundPosition.y}
                 aria-label="Posisi vertikal background"
                 onChange={(event) => updateThemeBackgroundPosition({ ...backgroundPosition, y: Number(event.target.value) })}
+                className="w-full accent-red-500"
+              />
+            </label>
+            <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
+              Zoom foto ({backgroundZoom}%)
+              <input
+                type="range"
+                min="100"
+                max="200"
+                step="1"
+                value={backgroundZoom}
+                aria-label="Zoom foto background"
+                onChange={(event) => updateThemeBackgroundZoom(Number(event.target.value))}
                 className="w-full accent-red-500"
               />
             </label>

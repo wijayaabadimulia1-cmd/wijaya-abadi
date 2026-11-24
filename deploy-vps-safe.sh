@@ -26,6 +26,7 @@ DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
 SATELLITE_PORTS=(3001 3002)
+SATELLITE_PM2_NAMES=("wijaya-kreditmotor" "solusi-kreditmotor")
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
@@ -33,13 +34,21 @@ SATELLITE_DROPIN_FILES=(
 SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
 SATELLITE_SERVICE_PRESENT=(0 0)
+SATELLITE_PM2_PRESENT=(0 0)
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
   load_state="$(systemctl show "$service" --property=LoadState --value 2>/dev/null || true)"
   if [ "$load_state" = "loaded" ]; then
     SATELLITE_SERVICE_PRESENT[$index]=1
   else
-    echo "Notice: $service unit is not installed; skipping this satellite."
+    process_name="${SATELLITE_PM2_NAMES[$index]}"
+    if command -v pm2 >/dev/null 2>&1 && pm2 describe "$process_name" >/dev/null 2>&1; then
+      SATELLITE_PM2_PRESENT[$index]=1
+      echo "Notice: $service unit is not installed; $process_name will be updated through PM2."
+    else
+      echo "ERROR: $service is not installed and PM2 process $process_name is unavailable; refusing to skip this site." >&2
+      exit 1
+    fi
   fi
 done
 ID_SERVICE="kreditmotorhonda-id.service"
@@ -60,6 +69,11 @@ PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
 SATELLITE_UPDATES_STARTED=0
+SATELLITE_PM2_UPDATES_STARTED=0
+SITE_SERVICES_UPDATED=0
+PM2_PREVIOUS_RELEASE=""
+PM2_SITE_NAMES=()
+PM2_CATALOG_TOKEN=""
 
 fail() {
   echo "$*" >&2
@@ -68,7 +82,7 @@ fail() {
 
 cleanup() {
   local result=$?
-  if [ "$ID_SERVICE_UPDATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+  if [ "$ID_SERVICE_UPDATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
     echo "Kreditmotorhonda.id deployment failed; restoring its previous service." >&2
     if [ -n "$ID_UNIT_BACKUP" ] && [ -f "$ID_UNIT_BACKUP" ]; then
       sudo install -m 644 "$ID_UNIT_BACKUP" "$ID_UNIT_FILE"
@@ -96,7 +110,7 @@ cleanup() {
       sudo systemctl daemon-reload || true
     fi
   fi
-  if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+  if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
     echo "Satellite catalog deployment failed; restoring previous service releases." >&2
     for index in "${!SATELLITE_SERVICES[@]}"; do
       if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
@@ -117,7 +131,26 @@ cleanup() {
       sudo systemctl restart "$service" || true
     done
   fi
-  if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+  if [ "$SATELLITE_PM2_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
+    echo "PM2 satellite deployment failed; restoring its previous release." >&2
+    if [ -n "$PM2_PREVIOUS_RELEASE" ] && [ -f "$PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" ]; then
+      rollback_config="$STAGING_DIR/pm2-rollback.config.cjs"
+      cat > "$rollback_config" <<'EOF'
+const config = require(process.env.HWA_PM2_ROLLBACK_CONFIG);
+const names = new Set(String(process.env.HWA_PM2_SITE_NAMES || '').split(',').filter(Boolean));
+const apps = config.apps.filter(({ name }) => names.has(name));
+if (apps.length !== names.size) throw new Error('Could not restore every PM2 satellite process.');
+module.exports = { apps };
+EOF
+      HWA_PM2_ROLLBACK_CONFIG="$PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" \
+        HWA_PM2_SITE_NAMES="$(IFS=,; echo "${PM2_SITE_NAMES[*]}")" \
+        CATALOG_SERVICE_TOKEN="$PM2_CATALOG_TOKEN" \
+        pm2 startOrReload "$rollback_config" --update-env || true
+    else
+      echo "Warning: previous PM2 release could not be determined; leaving the new PM2 process configuration in place." >&2
+    fi
+  fi
+  if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
     echo "Deployment health check failed; restoring the previous systemd service." >&2
     if [ "$PREVIOUS_DROPIN_EXISTS" -eq 1 ] && [ -f "$PREVIOUS_DROPIN_BACKUP" ]; then
       sudo install -m 644 "$PREVIOUS_DROPIN_BACKUP" "$DROPIN_FILE"
@@ -135,6 +168,10 @@ cleanup() {
         break
       fi
     done
+    if [ "$release_in_use" -eq 0 ] && command -v pm2 >/dev/null 2>&1 \
+      && pm2 jlist 2>/dev/null | grep -Fq -- "$RELEASE_DIR"; then
+      release_in_use=1
+    fi
     if [ "$release_in_use" -eq 0 ]; then
       sudo rm -rf -- "$RELEASE_DIR" || echo "Warning: could not remove failed release $RELEASE_DIR." >&2
     else
@@ -302,6 +339,10 @@ fi
 cd "$RELEASE_DIR"
 npm ci
 npm run build
+EXPECTED_BUNDLE_PATH="$(grep -oE 'src="/assets/index-[^"]+\.js"' "$RELEASE_DIR/dist/index.html" | head -n 1 | sed 's/^src="//;s/"$//')"
+if [ -z "$EXPECTED_BUNDLE_PATH" ]; then
+  fail "Could not determine the built frontend bundle from dist/index.html."
+fi
 
 sudo install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 755 "$ID_DATA_DIR"
 if [ ! -s "$ID_DATA_DIR/db.json" ]; then
@@ -421,6 +462,22 @@ check_http_200() {
   echo "HTTP $status: $url"
 }
 
+check_bundle_version() {
+  local url="$1"
+  local html
+  local served_bundle
+  html="$(curl --silent --show-error --fail --location --max-time 30 "$url")" || {
+    echo "Could not inspect frontend bundle: $url" >&2
+    return 1
+  }
+  if ! grep -Fq -- "$EXPECTED_BUNDLE_PATH" <<< "$html"; then
+    served_bundle="$(grep -oE 'src="/assets/index-[^"]+\.js"' <<< "$html" | head -n 1 | sed 's/^src="//;s/"$//' || true)"
+    echo "Expected frontend bundle $EXPECTED_BUNDLE_PATH, received ${served_bundle:-no bundle}: $url" >&2
+    return 1
+  fi
+  echo "Frontend bundle verified ($EXPECTED_BUNDLE_PATH): $url"
+}
+
 for attempt in $(seq 1 30); do
   if curl --silent --fail --output /dev/null --max-time 2 http://127.0.0.1:3000/; then
     break
@@ -435,6 +492,7 @@ live_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:
 if [ "$live_motors" != "$EXPECTED_MOTORS" ] || [ ! -s "$DATA_DIR/db.json" ]; then
   fail "Production catalog verification failed ($live_motors vs $EXPECTED_MOTORS)."
 fi
+check_bundle_version "http://127.0.0.1:3000/"
 check_http_200 "https://${DOMAIN}/"
 check_http_200 "https://${DOMAIN}/sitemap.xml"
 check_http_200 "https://${DOMAIN}/owner-dashboard"
@@ -513,6 +571,72 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   echo "${service} catalog verified: ${satellite_motors} motors"
 done
 
+for index in "${!SATELLITE_PM2_PRESENT[@]}"; do
+  if [ "${SATELLITE_PM2_PRESENT[$index]}" -eq 1 ]; then
+    PM2_SITE_NAMES+=("${SATELLITE_PM2_NAMES[$index]}")
+  fi
+done
+if [ "${#PM2_SITE_NAMES[@]}" -gt 0 ]; then
+  PM2_SITE_NAMES_CSV="$(IFS=,; echo "${PM2_SITE_NAMES[*]}")"
+  PM2_PREVIOUS_RELEASE="$(pm2 jlist | node -e '
+    let input = "";
+    process.stdin.on("data", (chunk) => input += chunk).on("end", () => {
+      const names = process.argv[1].split(",");
+      const apps = JSON.parse(input);
+      const selected = names.map((name) => apps.find((app) => app.name === name));
+      if (selected.some((app) => !app || app.pm2_env.status !== "online")) process.exit(1);
+      const directories = [...new Set(selected.map((app) => app.pm2_env.pm_cwd))];
+      if (directories.length !== 1) process.exit(1);
+      process.stdout.write(directories[0]);
+    });
+  ' "$PM2_SITE_NAMES_CSV")" || fail "Could not determine one healthy previous PM2 satellite release for rollback."
+  if [ ! -f "$PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" ]; then
+    fail "Previous PM2 release does not contain ecosystem.config.cjs; refusing an unsafe satellite update."
+  fi
+  PM2_CATALOG_TOKEN="$(get_service_environment_value "$SERVICE" CATALOG_SERVICE_TOKEN)"
+  if ! [[ "$PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    fail "Could not load a valid CATALOG_SERVICE_TOKEN for PM2-managed satellite sites."
+  fi
+  mkdir -p "$RELEASE_DIR/logs"
+  SATELLITE_PM2_UPDATES_STARTED=1
+  HWA_PM2_SITE_NAMES="$PM2_SITE_NAMES_CSV" CATALOG_SERVICE_TOKEN="$PM2_CATALOG_TOKEN" \
+    pm2 startOrReload "$RELEASE_DIR/ecosystem.config.cjs" --update-env
+  for index in "${!SATELLITE_PM2_PRESENT[@]}"; do
+    if [ "${SATELLITE_PM2_PRESENT[$index]}" -ne 1 ]; then
+      continue
+    fi
+    port="${SATELLITE_PORTS[$index]}"
+    pm2_ready=0
+    for attempt in $(seq 1 30); do
+      if curl --silent --fail --output /dev/null --max-time 2 "http://127.0.0.1:${port}/api/health"; then
+        pm2_ready=1
+        break
+      fi
+      sleep 1
+    done
+    if [ "$pm2_ready" -ne 1 ]; then
+      fail "PM2 process ${SATELLITE_PM2_NAMES[$index]} did not become healthy on port ${port}."
+    fi
+    pm2_bundle="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/" | grep -oE 'src="/assets/index-[^"]+\.js"' | head -n 1 | sed 's/^src="//;s/"$//')"
+    if [ "$pm2_bundle" != "$EXPECTED_BUNDLE_PATH" ]; then
+      fail "PM2 process ${SATELLITE_PM2_NAMES[$index]} serves ${pm2_bundle:-no bundle}; expected $EXPECTED_BUNDLE_PATH."
+    fi
+  done
+  pm2 jlist | node -e '
+    let input = "";
+    process.stdin.on("data", (chunk) => input += chunk).on("end", () => {
+      const expectedDirectory = process.argv[1];
+      const names = process.argv[2].split(",");
+      const apps = JSON.parse(input);
+      for (const name of names) {
+        const app = apps.find((item) => item.name === name);
+        if (!app || app.pm2_env.status !== "online" || app.pm2_env.pm_cwd !== expectedDirectory) process.exit(1);
+      }
+    });
+  ' "$RELEASE_DIR" "$PM2_SITE_NAMES_CSV" || fail "PM2 satellite processes did not move to the new release."
+  echo "PM2 satellite bundles verified: $PM2_SITE_NAMES_CSV"
+fi
+
 if [ -f "$ID_UNIT_FILE" ]; then
   ID_UNIT_BACKUP="$STAGING_DIR/kreditmotorhonda-id.service.previous"
   sudo cp "$ID_UNIT_FILE" "$ID_UNIT_BACKUP"
@@ -590,6 +714,27 @@ if [ "$id_site_motors" != "$EXPECTED_MOTORS" ]; then
   fail "$ID_SERVICE catalog proxy returned $id_site_motors motors; expected $EXPECTED_MOTORS."
 fi
 echo "$ID_SERVICE catalog verified: $id_site_motors motors"
+check_bundle_version "http://127.0.0.1:3003/"
+
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+    continue
+  fi
+  check_bundle_version "http://127.0.0.1:${SATELLITE_PORTS[$index]}/"
+done
+
+SITE_SERVICES_UPDATED=1
+if [ "$SATELLITE_PM2_UPDATES_STARTED" -eq 1 ]; then
+  pm2 save
+fi
+check_bundle_version "https://${DOMAIN}/"
+if [ "$ID_DNS_READY" -eq 1 ]; then
+  check_bundle_version "https://kreditmotorhonda.id/"
+  check_bundle_version "https://www.kreditmotorhonda.id/"
+fi
+check_bundle_version "https://www.${DOMAIN}/"
+check_bundle_version "https://wijaya.kreditmotorhonda.tech/"
+check_bundle_version "https://www.solusikreditmotor.cloud/"
 
 DEPLOY_SUCCEEDED=1
 CUTOVER_STARTED=0
