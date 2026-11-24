@@ -59,6 +59,8 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   const [showPreview, setShowPreview] = useState(false);
   const imagesInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
 
   const filteredArticles = articles.filter((article) => {
     const query = searchQuery.trim().toLocaleLowerCase('id-ID');
@@ -137,6 +139,24 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       setErrorMessage(`Gagal mengunggah gambar: ${error.message}`);
     } finally {
       setIsUploadingImages(false);
+      input.value = '';
+    }
+  };
+
+  const handleUploadVideo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!editingArticle || !file) return;
+    setIsUploadingVideo(true);
+    setErrorMessage(null);
+    try {
+      const videoUrl = await api.uploadArticleVideo(file);
+      setEditingArticle((current) => current ? { ...current, video: videoUrl } : current);
+      setNotice('Video artikel berhasil diunggah.');
+    } catch (error: any) {
+      setErrorMessage(error.message || 'Gagal mengunggah video.');
+    } finally {
+      setIsUploadingVideo(false);
       input.value = '';
     }
   };
@@ -337,6 +357,16 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 ) : <p className="border border-dashed border-slate-300 px-3 py-5 text-center text-xs text-slate-500">Belum ada gambar yang diunggah.</p>}
               </section>
 
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div><h4 className="font-bold text-slate-900">Video artikel</h4><p className="mt-1 text-xs text-slate-500">Unggah video langsung atau tempel tautan video. Format MP4, WebM, MOV · maksimal 100 MB.</p></div>
+                  <button type="button" disabled={isUploadingVideo} onClick={() => videoInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"><Upload className="h-4 w-4" />{isUploadingVideo ? 'Mengunggah video...' : 'Upload video'}</button>
+                  <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" className="hidden" onChange={handleUploadVideo} />
+                </div>
+                <label className="block space-y-1.5 font-semibold text-slate-700">Tautan video (opsional)<input type="url" value={editingArticle.video || ''} onChange={(event) => setEditingArticle({ ...editingArticle, video: event.target.value })} placeholder="https://... atau unggah video dari perangkat" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10" /></label>
+                {editingArticle.video && <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950"><video key={editingArticle.video} src={editingArticle.video} controls preload="metadata" className="max-h-72 w-full" /><div className="flex items-center justify-between gap-3 bg-white px-3 py-2"><span className="min-w-0 truncate text-xs text-slate-600">{editingArticle.video}</span><button type="button" onClick={() => setEditingArticle({ ...editingArticle, video: '' })} className="shrink-0 text-xs font-semibold text-red-700 hover:text-red-900">Hapus video</button></div></div>}
+              </section>
+
               <section className="space-y-3 rounded-2xl border border-stone-200 bg-white p-4">
                 <div><h4 className="font-bold text-stone-900">SEO &amp; publikasi</h4><p className="mt-1 text-[11px] text-stone-500">Metadata ini dipakai pada judul dan deskripsi hasil pencarian.</p></div>
                 <label className="block space-y-1.5 font-semibold text-stone-700">Meta title<input maxLength={70} value={editingArticle.metaTitle || ''} onChange={(event) => setEditingArticle({ ...editingArticle, metaTitle: event.target.value })} placeholder={editingArticle.title || 'Judul untuk Google'} className="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none focus:border-red-500" /><span className="text-[10px] font-normal text-stone-500">{(editingArticle.metaTitle || '').length}/70 karakter</span></label>
@@ -357,7 +387,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               <p className="text-[11px] leading-5 text-stone-500">Jika tidak dicentang, artikel disimpan sebagai draf dan tidak tampil di website publik.</p>
               <div className="flex justify-end gap-2 border-t border-stone-200 pt-5">
                 <button type="button" onClick={() => setEditingArticle(null)} className="rounded-xl border border-slate-200 px-4 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-50">Batal</button>
-                <button type="submit" disabled={isSaving || isUploadingImages} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-700 to-red-600 px-5 py-2.5 font-bold text-white shadow-lg shadow-red-700/20 transition hover:-translate-y-0.5 hover:from-red-800 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-4 w-4" />{isSaving ? 'Menyimpan...' : 'Simpan Artikel'}</button>
+                <button type="submit" disabled={isSaving || isUploadingImages || isUploadingVideo} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-700 to-red-600 px-5 py-2.5 font-bold text-white shadow-lg shadow-red-700/20 transition hover:-translate-y-0.5 hover:from-red-800 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-4 w-4" />{isSaving ? 'Menyimpan...' : isUploadingVideo ? 'Menunggu video...' : 'Simpan Artikel'}</button>
               </div>
             </form>
           </div>
