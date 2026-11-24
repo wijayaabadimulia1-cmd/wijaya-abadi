@@ -161,11 +161,18 @@ DATA_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*DATA_DIR=\([^ ]*\).*/\1/p
 UPLOADS_DIR="$(printf '%s\n' "$SERVICE_ENV" | sed -n 's/.*UPLOADS_DIR=\([^ ]*\).*/\1/p')"
 ENV_FILE="$(systemctl show "$SERVICE" --property=EnvironmentFiles --value | sed -n 's/^\([^ ]*\).*/\1/p' | head -n 1)"
 
-if [ -z "$DATA_DIR" ] || [ -z "$UPLOADS_DIR" ] || [ -z "$ENV_FILE" ]; then
-  fail "Could not determine the live DATA_DIR, UPLOADS_DIR, and EnvironmentFile from $SERVICE."
+if [ -z "$DATA_DIR" ] || [ -z "$UPLOADS_DIR" ]; then
+  fail "Could not determine the live DATA_DIR and UPLOADS_DIR from $SERVICE."
 fi
-if [ ! -s "$DATA_DIR/db.json" ] || [ ! -d "$UPLOADS_DIR" ] || [ ! -f "$ENV_FILE" ]; then
-  fail "Live catalog, uploads, or environment file is missing; refusing deployment."
+if [ -n "$ENV_FILE" ] && [ ! -f "$ENV_FILE" ]; then
+  fail "The configured environment file is missing; refusing deployment."
+fi
+if [ ! -s "$DATA_DIR/db.json" ] || [ ! -d "$UPLOADS_DIR" ]; then
+  fail "Live catalog or uploads are missing; refusing deployment."
+fi
+ENV_FILE_DIRECTIVE=""
+if [ -n "$ENV_FILE" ]; then
+  ENV_FILE_DIRECTIVE="EnvironmentFile=$ENV_FILE"
 fi
 
 get_service_environment_value() {
@@ -318,7 +325,7 @@ sudo tee "$DROPIN_FILE" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
-EnvironmentFile=$ENV_FILE
+$ENV_FILE_DIRECTIVE
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
@@ -455,7 +462,7 @@ User=$SERVICE_USER
 Group=$SERVICE_GROUP
 WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
-EnvironmentFile=$ENV_FILE
+$ENV_FILE_DIRECTIVE
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3003
