@@ -202,7 +202,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 <h3 className="mt-2 truncate text-base font-semibold text-stone-900">{article.title}</h3>
                 <p className="mt-1 line-clamp-2 text-sm leading-6 text-stone-600">{article.excerpt}</p>
                 <div className="mt-3 flex items-center justify-end gap-3">
-                  <button type="button" onClick={() => { setErrorMessage(null); setIsSlugManuallyEdited(true); setEditingArticle({ ...article, images: getArticleImages(article) }); }} className="inline-flex items-center gap-1 text-xs font-semibold text-stone-700 hover:text-white" aria-label={`Edit ${article.title}`}><Edit2 className="h-3.5 w-3.5" /> Edit</button>
+                  <button type="button" onClick={() => { setErrorMessage(null); setIsSlugManuallyEdited(true); setEditingArticle({ ...article, images: getArticleImages(article) }); }} className="inline-flex items-center gap-1 text-xs font-semibold text-stone-700 hover:text-red-700" aria-label={`Edit ${article.title}`}><Edit2 className="h-3.5 w-3.5" /> Edit</button>
                   <button type="button" onClick={() => void handleDeleteArticle(article)} className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300" aria-label={`Hapus ${article.title}`}><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
                 </div>
               </div>
@@ -210,7 +210,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
           ))}
         </div>
       ) : (
-        <div className="border border-dashed border-white/15 px-5 py-12 text-center">
+        <div className="border border-dashed border-stone-300 px-5 py-12 text-center rounded-2xl bg-white">
           <FileText className="mx-auto h-8 w-8 text-stone-500" />
           <p className="mt-3 text-sm font-semibold text-stone-700">Belum ada artikel</p>
           <p className="mt-1 text-xs text-stone-500">Artikel terbit akan tampil di website. Post SEO tidak masuk ke daftar ini.</p>
