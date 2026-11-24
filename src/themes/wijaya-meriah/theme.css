@@ -125,7 +125,7 @@
     linear-gradient(0deg, rgba(17, 27, 35, 0.18), transparent 38%),
     var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
   background-position: center, center, var(--theme-background-position, center 58%);
-  background-size: cover;
+  background-size: cover, cover, var(--theme-background-size, cover);
 }
 
 .website-shell.website-template-wijaya-meriah #home::before,

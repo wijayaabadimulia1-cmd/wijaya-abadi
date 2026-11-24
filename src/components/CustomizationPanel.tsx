@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Upload, X, Eye, Trash2 } from 'lucide-react';
+import { Upload, X, Eye, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import type { DealerSettings, ThemeBackgroundPosition, ThemeColorPalette, ThemeMode } from '../types';
 import { api } from '../services/api';
 import { MAX_HERO_IMAGES } from '../constants';
@@ -19,6 +19,7 @@ interface CustomizationPanelProps {
 }
 
 const clampBackgroundPosition = (value: number) => Math.round(Math.max(0, Math.min(100, value)));
+const clampBackgroundZoom = (value: number) => Math.round(Math.max(50, Math.min(200, value)));
 
 const getDefaultThemeBackgroundPosition = (template: string | undefined): ThemeBackgroundPosition => {
   if (template === 'wijaya-meriah') return { x: 50, y: 58 };
@@ -40,6 +41,9 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   const defaultBackgroundPosition = getDefaultThemeBackgroundPosition(settings.websiteTemplate);
   const [backgroundPosition, setBackgroundPosition] = useState<ThemeBackgroundPosition>(
     () => customization.themeBackgroundPosition || defaultBackgroundPosition,
+  );
+  const [backgroundZoom, setBackgroundZoom] = useState(
+    () => clampBackgroundZoom(customization.themeBackgroundZoom ?? 100),
   );
   const backgroundDragRef = useRef<{
     pointerId: number;
@@ -102,6 +106,10 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
     customization.themeBackgroundPosition?.y,
     settings.websiteTemplate,
   ]);
+
+  useEffect(() => {
+    setBackgroundZoom(clampBackgroundZoom(customization.themeBackgroundZoom ?? 100));
+  }, [customization.themeBackgroundZoom]);
 
   const handleImageUpload = async (
     file: File,
@@ -209,6 +217,15 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
     onSettingsChange({
       ...settings,
       customization: { ...customization, themeBackgroundPosition: nextPosition },
+    });
+  };
+
+  const updateThemeBackgroundZoom = (zoom: number) => {
+    const nextZoom = clampBackgroundZoom(zoom);
+    setBackgroundZoom(nextZoom);
+    onSettingsChange({
+      ...settings,
+      customization: { ...customization, themeBackgroundZoom: nextZoom },
     });
   };
 
@@ -420,6 +437,7 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                       ...customization,
                       themeBackgroundImage: '',
                       themeBackgroundPosition: undefined,
+                      themeBackgroundZoom: undefined,
                     },
                   });
                 }}
@@ -463,10 +481,14 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
           >
             <img
               src={customization.themeBackgroundImage}
-              alt="Pratinjau background tema. Seret gambar untuk mengatur posisinya."
+              alt="Pratinjau background tema. Seret gambar untuk mengatur posisi dan gunakan kontrol zoom."
               draggable={false}
               onDragStart={(event) => event.preventDefault()}
-              style={{ objectPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%` }}
+              style={{
+                objectPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%`,
+                transform: `scale(${backgroundZoom / 100})`,
+                transition: 'transform 120ms ease-out',
+              }}
               className="pointer-events-none h-full w-full select-none object-cover"
             />
           </div>
@@ -501,6 +523,44 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
                 className="w-full accent-red-500"
               />
             </label>
+            <div className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <span>Zoom background</span>
+                <span className="font-semibold tabular-nums">{backgroundZoom}%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Perkecil background"
+                  title="Zoom out"
+                  disabled={backgroundZoom <= 50}
+                  onClick={() => updateThemeBackgroundZoom(backgroundZoom - 10)}
+                  className="rounded-md border border-white/10 p-2 text-zinc-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </button>
+                <input
+                  type="range"
+                  min="50"
+                  max="200"
+                  step="5"
+                  value={backgroundZoom}
+                  aria-label="Zoom background tema"
+                  onChange={(event) => updateThemeBackgroundZoom(Number(event.target.value))}
+                  className="w-full accent-red-500"
+                />
+                <button
+                  type="button"
+                  aria-label="Perbesar background"
+                  title="Zoom in"
+                  disabled={backgroundZoom >= 200}
+                  onClick={() => updateThemeBackgroundZoom(backgroundZoom + 10)}
+                  className="rounded-md border border-white/10 p-2 text-zinc-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

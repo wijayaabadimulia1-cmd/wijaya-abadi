@@ -177,7 +177,7 @@ export const api = {
     key: string,
     startDate?: string,
     endDate?: string,
-    includeAll?: { pages?: boolean; searchTerms?: boolean; leads?: boolean },
+    includeAll?: { pages?: boolean; searchTerms?: boolean; leads?: boolean; articles?: boolean },
   ): Promise<any> {
     const res = await fetch('/api/owner-dashboard/analytics', {
       method: 'POST',
@@ -190,6 +190,7 @@ export const api = {
         includeAllPages: includeAll?.pages === true,
         includeAllSearchTerms: includeAll?.searchTerms === true,
         includeAllLeads: includeAll?.leads === true,
+        includeArticles: includeAll?.articles === true,
       }),
     });
     const result = await res.json().catch(() => ({}));
@@ -535,6 +536,16 @@ export const api = {
       keepalive: true,
     });
     if (!res.ok) throw new Error('Gagal menyimpan kunjungan website');
+  },
+
+  async trackArticleRead(sessionId: string, path: string): Promise<void> {
+    const res = await fetch('/api/analytics/article-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, path }),
+      keepalive: true,
+    });
+    if (!res.ok) throw new Error('Gagal menyimpan pembaca artikel');
   },
 
   async trackSearch(sessionId: string, keyword: string, eventId: string): Promise<void> {

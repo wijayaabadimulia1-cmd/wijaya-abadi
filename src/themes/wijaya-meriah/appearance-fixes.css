@@ -33,7 +33,7 @@
     linear-gradient(0deg, rgba(13, 21, 30, 0.22), transparent 42%),
     var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
   background-position: center, center, var(--theme-background-position, center 58%);
-  background-size: cover;
+  background-size: cover, cover, var(--theme-background-size, cover);
 }
 
 .website-shell.website-template-wijaya-meriah.site-mode-dark #home .hero-editable-text,
@@ -145,7 +145,7 @@
       linear-gradient(180deg, rgba(13, 21, 30, 0.46), rgba(13, 21, 30, 0.36)),
       var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
     background-position: center, var(--theme-background-position, center);
-    background-size: cover;
+    background-size: cover, var(--theme-background-size, cover);
   }
 
   .website-shell.website-template-wijaya-meriah .wijaya-meriah-discovery-content.has-featured-promo {

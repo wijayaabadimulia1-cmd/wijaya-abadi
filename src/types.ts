@@ -220,6 +220,7 @@ export interface WebsiteCustomization {
   heroOverlayOpacity?: number;
   themeBackgroundImage?: string;
   themeBackgroundPosition?: ThemeBackgroundPosition;
+  themeBackgroundZoom?: number;
   themeBackgroundAnimation?: boolean;
   colorPalettes?: Partial<Record<ThemeMode, ThemeColorPalette>>;
   templatePaletteBackup?: Partial<Record<ThemeMode, ThemeColorPalette>>;

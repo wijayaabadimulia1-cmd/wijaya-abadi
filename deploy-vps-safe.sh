@@ -233,6 +233,8 @@ ID_SOURCE_DATA_DIR=""
 if systemctl is-active --quiet "$ID_SERVICE"; then
   ID_SOURCE_DATA_DIR="$(get_service_environment_value "$ID_SERVICE" DATA_DIR)"
 fi
+OWNER_ANALYTICS_ID_DB_FILE="${OWNER_ANALYTICS_ID_DB_FILE:-$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_ID_DB_FILE)}"
+OWNER_ANALYTICS_ID_DB_FILE="${OWNER_ANALYTICS_ID_DB_FILE:-${ID_DATA_DIR}/db.json}"
 for index in "${!SATELLITE_SERVICES[@]}"; do
   if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
     continue
@@ -284,6 +286,9 @@ if [ ! -s "$ID_DATA_DIR/db.json" ]; then
   fi
   sudo install -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 640 "$ID_SOURCE_DATA_DIR/db.json" "$ID_DATA_DIR/db.json"
 fi
+if [ ! -s "$OWNER_ANALYTICS_ID_DB_FILE" ]; then
+  fail "Could not verify the kreditmotorhonda.id site database for owner analytics."
+fi
 
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
 STAGING_PORT="$(node -e 'const net = require("node:net"); const server = net.createServer(); server.listen(0, "127.0.0.1", () => { console.log(server.address().port); server.close(); });')"
@@ -300,6 +305,7 @@ cp "$DATA_DIR/db.json" "$STAGING_DIR/data/db.json"
     DATA_DIR="$STAGING_DIR/data" UPLOADS_DIR="$STAGING_DIR/uploads" \
     OWNER_ANALYTICS_WIJAYA_DB_FILE="$OWNER_ANALYTICS_WIJAYA_DB_FILE" \
     OWNER_ANALYTICS_SOLUSI_DB_FILE="$OWNER_ANALYTICS_SOLUSI_DB_FILE" \
+    OWNER_ANALYTICS_ID_DB_FILE="$OWNER_ANALYTICS_ID_DB_FILE" \
     node dist/server.cjs >"$STAGING_DIR/server.log" 2>&1
 ) &
 STAGING_PID=$!
@@ -368,6 +374,7 @@ Environment=GSC_SERVICE_ACCOUNT_FILE=/etc/wijaya-abadi/gsc-service-account.json
 Environment=GSC_SITE_URLS=$GSC_SITE_URLS
 Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
 Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
+Environment=OWNER_ANALYTICS_ID_DB_FILE=$OWNER_ANALYTICS_ID_DB_FILE
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF

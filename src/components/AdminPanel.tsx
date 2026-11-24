@@ -393,8 +393,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     api.getAdminMe()
       .then((session) => {
         setAdminSession(session);
-        if (new URLSearchParams(window.location.search).get('tab') === 'articles') setActiveTab('articles');
-        else if (['admin', 'Staff Admin'].includes(session.role)) setActiveTab('articles');
+        if (['admin', 'Staff Admin'].includes(session.role)) setActiveTab('articles');
         else if (['superadmin pos', 'Super Admin POS'].includes(session.role)) setActiveTab('sales-counter');
       })
       .catch(() => {

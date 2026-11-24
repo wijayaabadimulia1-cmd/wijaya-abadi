@@ -26,7 +26,8 @@ const DB_FILE = fs.existsSync(PERSISTENT_DB_FILE)
   : FALLBACK_DB_FILE;
 const OWNER_ANALYTICS_ROOT_DIR = path.resolve(process.env.OWNER_ANALYTICS_ROOT_DIR || path.dirname(DATA_DIR));
 const OWNER_ANALYTICS_SITE_DB_FILES: Record<string, string> = {
-  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),   'kreditmotorhonda.id': path.resolve(process.env.OWNER_ANALYTICS_ID_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'id', 'data', 'db.json')),
+  'wijaya.kreditmotorhonda.tech': path.resolve(process.env.OWNER_ANALYTICS_WIJAYA_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'wijaya', 'data', 'db.json')),
+  'kreditmotorhonda.id': path.resolve(process.env.OWNER_ANALYTICS_ID_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'kreditmotorhonda-id', 'data', 'db.json')),
   'solusikreditmotor.cloud': path.resolve(process.env.OWNER_ANALYTICS_SOLUSI_DB_FILE || path.join(OWNER_ANALYTICS_ROOT_DIR, 'sites', 'solusi', 'data', 'db.json')),
 };
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads'));
@@ -631,6 +632,16 @@ function getSeoPageForHost(settings: any = {}, hostname: string) {
 function normalizeAnalyticsHost(hostname: unknown) {
   const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
   return host.startsWith('www.') ? host.slice(4) : host;
+}
+
+function getArticleSlugFromPath(value: unknown) {
+  const match = String(value || '').split(/[?#]/, 1)[0].match(/^\/artikel\/([^/]+)\/?$/i);
+  if (!match) return '';
+  try {
+    return decodeURIComponent(match[1]).toLocaleLowerCase('id-ID');
+  } catch {
+    return '';
+  }
 }
 
 function normalizeSearchKeyword(value: unknown) {
@@ -2260,7 +2271,7 @@ async function startServer() {
 
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/search' || req.path === '/analytics/whatsapp' || req.path === '/owner-dashboard/analytics');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/article-read' || req.path === '/analytics/search' || req.path === '/analytics/whatsapp' || req.path === '/owner-dashboard/analytics');
     const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
     if (hostPost && req.method !== 'GET' && !isPublicWrite) {
       const session = getSession(req);
@@ -3256,6 +3267,38 @@ async function startServer() {
     return res.status(201).json({ recorded: true });
   });
 
+  app.post('/api/analytics/article-read', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const slug = getArticleSlugFromPath(req.body?.path);
+    const host = normalizeAnalyticsHost(req.hostname);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !slug) {
+      return res.status(400).json({ error: 'Data pembaca artikel tidak valid.' });
+    }
+
+    const db = readSiteDb();
+    const article = getSiteArticles(db, req.hostname)
+      .find((item: any) => String(item.slug || '').toLocaleLowerCase('id-ID') === slug && item.published === true);
+    if (!article) return res.status(404).json({ error: 'Artikel terbit tidak ditemukan.' });
+
+    db.articleReadLogs = Array.isArray(db.articleReadLogs) ? db.articleReadLogs : [];
+    const existing = db.articleReadLogs.find((entry: any) =>
+      entry.sessionId === sessionId
+      && normalizeAnalyticsHost(entry.host || host) === host
+      && String(entry.slug || '') === slug
+    );
+    if (existing) return res.status(200).json({ recorded: false });
+
+    db.articleReadLogs.push({
+      id: `article-read-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      sessionId,
+      host,
+      slug,
+      timestamp: new Date().toISOString(),
+    });
+    if (!writeSiteDb(db)) return res.status(500).json({ error: 'Gagal menyimpan pembaca artikel.' });
+    return res.status(201).json({ recorded: true });
+  });
+
   app.post('/api/analytics/search', (req, res) => {
     const sessionId = String(req.body?.sessionId || '');
     const eventId = String(req.body?.eventId || '');
@@ -3483,6 +3526,53 @@ async function startServer() {
       return (!startDate || date >= startDate) && (!endDate || date <= endDate);
     });
     const siteLeads = req.body?.includeAllLeads === true ? filteredSiteLeads : filteredSiteLeads.slice(0, 20);
+    const articleReaders = req.body?.includeArticles === true
+      ? [...databaseSources.entries()].flatMap(([sourceFile, legacyHost]) => {
+        const sourceDb = databaseContents.get(sourceFile) || {};
+        const articleReadLogs = Array.isArray(sourceDb.articleReadLogs) ? sourceDb.articleReadLogs : [];
+        const visitorLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
+        return [...validHosts]
+          .filter((host) => (OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE) === sourceFile)
+          .flatMap((host) => getSiteArticles(sourceDb, host)
+            .filter((article: any) => article.published === true)
+            .map((article: any) => {
+              const slug = String(article.slug || '').toLocaleLowerCase('id-ID');
+              const readerSessions = new Set<string>();
+              const matchingReads = [
+                ...articleReadLogs.filter((log: any) =>
+                  String(log.slug || '').toLocaleLowerCase('id-ID') === slug
+                  && normalizeAnalyticsHost(log.host || legacyHost) === host
+                ),
+                ...visitorLogs.filter((log: any) =>
+                  getArticleSlugFromPath(log.path) === slug
+                  && normalizeAnalyticsHost(log.host || legacyHost) === host
+                ),
+              ];
+              matchingReads.forEach((log: any) => {
+                if (!log.sessionId || !Number.isFinite(Date.parse(String(log.timestamp || '')))) return;
+                const date = getJakartaDateParts(log.timestamp).date;
+                if ((!startDate || date >= startDate) && (!endDate || date <= endDate)) {
+                  readerSessions.add(String(log.sessionId));
+                }
+              });
+              const siteType = ownerPageRows.find((page: any) => page.host === host)?.siteType === 'sales-counter'
+                ? 'sales-counter'
+                : 'domain';
+              return {
+                host,
+                siteType,
+                title: String(article.title || 'Tanpa judul'),
+                slug,
+                url: `https://${host}/artikel/${encodeURIComponent(slug)}`,
+                readers: readerSessions.size,
+              };
+            }));
+      }).sort((left: any, right: any) =>
+        left.siteType.localeCompare(right.siteType)
+        || left.host.localeCompare(right.host)
+        || left.title.localeCompare(right.title, 'id')
+      )
+      : [];
     const logs = allLogs
       .filter((log) => validHosts.has(log.host || ''))
       .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
@@ -3603,6 +3693,7 @@ async function startServer() {
       seoSubdomains,
       siteLeads,
       siteLeadsTotal: filteredSiteLeads.length,
+      articleReaders,
       dailyVisitors,
       topPages,
       topPagesTotal: allTopPages.length,
