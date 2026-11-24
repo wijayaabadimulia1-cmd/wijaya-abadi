@@ -193,8 +193,8 @@
     linear-gradient(90deg, rgba(245, 249, 252, 0.82), rgba(245, 249, 252, 0.25) 48%, rgba(245, 249, 252, 0.08)),
     linear-gradient(0deg, rgba(18, 34, 45, 0.28), transparent 28%),
     var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
-  background-position: center, center, center 53%;
-  background-size: cover;
+  background-position: center, center, var(--theme-background-position, center 53%);
+  background-size: cover, cover, var(--theme-background-size, cover);
 }
 
 .website-shell.website-template-showcase-wijaya-2 #home::before,

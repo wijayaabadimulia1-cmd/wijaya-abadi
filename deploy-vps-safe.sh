@@ -9,6 +9,7 @@ fi
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-tech.service"
+CATALOG_API_URL="http://127.0.0.1:3000"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 ALLOW_EMPTY_CATALOG="${ALLOW_EMPTY_CATALOG:-false}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -232,6 +233,8 @@ ID_SOURCE_DATA_DIR=""
 if systemctl is-active --quiet "$ID_SERVICE"; then
   ID_SOURCE_DATA_DIR="$(get_service_environment_value "$ID_SERVICE" DATA_DIR)"
 fi
+OWNER_ANALYTICS_ID_DB_FILE="${OWNER_ANALYTICS_ID_DB_FILE:-$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_ID_DB_FILE)}"
+OWNER_ANALYTICS_ID_DB_FILE="${OWNER_ANALYTICS_ID_DB_FILE:-${ID_DATA_DIR}/db.json}"
 for index in "${!SATELLITE_SERVICES[@]}"; do
   if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
     continue
@@ -242,7 +245,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     continue
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
-  if [ "$catalog_api_url" != "https://kreditmotorhonda.tech" ]; then
+  if [ "$catalog_api_url" != "https://kreditmotorhonda.tech" ] && [ "$catalog_api_url" != "$CATALOG_API_URL" ]; then
     fail "$service is not configured to use the main catalog API; refusing deployment."
   fi
 done
@@ -283,6 +286,9 @@ if [ ! -s "$ID_DATA_DIR/db.json" ]; then
   fi
   sudo install -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 640 "$ID_SOURCE_DATA_DIR/db.json" "$ID_DATA_DIR/db.json"
 fi
+if [ ! -s "$OWNER_ANALYTICS_ID_DB_FILE" ]; then
+  fail "Could not verify the kreditmotorhonda.id site database for owner analytics."
+fi
 
 STAGING_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy.XXXXXX)"
 STAGING_PORT="$(node -e 'const net = require("node:net"); const server = net.createServer(); server.listen(0, "127.0.0.1", () => { console.log(server.address().port); server.close(); });')"
@@ -299,6 +305,7 @@ cp "$DATA_DIR/db.json" "$STAGING_DIR/data/db.json"
     DATA_DIR="$STAGING_DIR/data" UPLOADS_DIR="$STAGING_DIR/uploads" \
     OWNER_ANALYTICS_WIJAYA_DB_FILE="$OWNER_ANALYTICS_WIJAYA_DB_FILE" \
     OWNER_ANALYTICS_SOLUSI_DB_FILE="$OWNER_ANALYTICS_SOLUSI_DB_FILE" \
+    OWNER_ANALYTICS_ID_DB_FILE="$OWNER_ANALYTICS_ID_DB_FILE" \
     node dist/server.cjs >"$STAGING_DIR/server.log" 2>&1
 ) &
 STAGING_PID=$!
@@ -367,6 +374,7 @@ Environment=GSC_SERVICE_ACCOUNT_FILE=/etc/wijaya-abadi/gsc-service-account.json
 Environment=GSC_SITE_URLS=$GSC_SITE_URLS
 Environment=OWNER_ANALYTICS_WIJAYA_DB_FILE=$OWNER_ANALYTICS_WIJAYA_DB_FILE
 Environment=OWNER_ANALYTICS_SOLUSI_DB_FILE=$OWNER_ANALYTICS_SOLUSI_DB_FILE
+Environment=OWNER_ANALYTICS_ID_DB_FILE=$OWNER_ANALYTICS_ID_DB_FILE
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
 EOF
@@ -440,7 +448,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
-Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/env PORT=$port /usr/bin/node $RELEASE_DIR/dist/server.cjs
@@ -510,7 +518,7 @@ Environment=PORT=3003
 Environment=APP_URL=https://kreditmotorhonda.id
 Environment=DATA_DIR=$ID_DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
-Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 Environment=CATALOG_ADMIN_URL=https://kreditmotorhonda.tech/admin
 ExecStart=
@@ -525,7 +533,7 @@ sudo install -d -m 755 "$ID_DROPIN_DIR"
 sudo tee "$ID_DEPLOY_DROPIN" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
-Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
@@ -553,7 +561,28 @@ done
 if [ "$id_site_ready" -ne 1 ]; then
   fail "$ID_SERVICE did not become healthy on port 3003."
 fi
-id_site_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:3003/api/motors | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+ID_MOTORS_RESPONSE_FILE="$STAGING_DIR/kreditmotorhonda-id-motors.json"
+id_site_motors_status="$(curl --silent --show-error --output "$ID_MOTORS_RESPONSE_FILE" --write-out '%{http_code}' --max-time 10 http://127.0.0.1:3003/api/motors)" \
+  || fail "Could not reach the Kreditmotorhonda.id catalog API on port 3003."
+if [ "$id_site_motors_status" != "200" ]; then
+  fail "Kreditmotorhonda.id catalog API returned HTTP $id_site_motors_status."
+fi
+id_site_motors="$(node -e '
+  const fs = require("node:fs");
+  let response;
+  try {
+    response = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  } catch {
+    console.error(`Kreditmotorhonda.id catalog API returned invalid JSON (HTTP ${process.argv[2]}).`);
+    process.exit(2);
+  }
+  if (!Array.isArray(response)) {
+    const message = typeof response?.error === "string" ? response.error : "API did not return a motor list.";
+    console.error(`Kreditmotorhonda.id catalog API error: ${message}`);
+    process.exit(2);
+  }
+  console.log(response.length);
+' "$ID_MOTORS_RESPONSE_FILE" "$id_site_motors_status")" || fail "Kreditmotorhonda.id catalog response could not be validated."
 if [ "$id_site_motors" != "$EXPECTED_MOTORS" ]; then
   fail "$ID_SERVICE catalog proxy returned $id_site_motors motors; expected $EXPECTED_MOTORS."
 fi

@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, Share2, X } from 'lucide-react';
 import type { Article } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from '../catalogAnimation';
+import { getYouTubeEmbedUrl, isHttpUrl } from '../utils/articleVideo';
 
 interface ArticleSectionProps {
   articles: Article[];
+  whatsappNumber?: string;
 }
 
 function getArticleImages(article: Article) {
@@ -30,7 +32,7 @@ function getImageStyle(article: Article): React.CSSProperties {
   } as React.CSSProperties;
 }
 
-export function ArticleSection({ articles }: ArticleSectionProps) {
+export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSectionProps) {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
@@ -94,6 +96,27 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
     }
   };
 
+  const getVideoDetails = (article: Article) => {
+    const media = article.videoMedia;
+    if (media?.source === 'youtube') {
+      const embedUrl = getYouTubeEmbedUrl(media.youtubeUrl);
+      return embedUrl ? { kind: 'youtube' as const, url: embedUrl, poster: media.thumbnailUrl || article.image } : null;
+    }
+    if (media?.source === 'upload' && media.videoUrl?.startsWith('/article-media/')) {
+      return { kind: 'file' as const, url: media.videoUrl, poster: media.thumbnailUrl || article.image };
+    }
+
+    const legacyVideo = article.video || '';
+    const youtubeUrl = getYouTubeEmbedUrl(legacyVideo);
+    if (youtubeUrl) return { kind: 'youtube' as const, url: youtubeUrl, poster: article.image };
+    if (/\.mp4(?:[?#].*)?$/i.test(legacyVideo) && (legacyVideo.startsWith('/') || isHttpUrl(legacyVideo))) {
+      return { kind: 'file' as const, url: legacyVideo, poster: article.image };
+    }
+    return null;
+  };
+
+  const whatsappDigits = whatsappNumber.replace(/\D/g, '');
+
   if (!visibleArticles.length) return null;
 
   return (
@@ -128,7 +151,7 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
                     )}
                     <div className="flex flex-1 flex-col p-5 sm:p-6">
                       <div className="flex items-center justify-between gap-3 text-stone-500">
-                        <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600"><CalendarDays className="h-4 w-4" />{formatDate(article.created_at)}</span>
+                        <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600"><CalendarDays className="h-4 w-4" />{formatDate(article.publishedAt || article.created_at)}</span>
                         <button type="button" onClick={() => void shareArticle(article)} title={`Bagikan artikel ${article.title}`} aria-label={`Bagikan artikel ${article.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-stone-200 text-stone-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700">
                           <Share2 className="h-4 w-4" />
                         </button>
@@ -168,14 +191,62 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
             <div className="px-6 py-8 sm:px-12 sm:py-12">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-400">
                 <span className="text-red-700">{selectedArticle.category}</span>
-                <span>{formatDate(selectedArticle.created_at)}</span>
-                <span>{getReadingMinutes(selectedArticle.content)} menit membaca</span>
+                <span>{formatDate(selectedArticle.publishedAt || selectedArticle.created_at)}</span>
+                <span>{selectedArticle.readTime || getReadingMinutes(selectedArticle.content)} menit membaca</span>
               </div>
               <h2 className="mt-5 font-serif text-3xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-5xl">{selectedArticle.title}</h2>
               <p className="mt-5 border-l-2 border-red-600 pl-5 text-base leading-8 text-stone-600 sm:text-lg">{selectedArticle.excerpt}</p>
+              {selectedArticle.motorModel && <p className="mt-5 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700"><strong>Model yang diulas:</strong> {selectedArticle.motorModel}</p>}
+              {selectedArticle.productFacts && <p className="mt-4 whitespace-pre-line rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-700">{selectedArticle.productFacts}</p>}
+              {selectedArticle.promoPeriod && <p className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"><strong>Periode promo:</strong> {selectedArticle.promoPeriod}</p>}
+              {selectedArticle.faqItems && <section className="mt-7 rounded-2xl border border-stone-200 bg-stone-50 p-5"><h3 className="font-serif text-xl font-semibold text-stone-900">Pertanyaan yang sering diajukan</h3><div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-7 text-stone-700">{selectedArticle.faqItems}</div></section>}
               <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
+              {getVideoDetails(selectedArticle) && (
+                <section className="mt-10 border-t border-stone-200 pt-8" aria-label="Video artikel">
+                  <h3 className="mb-4 font-serif text-2xl font-semibold text-stone-950">Video artikel</h3>
+                  <div className="overflow-hidden rounded-2xl bg-stone-950 shadow-lg">
+                    {getVideoDetails(selectedArticle)?.kind === 'youtube' ? (
+                      <div className="relative aspect-video">
+                        <iframe
+                          src={getVideoDetails(selectedArticle)?.url}
+                          title={`Video: ${selectedArticle.title}`}
+                          className="absolute inset-0 h-full w-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <video
+                        src={getVideoDetails(selectedArticle)?.url}
+                        poster={getVideoDetails(selectedArticle)?.poster}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="max-h-[34rem] w-full"
+                        aria-label={`Video artikel: ${selectedArticle.title}`}
+                      />
+                    )}
+                  </div>
+                  {selectedArticle.videoMedia?.transcript && (
+                    <details className="mt-4 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                      <summary className="cursor-pointer text-sm font-semibold text-stone-800">Baca transkrip video</summary>
+                      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-stone-600">{selectedArticle.videoMedia.transcript}</p>
+                    </details>
+                  )}
+                </section>
+              )}
+              {selectedArticle.sourceUrl && isHttpUrl(selectedArticle.sourceUrl) && <p className="mt-6 text-xs text-stone-500">Referensi: <a href={selectedArticle.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-red-700 underline">Sumber informasi</a></p>}
+              {selectedArticle.whatsappCta && (
+                <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                  <p className="text-sm font-semibold leading-6 text-emerald-950">{selectedArticle.whatsappCta}</p>
+                  {whatsappDigits.length >= 8 && whatsappDigits.length <= 15 && (
+                    <a href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Saya ingin bertanya tentang: ${selectedArticle.title}`)}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Hubungi via WhatsApp</a>
+                  )}
+                </div>
+              )}
               <p className="mt-10 border-t border-stone-200 pt-6 text-xs font-semibold tracking-wide text-stone-500">Ditulis oleh {selectedArticle.author}</p>
             </div>
           </article>

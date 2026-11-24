@@ -112,7 +112,7 @@ pm2 save
 pm2 status
 ```
 
-Proses `honda-wijaya-abadi` (3000) memiliki API katalog; `wijaya-kreditmotor` (3001), `solusi-kreditmotor` (3002), dan `kreditmotorhonda-id` (3003) mem-proxy operasi katalog ke port 3000. Tiap situs memiliki database admin dan pengaturan sendiri. Semua proses memakai satu `UPLOADS_DIR` dan root analytics bersama.
+Proses `honda-wijaya-abadi` (3000) memiliki API katalog; `wijaya-kreditmotor` (3001), `solusi-kreditmotor` (3002), dan `kreditmotorhonda-id` (3003) mem-proxy operasi katalog melalui `http://127.0.0.1:3000` agar komunikasi tetap di loopback VPS. Tiap situs memiliki database admin dan pengaturan sendiri. Semua proses memakai satu `UPLOADS_DIR` dan root analytics bersama.
 
 ## 8. Konfigurasi Nginx
 

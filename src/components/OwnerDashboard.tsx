@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FileText,
   Globe,
   LayoutDashboard,
   Link2,
@@ -35,6 +36,7 @@ interface OwnerAnalytics {
   salesCounters: Array<{ host: string; title: string; sslStatus: string; seoRobots: string; postCount: number; updatedAt: string }>;
   seoSubdomains: Array<{ host: string; title: string; sslStatus: string; seoRobots: string; postCount: number; updatedAt: string }>;
   seoPosts: Array<{ host: string; title: string; url: string; author: string; updatedAt: string }>;
+  articleReaders?: Array<{ host: string; siteType: 'domain' | 'sales-counter'; title: string; slug: string; url: string; readers: number }>;
   siteLeads: Array<{ id: string; host: string; customerName: string; motorName: string; status: string; createdAt: string }>;
   siteLeadsTotal: number;
   dailyVisitors: Array<{ date: string; label: string; visits: number }>;
@@ -54,8 +56,8 @@ interface OwnerAnalytics {
   timeZone: string;
 }
 
-type DateRange = '7d' | '30d' | '90d' | 'all' | 'custom';
-type OwnerDashboardSection = 'overview' | 'domains' | 'admins' | 'leads' | 'pages' | 'pos' | 'sales-counters';
+type DateRange = 'today' | '7d' | '30d' | '90d' | 'all' | 'custom';
+type OwnerDashboardSection = 'overview' | 'domains' | 'admins' | 'leads' | 'pages' | 'pos' | 'sales-counters' | 'articles';
 
 function jakartaDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
@@ -128,8 +130,8 @@ const domainColors = ['#dc2626', '#334155', '#f59e0b', '#0891b2', '#059669', '#7
 
 export default function OwnerDashboard() {
   const key = new URLSearchParams(window.location.search).get('key') || '';
-  const [range, setRange] = useState<DateRange>('7d');
-  const [startDate, setStartDate] = useState(() => daysBefore(jakartaDateKey(new Date()), 6));
+  const [range, setRange] = useState<DateRange>('today');
+  const [startDate, setStartDate] = useState(() => jakartaDateKey(new Date()));
   const [endDate, setEndDate] = useState(() => jakartaDateKey(new Date()));
   const [analytics, setAnalytics] = useState<OwnerAnalytics | null>(null);
   const [error, setError] = useState('');
@@ -167,7 +169,9 @@ export default function OwnerDashboard() {
         ? undefined
         : range === 'custom'
           ? startDate
-          : daysBefore(today, range === '7d' ? 6 : range === '30d' ? 29 : range === '90d' ? 89 : 6);
+          : range === 'today'
+            ? today
+            : daysBefore(today, range === '7d' ? 6 : range === '30d' ? 29 : 89);
       const requestEndDate = range === 'all'
         ? undefined
         : range === 'custom'
@@ -187,6 +191,7 @@ export default function OwnerDashboard() {
           pages: activeSection === 'pages',
           searchTerms: showAllSearchTerms,
           leads: activeSection === 'leads',
+          articles: activeSection === 'articles',
         });
         if (!active) return;
         setAnalytics(result);
@@ -210,7 +215,10 @@ export default function OwnerDashboard() {
 
   const selectRange = (nextRange: DateRange) => {
     const today = jakartaDateKey(new Date());
-    if (nextRange === '7d') {
+    if (nextRange === 'today') {
+      setStartDate(today);
+      setEndDate(today);
+    } else if (nextRange === '7d') {
       setStartDate(daysBefore(today, 6));
       setEndDate(today);
     } else if (nextRange === '30d') {
@@ -246,20 +254,42 @@ export default function OwnerDashboard() {
   const allDays = analytics?.dailyVisitors || [];
   const visibleDays = showAllDays
     ? allDays
-    : allDays.slice(-(range === '7d' ? 7 : range === '30d' ? 30 : 90));
-  const totalDomainVisits = (analytics?.sites || []).reduce((total, site) => total + site.visits, 0);
+    : allDays.slice(-(range === 'today' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90));
+  const connectedSites = (analytics?.sites || []).filter((site) =>
+    analytics?.siteAdmins.some((item) => item.host === site.host && item.dataAvailable),
+  );
+  const totalDomainVisits = connectedSites.reduce((total, site) => total + site.visits, 0);
   const visitSparkline = (analytics?.dailyVisitors || []).slice(-8).map((day) => day.visits);
-  const domainSparkline = (analytics?.sites || []).slice(0, 8).map((site) => site.visits);
+  const domainSparkline = connectedSites.slice(0, 8).map((site) => site.visits);
   const pageSparkline = (analytics?.topPages || []).slice(0, 8).map((page) => page.visits);
+  const articleSites = new Map<string, {
+    host: string;
+    siteType: 'domain' | 'sales-counter';
+    articles: NonNullable<OwnerAnalytics['articleReaders']>;
+  }>();
+  (analytics?.articleReaders || []).forEach((article) => {
+    const site = articleSites.get(article.host) || {
+      host: article.host,
+      siteType: article.siteType,
+      articles: [],
+    };
+    site.articles.push(article);
+    articleSites.set(article.host, site);
+  });
+  const articleSiteGroups = [...articleSites.values()].sort((left, right) =>
+    left.siteType.localeCompare(right.siteType) || left.host.localeCompare(right.host, 'en'),
+  );
   const rangeLabel = range === 'all'
     ? 'Semua data'
     : range === 'custom'
       ? `${startDate} - ${endDate}`
-      : range === '7d'
-        ? '7 hari terakhir'
-        : range === '30d'
-          ? '30 hari terakhir'
-          : '90 hari terakhir';
+      : range === 'today'
+        ? 'Hari ini'
+        : range === '7d'
+          ? '7 hari terakhir'
+          : range === '30d'
+            ? '30 hari terakhir'
+            : '90 hari terakhir';
   const previousPeriodChange = analytics?.previousPeriodChange ?? null;
   let donutProgress = 0;
   const sourceColors = ['#e60012', '#1478ef', '#f59e0b', '#9333ea', '#a8b1c2'];
@@ -298,6 +328,7 @@ export default function OwnerDashboard() {
     { id: 'admins', label: 'Admin Owner', icon: <Users className="h-4 w-4" /> },
     { id: 'leads', label: 'Prospek Masuk', icon: <Users className="h-4 w-4" /> },
     { id: 'pages', label: 'Landing Page', icon: <Link2 className="h-4 w-4" /> },
+    { id: 'articles', label: 'Kelola Artikel', icon: <FileText className="h-4 w-4" /> },
   ];
   const sectionTitles: Record<OwnerDashboardSection, string> = {
     overview: 'Ringkasan Analitik Network',
@@ -307,6 +338,7 @@ export default function OwnerDashboard() {
     pages: 'URL Landing Pages',
     pos: 'POS',
     'sales-counters': 'Sales Counter',
+    articles: 'Artikel & Pembaca',
   };
   const pageSectionNavigation = (
     <div className="flex w-fit rounded-lg bg-slate-100 p-1 text-[11px] font-semibold dark:bg-slate-800" role="group" aria-label="Bagian URL dan SEO">
@@ -360,7 +392,7 @@ export default function OwnerDashboard() {
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition-colors ${activeSection === item.id ? 'bg-red-600 font-semibold text-white shadow-md shadow-red-950/20' : 'font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60'}`}
                   >
                     {item.icon}<span className="owner-nav-label">{item.label}</span>
-                    {item.id === 'domains' && <span className={`owner-domain-count ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${activeSection === item.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>{analytics?.siteCount || 0}</span>}
+                    {item.id === 'domains' && <span className={`owner-domain-count ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${activeSection === item.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>{connectedSites.length}</span>}
                   </button>
                 ))}
               </nav>
@@ -403,6 +435,7 @@ export default function OwnerDashboard() {
                   <CalendarDays className="h-3.5 w-3.5 text-red-500" />
                   <span className="sr-only">Periode kunjungan</span>
                   <select aria-label="Periode kunjungan" value={range} onChange={(event) => selectRange(event.target.value as DateRange)}>
+                    <option value="today">Hari ini</option>
                     <option value="7d">7 hari terakhir</option>
                     <option value="30d">30 hari terakhir</option>
                     <option value="90d">90 hari terakhir</option>
@@ -457,8 +490,8 @@ export default function OwnerDashboard() {
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Website Dipantau</span>
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400"><Globe className="h-4 w-4" /></span>
                   </div>
-                  <div className="mt-3 text-3xl font-black tabular-nums text-slate-900 dark:text-white">{(analytics?.siteCount || 0).toLocaleString('id-ID')}</div>
-                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Domain aktif di dashboard owner</p>
+                  <div className="mt-3 text-3xl font-black tabular-nums text-slate-900 dark:text-white">{connectedSites.length.toLocaleString('id-ID')}</div>
+                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Domain dengan data tersedia</p>
                   <Sparkline values={domainSparkline} label="Distribusi kunjungan per domain" color="#2583f7" />
                 </div>
                 <div className="owner-kpi owner-kpi-top relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 p-5 text-white shadow-lg shadow-red-950/20">
@@ -466,8 +499,8 @@ export default function OwnerDashboard() {
                     <span className="text-xs font-semibold uppercase tracking-wider text-red-300">Website Teratas</span>
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/40 bg-red-600/30 text-red-300"><Activity className="h-4 w-4" /></span>
                   </div>
-                  <a href={analytics?.sites[0] ? `https://${analytics.sites[0].host}` : '#'} target="_blank" rel="noreferrer" className="mt-3 block truncate text-base font-bold text-white transition hover:text-red-300">{analytics?.sites[0]?.host || '-'}</a>
-                  <div className="mt-2 text-2xl font-black text-red-400">{(analytics?.sites[0]?.visits || 0).toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-300">kunjungan</span></div>
+                  <a href={connectedSites[0] ? `https://${connectedSites[0].host}` : '#'} target="_blank" rel="noreferrer" className="mt-3 block truncate text-base font-bold text-white transition hover:text-red-300">{connectedSites[0]?.host || '-'}</a>
+                  <div className="mt-2 text-2xl font-black text-red-400">{(connectedSites[0]?.visits || 0).toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-300">kunjungan</span></div>
                 </div>
                 <div className="owner-kpi owner-kpi-pages rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start justify-between">
@@ -533,7 +566,7 @@ export default function OwnerDashboard() {
                         </button>
                       )}
                       <div className="flex w-fit rounded-xl bg-slate-100 p-1 text-[10px] font-semibold dark:bg-slate-800" role="group" aria-label="Periode grafik">
-                        {([{ value: '7d', label: '7 Hari' }, { value: '30d', label: '30 Hari' }, { value: '90d', label: '90 Hari' }] as const).map((period) => (
+                        {([{ value: 'today', label: 'Hari Ini' }, { value: '7d', label: '7 Hari' }, { value: '30d', label: '30 Hari' }, { value: '90d', label: '90 Hari' }] as const).map((period) => (
                           <button key={period.value} type="button" aria-pressed={range === period.value} onClick={() => selectRange(period.value)} className={`rounded-lg px-3 py-1.5 transition ${range === period.value ? 'bg-red-600 font-bold text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>
                             {period.label}
                           </button>
@@ -615,7 +648,7 @@ export default function OwnerDashboard() {
                   </div>
                   <div className="owner-recommendation-row is-highlight">
                     <Globe className="h-4 w-4" />
-                    <span>{analytics?.sites[0] ? `Website teratas: ${analytics.sites[0].host} (${analytics.sites[0].visits.toLocaleString('id-ID')} kunjungan).` : 'Website teratas tampil setelah kunjungan tercatat.'}</span>
+                    <span>{connectedSites[0] ? `Website teratas: ${connectedSites[0].host} (${connectedSites[0].visits.toLocaleString('id-ID')} kunjungan).` : 'Website teratas tampil setelah kunjungan tercatat.'}</span>
                   </div>
                   <div className="owner-recommendation-row is-advice">
                     <Activity className="h-4 w-4" />
@@ -650,14 +683,14 @@ export default function OwnerDashboard() {
               {activeSection === 'domains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
                   <h2 className="text-lg font-bold text-slate-900 dark:text-white">Detail Domain Dipantau</h2>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Seluruh domain owner dan kunjungan pada periode {rangeLabel}.</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Domain dengan data tersedia dan kunjungan pada periode {rangeLabel}.</p>
                 </div>
-                {(analytics?.sites || []).length ? (
+                {connectedSites.length ? (
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[640px] border-collapse text-left">
                       <thead><tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-800/50"><th className="px-5 py-3 sm:px-6">Domain</th><th className="px-5 py-3 text-right">Kunjungan</th><th className="px-5 py-3 text-right">Porsi</th><th className="px-5 py-3 sm:px-6">Status data</th></tr></thead>
                       <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
-                        {paginateRows(analytics!.sites, currentPage, pageSize).map((site, index) => {
+                        {paginateRows(connectedSites, currentPage, pageSize).map((site, index) => {
                           const adminData = analytics!.siteAdmins.find((item) => item.host === site.host);
                           const share = totalDomainVisits ? (site.visits / totalDomainVisits) * 100 : 0;
                           return <tr key={site.host} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
@@ -670,8 +703,45 @@ export default function OwnerDashboard() {
                       </tbody>
                     </table>
                   </div>
-                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada domain yang dipantau.</p>}
-                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.sites.length || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada domain dengan data yang tersedia.</p>}
+                <TablePagination page={currentPage} pageSize={pageSize} total={connectedSites.length} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+              </section>}
+
+              {activeSection === 'articles' && <section className="space-y-5">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Artikel per Domain &amp; Sales Counter</h2>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Tautan artikel terbit dan pembaca unik pada periode {rangeLabel}. Pembaca dihitung setelah halaman dibuka minimal 5 detik, satu sesi browser sekali per artikel.</p>
+                </div>
+                {(['domain', 'sales-counter'] as const).map((siteType) => {
+                  const sites = articleSiteGroups.filter((site) => site.siteType === siteType);
+                  return <section key={siteType} className="space-y-4">
+                    <h3 className="px-1 text-sm font-bold text-slate-800 dark:text-slate-200">{siteType === 'domain' ? 'Domain' : 'Sales Counter'}</h3>
+                    {sites.length ? sites.map((site) => (
+                      <div key={site.host} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:px-6">
+                          <a href={`https://${site.host}`} target="_blank" rel="noreferrer" className="font-bold text-slate-900 hover:text-red-600 dark:text-white">{site.host}</a>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">{site.articles.length} artikel terbit</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[640px] border-collapse text-left">
+                            <thead><tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-800/50"><th className="px-5 py-3 sm:px-6">Judul &amp; link artikel</th><th className="px-5 py-3 text-right sm:px-6">Pembaca unik</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                              {site.articles.map((article) => (
+                                <tr key={`${site.host}-${article.slug}`} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                                  <td className="px-5 py-3.5 sm:px-6">
+                                    <a href={article.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-800 hover:text-red-600 dark:text-slate-200">{article.title}</a>
+                                    <a href={article.url} target="_blank" rel="noreferrer" className="mt-1 block truncate text-[11px] text-slate-500 hover:text-red-600 dark:text-slate-400">{article.url}</a>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white sm:px-6">{article.readers.toLocaleString('id-ID')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )) : <p className="rounded-xl border border-dashed border-slate-200 px-5 py-8 text-center text-xs text-slate-500 dark:border-slate-800">Belum ada artikel terbit pada bagian ini.</p>}
+                  </section>;
+                })}
               </section>}
 
               <section id="admin-access" className={`${activeSection === 'admins' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>

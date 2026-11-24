@@ -358,6 +358,7 @@ export default function App() {
   useEffect(() => {
     if (isAdminRoute || /bot|crawler|spider|slurp/i.test(navigator.userAgent)) return;
 
+    const articlePath = currentPath.match(/^\/artikel\/([^/]+)\/?$/i);
     const sessionKey = 'hwa-visitor-session';
     let sessionId = sessionStorage.getItem(sessionKey);
     if (!sessionId) {
@@ -367,13 +368,19 @@ export default function App() {
       sessionStorage.setItem(sessionKey, sessionId);
     }
 
-    const trackedKey = `hwa-visitor-tracked:${sessionId}`;
+    const articleSlug = articlePath?.[1].toLocaleLowerCase('id-ID');
+    const trackedKey = articleSlug
+      ? `hwa-article-read-tracked:${sessionId}:${articleSlug}`
+      : `hwa-visitor-tracked:${sessionId}`;
     if (sessionStorage.getItem(trackedKey)) return;
 
     let timeoutId: number | undefined;
     const track = () => {
       sessionStorage.setItem(trackedKey, 'pending');
-      void api.trackVisitor(sessionId, window.location.pathname)
+      const request = articleSlug
+        ? api.trackArticleRead(sessionId, currentPath)
+        : api.trackVisitor(sessionId, window.location.pathname);
+      void request
         .then(() => sessionStorage.setItem(trackedKey, 'done'))
         .catch(() => sessionStorage.removeItem(trackedKey));
     };
@@ -387,7 +394,7 @@ export default function App() {
       window.removeEventListener('load', scheduleTracking);
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
     };
-  }, [isAdminRoute]);
+  }, [currentPath, isAdminRoute]);
 
   useEffect(() => {
     if (isAdminRoute) return;
@@ -823,6 +830,10 @@ export default function App() {
     stats: [],
     faq: [],
   } : undefined);
+  const parsedThemeBackgroundZoom = Number(customization.themeBackgroundZoom ?? 100);
+  const themeBackgroundZoom = Number.isFinite(parsedThemeBackgroundZoom)
+    ? Math.max(50, Math.min(200, parsedThemeBackgroundZoom))
+    : 100;
   const customizationStyle = {
     '--custom-primary': activePalette.primaryColor || undefined,
     '--custom-secondary': activePalette.secondaryColor || undefined,
@@ -837,6 +848,10 @@ export default function App() {
     '--theme-background-image': customization.themeBackgroundImage
       ? `url("${customization.themeBackgroundImage.replace(/"/g, '\\"')}")`
       : undefined,
+    '--theme-background-position': customization.themeBackgroundPosition
+      ? `${Math.max(0, Math.min(100, customization.themeBackgroundPosition.x))}% ${Math.max(0, Math.min(100, customization.themeBackgroundPosition.y))}%`
+      : undefined,
+    '--theme-background-size': themeBackgroundZoom === 100 ? 'cover' : `${themeBackgroundZoom}% auto`,
   } as React.CSSProperties;
   const customizationClass = `site-font-${activePalette.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
   const gradientMotionClass = settings.websiteTemplate === 'mulia-cerah' && customization.themeBackgroundAnimation !== false
@@ -947,6 +962,7 @@ export default function App() {
           <CatalogSection
             motors={motors}
             priceList={fifPriceList}
+            catalogOrder={settings.catalogMotorOrder}
             animation={settings.catalogAnimation}
             animationSpeed={settings.catalogAnimationSpeed}
             compareList={compareList}
@@ -966,7 +982,7 @@ export default function App() {
           {promos.length > 0 && (
             <PromoSection promos={promos.slice(0, 4)} settings={settings} showMore={promos.length > 4} />
           )}
-          <ArticleSection articles={articles} />
+          <ArticleSection articles={articles} whatsappNumber={settings.phone} />
           <ManifestoSection items={manifesto} />
           <TestimonialsSection
             testimonials={testimonials}
@@ -1261,6 +1277,7 @@ export default function App() {
         <CatalogSection
           motors={motors}
           priceList={fifPriceList}
+          catalogOrder={settings.catalogMotorOrder}
           animation={settings.catalogAnimation}
           animationSpeed={settings.catalogAnimationSpeed}
           compareList={compareList}
@@ -1283,7 +1300,7 @@ export default function App() {
           <PromoSection promos={promos.slice(0, 4)} settings={settings} showMore={promos.length > 4} />
         )}
 
-        <ArticleSection articles={articles} />
+        <ArticleSection articles={articles} whatsappNumber={settings.phone} />
 
         {/* 4 Pillars Manifesto / Nilai Kami */}
         <ManifestoSection items={manifesto} />

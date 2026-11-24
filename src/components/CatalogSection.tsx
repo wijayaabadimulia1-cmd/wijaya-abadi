@@ -10,10 +10,13 @@ import {
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
 import { responsiveUploadImageSrcSet, responsiveUploadImageUrl } from '../utils/images';
+import { orderMotorsByIds } from '../catalogOrder';
 
+type CatalogSortBy = 'default' | 'price-asc' | 'price-desc';
 interface CatalogSectionProps {
   motors: Motor[];
   priceList: FIFPriceList;
+  catalogOrder?: string[];
   animation?: CatalogAnimation;
   animationSpeed?: number;
   compareList: Motor[];
@@ -40,9 +43,10 @@ export function filterCatalogMotors(
   motors: Motor[],
   activeCategory: string,
   searchQuery: string,
-  sortBy: 'default' | 'price-asc' | 'price-desc' | 'bestseller' = 'bestseller',
+  sortBy: CatalogSortBy = 'default',
+  catalogOrder: readonly string[] = [],
 ) {
-  return motors
+  return orderMotorsByIds(motors, catalogOrder)
     .filter((motor) => {
       const matchesCategory = activeCategory === 'Semua' || motor.category.toLowerCase().includes(activeCategory.toLowerCase());
       const matchesSearch =
@@ -57,7 +61,6 @@ export function filterCatalogMotors(
 
       if (sortBy === 'price-asc') return priceA - priceB;
       if (sortBy === 'price-desc') return priceB - priceA;
-      if (sortBy === 'bestseller') return (b.is_bestseller ? 1 : 0) - (a.is_bestseller ? 1 : 0);
       return 0;
     });
 }
@@ -182,6 +185,7 @@ const CatalogMotorImage: React.FC<CatalogMotorImageProps> = ({
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   motors,
   priceList,
+  catalogOrder = [],
   animation = DEFAULT_CATALOG_ANIMATION,
   animationSpeed = DEFAULT_CATALOG_ANIMATION_SPEED,
   compareList,
@@ -191,7 +195,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'bestseller'>('bestseller');
+  const [sortBy, setSortBy] = useState<CatalogSortBy>('default');
   const [selectedGallery, setSelectedGallery] = useState<{ images: string[]; index: number; alt: string } | null>(null);
   const galleryTouchStartX = useRef<number | null>(null);
 
@@ -225,8 +229,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
   // Filter & sort
   const filteredMotors = useMemo(
-    () => filterCatalogMotors(motors, activeCategory, searchQuery, sortBy),
-    [motors, activeCategory, searchQuery, sortBy],
+    () => filterCatalogMotors(motors, activeCategory, searchQuery, sortBy, catalogOrder),
+    [motors, activeCategory, searchQuery, sortBy, catalogOrder],
   );
 
   useEffect(() => {
@@ -303,11 +307,10 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               <select
                 aria-label="Urutkan katalog motor"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as CatalogSortBy)}
                 className="bg-zinc-900 border border-white/10 rounded-xl text-xs text-zinc-300 py-2.5 px-3 focus:outline-none focus:border-red-500"
               >
-                <option value="default">Paling Relevan</option>
-                <option value="bestseller">🔥 Terlaris / Bestseller</option>
+                <option value="default">Urutan katalog</option>
                 <option value="price-asc">Harga Terendah</option>
                 <option value="price-desc">Harga Tertinggi</option>
               </select>

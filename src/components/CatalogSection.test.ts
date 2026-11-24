@@ -43,3 +43,15 @@ test('motor without photo still remains visible in catalog results', () => {
   assert.equal(filtered.length, 2);
   assert.deepEqual(filtered.map((motor) => motor.id), ['motor-1', 'motor-2']);
 });
+
+test('default catalog order follows admin configuration and leaves new motors at the end', () => {
+  const motors = [
+    { id: 'motor-1', name: 'Beat', category: 'Skutik', description: '', specs: [], image: '', price: 'Rp 1', numericPrice: 1 },
+    { id: 'motor-2', name: 'Vario', category: 'Skutik', description: '', specs: [], image: '', price: 'Rp 2', numericPrice: 2 },
+    { id: 'motor-3', name: 'PCX', category: 'Skutik', description: '', specs: [], image: '', price: 'Rp 3', numericPrice: 3 },
+  ] as any;
+
+  const filtered = filterCatalogMotors(motors, 'Semua', '', 'default', ['motor-3', 'motor-1', 'deleted-motor']);
+
+  assert.deepEqual(filtered.map((motor) => motor.id), ['motor-3', 'motor-1', 'motor-2']);
+});

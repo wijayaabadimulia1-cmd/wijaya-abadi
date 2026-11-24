@@ -1,9 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent } from 'lucide-react';
+import { Calculator, CheckCircle2, MessageSquare, ArrowRight, Info, Percent, Search, X } from 'lucide-react';
 import { Motor, DealerSettings, FIFPriceList } from '../types';
 import { formatRupiah } from '../services/api';
 import { getFIFPriceListModel, getMotorOtrPrice } from '../services/fifPriceList';
 import { responsiveUploadImageUrl } from '../utils/images';
+
+export function filterSimulatorMotors(motors: Motor[], searchQuery: string): Motor[] {
+  const searchTerms = searchQuery.trim().toLocaleLowerCase('id-ID').split(/\s+/).filter(Boolean);
+  if (!searchTerms.length) return motors;
+
+  return motors.filter((motor) => {
+    const searchableText = [motor.name, motor.category, ...(motor.specs || [])]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('id-ID');
+    return searchTerms.every((term) => searchableText.includes(term));
+  });
+}
 
 interface CreditSimulatorProps {
   motors: Motor[];
@@ -23,6 +36,7 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const [currentMotorId, setCurrentMotorId] = useState<string>(
     selectedMotor ? selectedMotor.id : motors[0]?.id || ''
   );
+  const [motorSearch, setMotorSearch] = useState('');
 
   // Sync when selectedMotor changes from outside
   useEffect(() => {
@@ -36,6 +50,15 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
   const activeMotor = useMemo(() => {
     return motors.find((m) => m.id === currentMotorId) || motors[0];
   }, [motors, currentMotorId]);
+  const filteredMotors = useMemo(
+    () => filterSimulatorMotors(motors, motorSearch),
+    [motors, motorSearch],
+  );
+  const selectableMotors = useMemo(() => {
+    const selected = motors.find((motor) => motor.id === currentMotorId);
+    if (!selected || filteredMotors.some((motor) => motor.id === selected.id)) return filteredMotors;
+    return [selected, ...filteredMotors];
+  }, [motors, currentMotorId, filteredMotors]);
   const priceListModel = activeMotor ? getFIFPriceListModel(activeMotor.name, priceList) : undefined;
 
   const motorPrice = useMemo(() => {
@@ -111,13 +134,67 @@ export const CreditSimulator: React.FC<CreditSimulatorProps> = ({
                 <label htmlFor="simulator-motor" className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
                   Pilih Unit Motor Honda
                 </label>
+                <div className="relative mb-2">
+                  <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    aria-label="Cari unit berdasarkan nama, jenis, atau spesifikasi"
+                    value={motorSearch}
+                    onChange={(event) => setMotorSearch(event.target.value)}
+                    placeholder="Cari nama atau jenis motor..."
+                    className="w-full rounded-xl border border-white/15 bg-zinc-950 py-3 pl-10 pr-10 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none"
+                  />
+                  {motorSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setMotorSearch('')}
+                      aria-label="Hapus pencarian unit"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                    >
+                      <X aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <p aria-live="polite" className="mb-2 text-xs text-zinc-500">
+                  {!motors.length
+                    ? 'Belum ada unit motor.'
+                    : motorSearch.trim()
+                      ? filteredMotors.length
+                        ? `${filteredMotors.length} unit ditemukan.`
+                        : 'Tidak ada unit yang cocok.'
+                      : `${motors.length} unit tersedia.`}
+                </p>
+                {motorSearch.trim() && filteredMotors.length > 0 && (
+                  <div className="mb-2 grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2" role="group" aria-label="Pilih hasil pencarian unit motor">
+                    {filteredMotors.map((motor) => (
+                      <button
+                        key={motor.id}
+                        type="button"
+                        aria-pressed={currentMotorId === motor.id}
+                        onClick={() => setCurrentMotorId(motor.id)}
+                        className={`rounded-xl border px-3 py-2 text-left transition ${
+                          currentMotorId === motor.id
+                            ? 'border-red-500 bg-red-500/10'
+                            : 'border-white/10 bg-zinc-950/70 hover:border-red-500/50'
+                        }`}
+                      >
+                        <span className="block text-xs font-bold text-white">{motor.name}</span>
+                        <span className="mt-1 flex justify-between gap-2 text-[11px] text-zinc-400">
+                          <span>{motor.category}</span>
+                          <span>{formatRupiah(getMotorOtrPrice(motor))}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <select
                   id="simulator-motor"
                   value={currentMotorId}
                   onChange={(e) => setCurrentMotorId(e.target.value)}
                   className="w-full bg-zinc-950 border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500 font-medium"
                 >
-                  {motors.map((m) => (
+                  {!selectableMotors.length && <option value="" disabled>Tidak ada unit tersedia</option>}
+                  {selectableMotors.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} — ({formatRupiah(getMotorOtrPrice(m))})
                     </option>

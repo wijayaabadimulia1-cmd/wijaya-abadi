@@ -32,6 +32,7 @@ import {
   Globe,
   EyeOff,
   Send,
+  ListOrdered,
   Palette,
   Shield,
   Sun,
@@ -61,6 +62,7 @@ import {
 import { createWhatsAppUrl, normalizeWhatsAppNumber } from '../utils/whatsapp';
 import { getSeoLandingPosts, getSeoLandingPostPath, slugifySeoPost } from '../utils/seoPosts';
 import { CustomizationPanel } from './CustomizationPanel';
+import { CatalogOrderPanel } from './CatalogOrderPanel';
 import { ArticleManager } from './ArticleManager';
 
 interface AdminPanelProps {
@@ -189,7 +191,7 @@ function normalizeSeoDescription(value: string) {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefreshData }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'promos' | 'articles' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'social' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'motors' | 'catalog-order' | 'promos' | 'articles' | 'leads' | 'sales-counter' | 'testimonials' | 'settings' | 'social' | 'theme' | 'seo' | 'seo-subdomains' | 'seo-posts' | 'security' | 'credit' | 'export'>('dashboard');
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -219,7 +221,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     ? null
     : isPosSuperAdmin
       ? new Set(['articles', 'testimonials', 'settings', 'theme', 'seo-subdomains', 'seo-posts', 'security', 'sales-counter'])
-      : new Set(['articles', 'testimonials', 'settings', 'theme', 'security']);
+      : new Set(['articles', 'testimonials', 'settings', 'theme', 'catalog-order', 'security']);
   const [seoSubdomainEditor, setSeoSubdomainEditor] = useState<SeoLandingPage | null>(null);
   const [seoPageEditor, setSeoPageEditor] = useState<SeoPostEditor | null>(null);
   const [isSavingSeoPage, setIsSavingSeoPage] = useState(false);
@@ -1596,6 +1598,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
     }
   };
 
+  const handleSaveCatalogOrder = async (catalogMotorOrder: string[]) => {
+    try {
+      await api.updateSettings({ catalogMotorOrder });
+      setSettings((current) => current ? { ...current, catalogMotorOrder } : current);
+      localStorage.setItem('hwa-settings-updated-at', new Date().toISOString());
+      showToast('Urutan katalog berhasil disimpan dan diterapkan ke website.');
+      onRefreshData();
+    } catch (error) {
+      alert(`Gagal menyimpan urutan katalog: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   const handleSaveSeoPage = async () => {
     if (!settings || !seoPageEditor) return;
     const title = seoPageEditor.title.trim();
@@ -2122,6 +2136,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
             {[
               { id: 'dashboard', label: 'Ringkasan', icon: TrendingUp },
               { id: 'motors', label: `Motor (${motors.length})`, icon: Bike },
+              { id: 'catalog-order', label: 'Urutan Katalog', icon: ListOrdered },
               { id: 'leads', label: `Peminat (${leads.length})`, icon: MessageSquare },
               ...(canManageSalesCounters ? [{ id: 'sales-counter', label: 'Sales Counter', icon: Users }] : []),
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
@@ -2195,6 +2210,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
         ) : (
           <>
             {activeTab === 'articles' && <ArticleManager onRefreshData={onRefreshData} />}
+            {activeTab === 'catalog-order' && settings && (
+              <CatalogOrderPanel
+                motors={motors}
+                savedOrder={settings.catalogMotorOrder || []}
+                onSave={handleSaveCatalogOrder}
+              />
+            )}
 
             {/* TAB 1: DASHBOARD */}
             {activeTab === 'dashboard' && (

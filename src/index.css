@@ -3251,8 +3251,8 @@ html[data-color-mode="dark"] body {
     linear-gradient(90deg, rgba(241, 246, 243, 0.96) 0%, rgba(241, 246, 243, 0.5) 23%, rgba(241, 246, 243, 0) 55%),
     linear-gradient(0deg, rgba(18, 40, 31, 0.1), transparent 54%),
     var(--theme-background-image, var(--natural-cool-landscape-image, url('/images/wijaya-cool-bandung-landscape.webp')));
-  background-position: center, center, 52% 48%;
-  background-size: cover;
+  background-position: center, center, var(--theme-background-position, 52% 48%);
+  background-size: cover, cover, var(--theme-background-size, cover);
   opacity: 0.9;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.34) 12%, #000 34%);
 }

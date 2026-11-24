@@ -58,14 +58,44 @@ export interface Article {
   category: string;
   excerpt: string;
   content: string;
+  template?: ArticleTemplate;
+  motorModel?: string;
+  productFacts?: string;
+  promoPeriod?: string;
+  faqItems?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  whatsappCta?: string;
   image?: string;
   images?: string[];
+  video?: string;
+  videoMedia?: ArticleVideo | null;
+  sourceUrl?: string;
+  readTime?: number;
+  publishedAt?: string;
   animation?: CatalogAnimation;
   animationSpeed?: number;
   author: string;
   published: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export type ArticleTemplate = 'blog' | 'news' | 'guide' | 'review' | 'promotion' | 'faq' | 'listicle' | 'video';
+
+export interface ArticleVideo {
+  source: 'youtube' | 'upload';
+  youtubeUrl?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  transcript?: string;
+}
+
+export interface ArticleAnalytics {
+  totalReaders: number;
+  readersBySlug: Record<string, number>;
 }
 
 export interface Testimonial {
@@ -188,6 +218,11 @@ export interface ThemeColorPalette {
   heroTitleHighlightColor?: string;
 }
 
+export interface ThemeBackgroundPosition {
+  x: number;
+  y: number;
+}
+
 export interface WebsiteCustomization {
   primaryColor?: string;
   secondaryColor?: string;
@@ -214,6 +249,8 @@ export interface WebsiteCustomization {
   heroOverlayColor?: string;
   heroOverlayOpacity?: number;
   themeBackgroundImage?: string;
+  themeBackgroundPosition?: ThemeBackgroundPosition;
+  themeBackgroundZoom?: number;
   themeBackgroundAnimation?: boolean;
   colorPalettes?: Partial<Record<ThemeMode, ThemeColorPalette>>;
   templatePaletteBackup?: Partial<Record<ThemeMode, ThemeColorPalette>>;
@@ -258,6 +295,7 @@ export interface DealerSettings {
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
   catalogAnimationSpeed?: number;
+  catalogMotorOrder?: string[];
   featuredMotorRotationInterval?: number;
   customization?: WebsiteCustomization;
   updated_at?: string;
