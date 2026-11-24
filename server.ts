@@ -477,13 +477,13 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   const pageSettings = getSettingsForSeoPage(settings, hostPage);
   const isHostPost = Boolean(hostPost && hostPage && hostPost.id !== hostPage.id);
   const title = String(article
-    ? `${article.title} | ${pageSettings.name || 'Honda Wijaya Abadi'}`
+    ? `${article.metaTitle || article.title} | ${pageSettings.name || 'Honda Wijaya Abadi Mulia'}`
     : isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || DEFAULT_SEO_TITLE).trim();
   const description = String(article
-    ? article.excerpt || article.content.trim().slice(0, 160)
+    ? article.metaDescription || article.excerpt || article.content.trim().slice(0, 160)
     : isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || DEFAULT_SEO_DESCRIPTION).trim();
   const keywords = String(article
-    ? [article.title, article.category, pageSettings.seoKeywords].filter(Boolean).join(', ')
+    ? article.metaKeywords || [article.title, article.category, pageSettings.seoKeywords].filter(Boolean).join(', ')
     : hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
   const normalizedHostname = normalizeAnalyticsHost(hostname);
   const isRootSiteHost = SALES_COUNTER_ROOT_DOMAINS.has(normalizedHostname)
@@ -527,8 +527,8 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
         headline: article.title,
         description,
         image: articleImages.length ? articleImages : undefined,
-        datePublished: article.created_at,
-        dateModified: article.updated_at || article.created_at,
+        datePublished: article.publishedAt || article.created_at,
+        dateModified: article.updated_at || article.publishedAt || article.created_at,
         author: { '@type': 'Person', name: article.author || pageSettings.name },
         publisher: { '@type': 'Organization', name: pageSettings.name || 'Honda Wijaya Abadi' },
         mainEntityOfPage: canonical,
@@ -570,10 +570,10 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${escape(canonical)}" />`)
     .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escape(title)}" />`)
     .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`)
-    .replace(/<meta\s+property="og:image"[^>]*>/i, `<meta property="og:image" content="${escape(socialImageUrl)}" />`)
+    .replace(/<meta\s+property="og:image"[^>]*>/i, `<meta property="og:image" content="${escape(articleImages[0] || socialImageUrl)}" />`)
     .replace(/<meta\s+property="og:image:width"[^>]*>/i, '<meta property="og:image:width" content="1200" />')
     .replace(/<meta\s+property="og:image:height"[^>]*>/i, '<meta property="og:image:height" content="630" />')
-    .replace(/<meta\s+name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escape(socialImageUrl)}" />`)
+    .replace(/<meta\s+name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escape(articleImages[0] || socialImageUrl)}" />`)
     .replace(/https:\/\/kreditmotorhonda\.tech\/uploads\/logo\.jpeg/g, escape(logoUrl))
     .replace(/https:\/\/kreditmotorhonda\.tech/g, escape(siteOrigin))
     .replace(
@@ -3011,9 +3011,21 @@ async function startServer() {
       id: `article-${crypto.randomUUID()}`,
       title,
       slug,
-      category: String(req.body.category || 'Tips Berkendara').trim(),
+      category: String(req.body.category || 'Artikel').trim(),
       excerpt,
       content,
+      template: String(req.body.template || 'blog'),
+      motorModel: String(req.body.motorModel || '').trim(),
+      promoPeriod: String(req.body.promoPeriod || '').trim(),
+      faqItems: String(req.body.faqItems || '').trim(),
+      metaTitle: String(req.body.metaTitle || '').trim(),
+      metaDescription: String(req.body.metaDescription || '').trim(),
+      metaKeywords: String(req.body.metaKeywords || '').trim(),
+      video: String(req.body.video || '').trim(),
+      sourceUrl: String(req.body.sourceUrl || '').trim(),
+      readTime: Math.max(1, Math.min(60, Number(req.body.readTime) || 5)),
+      theme: String(req.body.theme || 'classic'),
+      publishedAt: req.body.published === true ? String(req.body.publishedAt || now) : '',
       image: images[0] || '',
       images,
       animation: isCatalogAnimation(req.body.animation) ? req.body.animation : DEFAULT_CATALOG_ANIMATION,
@@ -3047,9 +3059,21 @@ async function startServer() {
       ...current,
       title,
       slug,
-      category: String(req.body.category ?? current.category ?? 'Tips Berkendara').trim(),
+      category: String(req.body.category ?? current.category ?? 'Artikel').trim(),
       excerpt,
       content,
+      template: String(req.body.template ?? current.template ?? 'blog'),
+      motorModel: String(req.body.motorModel ?? current.motorModel ?? '').trim(),
+      promoPeriod: String(req.body.promoPeriod ?? current.promoPeriod ?? '').trim(),
+      faqItems: String(req.body.faqItems ?? current.faqItems ?? '').trim(),
+      metaTitle: String(req.body.metaTitle ?? current.metaTitle ?? '').trim(),
+      metaDescription: String(req.body.metaDescription ?? current.metaDescription ?? '').trim(),
+      metaKeywords: String(req.body.metaKeywords ?? current.metaKeywords ?? '').trim(),
+      video: String(req.body.video ?? current.video ?? '').trim(),
+      sourceUrl: String(req.body.sourceUrl ?? current.sourceUrl ?? '').trim(),
+      readTime: Math.max(1, Math.min(60, Number(req.body.readTime ?? current.readTime) || 5)),
+      theme: String(req.body.theme ?? current.theme ?? 'classic'),
+      publishedAt: req.body.published === false ? String(current.publishedAt || '') : String(req.body.publishedAt ?? current.publishedAt ?? (req.body.published === true ? new Date().toISOString() : '')),
       image: images[0] || '',
       images,
       animation: isCatalogAnimation(req.body.animation ?? current.animation) ? (req.body.animation ?? current.animation) : DEFAULT_CATALOG_ANIMATION,
