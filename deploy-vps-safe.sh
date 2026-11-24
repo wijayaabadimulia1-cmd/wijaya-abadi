@@ -9,6 +9,7 @@ fi
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-tech.service"
+CATALOG_API_URL="http://127.0.0.1:3000"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 ALLOW_EMPTY_CATALOG="${ALLOW_EMPTY_CATALOG:-false}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -242,7 +243,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     continue
   fi
   catalog_api_url="$(get_service_environment_value "$service" CATALOG_API_URL)"
-  if [ "$catalog_api_url" != "https://kreditmotorhonda.tech" ]; then
+  if [ "$catalog_api_url" != "https://kreditmotorhonda.tech" ] && [ "$catalog_api_url" != "$CATALOG_API_URL" ]; then
     fail "$service is not configured to use the main catalog API; refusing deployment."
   fi
 done
@@ -440,7 +441,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
-Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/env PORT=$port /usr/bin/node $RELEASE_DIR/dist/server.cjs
@@ -510,7 +511,7 @@ Environment=PORT=3003
 Environment=APP_URL=https://kreditmotorhonda.id
 Environment=DATA_DIR=$ID_DATA_DIR
 Environment=UPLOADS_DIR=$UPLOADS_DIR
-Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 Environment=CATALOG_ADMIN_URL=https://kreditmotorhonda.tech/admin
 ExecStart=
@@ -525,7 +526,7 @@ sudo install -d -m 755 "$ID_DROPIN_DIR"
 sudo tee "$ID_DEPLOY_DROPIN" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
-Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/node $RELEASE_DIR/dist/server.cjs
@@ -553,7 +554,28 @@ done
 if [ "$id_site_ready" -ne 1 ]; then
   fail "$ID_SERVICE did not become healthy on port 3003."
 fi
-id_site_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:3003/api/motors | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+ID_MOTORS_RESPONSE_FILE="$STAGING_DIR/kreditmotorhonda-id-motors.json"
+id_site_motors_status="$(curl --silent --show-error --output "$ID_MOTORS_RESPONSE_FILE" --write-out '%{http_code}' --max-time 10 http://127.0.0.1:3003/api/motors)" \
+  || fail "Could not reach the Kreditmotorhonda.id catalog API on port 3003."
+if [ "$id_site_motors_status" != "200" ]; then
+  fail "Kreditmotorhonda.id catalog API returned HTTP $id_site_motors_status."
+fi
+id_site_motors="$(node -e '
+  const fs = require("node:fs");
+  let response;
+  try {
+    response = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  } catch {
+    console.error(`Kreditmotorhonda.id catalog API returned invalid JSON (HTTP ${process.argv[2]}).`);
+    process.exit(2);
+  }
+  if (!Array.isArray(response)) {
+    const message = typeof response?.error === "string" ? response.error : "API did not return a motor list.";
+    console.error(`Kreditmotorhonda.id catalog API error: ${message}`);
+    process.exit(2);
+  }
+  console.log(response.length);
+' "$ID_MOTORS_RESPONSE_FILE" "$id_site_motors_status")" || fail "Kreditmotorhonda.id catalog response could not be validated."
 if [ "$id_site_motors" != "$EXPECTED_MOTORS" ]; then
   fail "$ID_SERVICE catalog proxy returned $id_site_motors motors; expected $EXPECTED_MOTORS."
 fi
