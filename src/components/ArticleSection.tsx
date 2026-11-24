@@ -179,7 +179,7 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
               <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
-              {selectedArticle.video && <a href={selectedArticle.video} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 text-xs font-bold text-white transition hover:bg-red-800">Tonton video terkait <ArrowRight className="h-4 w-4" /></a>}
+              {selectedArticle.video && <div className="mt-9 overflow-hidden rounded-2xl border border-stone-200 bg-stone-950 shadow-lg"><video src={selectedArticle.video} controls playsInline preload="metadata" className="max-h-[34rem] w-full" aria-label={`Video artikel: ${selectedArticle.title}`} /><p className="bg-white px-4 py-3 text-xs font-semibold text-stone-600">Video: {selectedArticle.title}</p></div>}
               {selectedArticle.sourceUrl && <p className="mt-6 text-xs text-stone-500">Referensi: <a href={selectedArticle.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-red-700 underline">Sumber informasi</a></p>}
               <p className="mt-10 border-t border-stone-200 pt-6 text-xs font-semibold tracking-wide text-stone-500">Ditulis oleh {selectedArticle.author}</p>
             </div>
