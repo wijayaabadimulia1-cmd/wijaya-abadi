@@ -178,7 +178,7 @@ jobs:
           git archive --format=tar HEAD > "$ARCHIVE_PATH"
           REMOTE_ARCHIVE="/tmp/wijaya-abadi-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar"
           scp "$ARCHIVE_PATH" "${VPS_USER}@${VPS_HOST}:${REMOTE_ARCHIVE}"
-          ssh "${VPS_USER}@${VPS_HOST}" "DEPLOY_COMMIT='$GITHUB_SHA' GSC_SITE_URLS='$GSC_SITE_URLS' REMOTE_ARCHIVE='$REMOTE_ARCHIVE' bash -s" <<'SSH'
+          ssh "${VPS_USER}@${VPS_HOST}" "DEPLOY_COMMIT='$GITHUB_SHA' GSC_SITE_URLS='$GSC_SITE_URLS' ALLOW_EMPTY_CATALOG='$ALLOW_EMPTY_CATALOG' REMOTE_ARCHIVE='$REMOTE_ARCHIVE' bash -s" <<'SSH'
           set -euo pipefail
           SOURCE_DIR="$(mktemp -d /tmp/wijaya-abadi-deploy-src.XXXXXX)"
           cleanup() {
