@@ -837,7 +837,24 @@ done
 if [ "$id_site_ready" -ne 1 ]; then
   fail "$ID_SERVICE did not become healthy on port 3003."
 fi
-id_site_motors="$(curl --silent --show-error --fail --max-time 10 http://127.0.0.1:3003/api/motors | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+id_site_motors="$(curl --silent --show-error --max-time 10 http://127.0.0.1:3003/api/motors | node -e '
+  let body = "";
+  process.stdin.on("data", (chunk) => body += chunk).on("end", () => {
+    let response;
+    try {
+      response = JSON.parse(body);
+    } catch {
+      console.error("Kreditmotorhonda.id catalog API returned invalid JSON.");
+      process.exit(2);
+    }
+    if (!Array.isArray(response)) {
+      const message = typeof response?.error === "string" ? response.error : "API did not return a motor list.";
+      console.error(`Kreditmotorhonda.id catalog API error: ${message}`);
+      process.exit(2);
+    }
+    console.log(response.length);
+  });
+')"
 if [ "$id_site_motors" != "$EXPECTED_MOTORS" ]; then
   fail "$ID_SERVICE catalog proxy returned $id_site_motors motors; expected $EXPECTED_MOTORS."
 fi
