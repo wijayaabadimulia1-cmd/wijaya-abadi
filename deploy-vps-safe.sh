@@ -56,6 +56,14 @@ ID_UNIT_FILE="/etc/systemd/system/${ID_SERVICE}"
 ID_DROPIN_DIR="/etc/systemd/system/${ID_SERVICE}.d"
 ID_DEPLOY_DROPIN="${ID_DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 ID_DATA_DIR="/var/lib/honda-wijaya-abadi/sites/kreditmotorhonda-id/data"
+ID_PM2_NAME="kreditmotorhonda-id"
+ID_PM2_PRESENT=0
+ID_PM2_REMOVED=0
+ID_PM2_PREVIOUS_RELEASE=""
+ID_PM2_CATALOG_TOKEN=""
+if command -v pm2 >/dev/null 2>&1 && pm2 describe "$ID_PM2_NAME" >/dev/null 2>&1; then
+  ID_PM2_PRESENT=1
+fi
 ID_SERVICE_UPDATED=0
 ID_SERVICE_WAS_ACTIVE=0
 ID_SERVICE_WAS_ENABLED=0
@@ -110,6 +118,17 @@ cleanup() {
       sudo systemctl daemon-reload || true
     fi
   fi
+  if [ "$ID_PM2_REMOVED" -eq 1 ] \
+    && { [ "$ID_SERVICE_WAS_ACTIVE" -ne 1 ] || [ -z "$ID_UNIT_BACKUP" ]; }; then
+    echo "Restoring the previous PM2-managed kreditmotorhonda.id process." >&2
+    if [ -n "$ID_PM2_PREVIOUS_RELEASE" ] && [ -f "$ID_PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" ] \
+      && [[ "$ID_PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
+      HWA_PM2_SITE_NAMES="$ID_PM2_NAME" CATALOG_SERVICE_TOKEN="$ID_PM2_CATALOG_TOKEN" \
+        pm2 start "$ID_PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" --update-env || true
+    else
+      echo "Warning: previous PM2-managed .id release could not be restored safely." >&2
+    fi
+  fi
   if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
     echo "Satellite catalog deployment failed; restoring previous service releases." >&2
     for index in "${!SATELLITE_SERVICES[@]}"; do
@@ -152,6 +171,9 @@ done
     else
       echo "Warning: previous PM2 release could not be determined; leaving the new PM2 process configuration in place." >&2
     fi
+  fi
+  if [ "$ID_PM2_REMOVED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    pm2 save || true
   fi
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
     echo "Deployment health check failed; restoring the previous systemd service." >&2
@@ -688,6 +710,28 @@ if [ -f "$ID_DEPLOY_DROPIN" ]; then
   sudo cp "$ID_DEPLOY_DROPIN" "$ID_DROPIN_BACKUP"
   ID_DROPIN_EXISTED=1
 fi
+if [ "$ID_PM2_PRESENT" -eq 1 ]; then
+  ID_PM2_PREVIOUS_RELEASE="$(pm2 jlist | node -e '
+    let input = "";
+    process.stdin.on("data", (chunk) => input += chunk).on("end", () => {
+      const app = JSON.parse(input).find((item) => item.name === process.argv[1]);
+      if (!app || app.pm2_env.status !== "online" || !app.pm2_env.pm_cwd) process.exit(1);
+      process.stdout.write(app.pm2_env.pm_cwd);
+    });
+  ' "$ID_PM2_NAME")" || fail "Could not determine the previous PM2-managed .id release."
+  if [ ! -f "$ID_PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" ]; then
+    fail "Previous PM2-managed .id release is missing ecosystem.config.cjs; refusing to remove it."
+  fi
+  ID_PM2_CATALOG_TOKEN="$(get_pm2_catalog_service_token "$ID_PM2_NAME" || true)"
+  if ! [[ "$ID_PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    ID_PM2_CATALOG_TOKEN="$PM2_CATALOG_TOKEN"
+  fi
+  if ! [[ "$ID_PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    fail "Could not preserve a valid CATALOG_SERVICE_TOKEN for the PM2-managed .id process."
+  fi
+  ID_PM2_REMOVED=1
+  pm2 delete "$ID_PM2_NAME"
+fi
 ID_SERVICE_UPDATED=1
 sudo tee "$ID_UNIT_FILE" >/dev/null <<EOF
 [Unit]
@@ -764,7 +808,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
 done
 
 SITE_SERVICES_UPDATED=1
-if [ "$SATELLITE_PM2_UPDATES_STARTED" -eq 1 ]; then
+if [ "$SATELLITE_PM2_UPDATES_STARTED" -eq 1 ] || [ "$ID_PM2_REMOVED" -eq 1 ]; then
   pm2 save
 fi
 check_bundle_version "https://${DOMAIN}/"
