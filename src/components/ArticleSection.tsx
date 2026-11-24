@@ -128,7 +128,7 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
                     )}
                     <div className="flex flex-1 flex-col p-5 sm:p-6">
                       <div className="flex items-center justify-between gap-3 text-stone-500">
-                        <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600"><CalendarDays className="h-4 w-4" />{formatDate(article.created_at)}</span>
+                        <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600"><CalendarDays className="h-4 w-4" />{formatDate(article.publishedAt || article.created_at)}</span>
                         <button type="button" onClick={() => void shareArticle(article)} title={`Bagikan artikel ${article.title}`} aria-label={`Bagikan artikel ${article.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-stone-200 text-stone-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700">
                           <Share2 className="h-4 w-4" />
                         </button>
@@ -173,6 +173,9 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
               </div>
               <h2 className="mt-5 font-serif text-3xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-5xl">{selectedArticle.title}</h2>
               <p className="mt-5 border-l-2 border-red-600 pl-5 text-base leading-8 text-stone-600 sm:text-lg">{selectedArticle.excerpt}</p>
+              {selectedArticle.motorModel && <p className="mt-5 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700"><strong>Model yang diulas:</strong> {selectedArticle.motorModel}</p>}
+              {selectedArticle.promoPeriod && <p className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"><strong>Periode promo:</strong> {selectedArticle.promoPeriod}</p>}
+              {selectedArticle.faqItems && <section className="mt-7 rounded-2xl border border-stone-200 bg-stone-50 p-5"><h3 className="font-serif text-xl font-semibold text-stone-900">Pertanyaan yang sering diajukan</h3><div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-7 text-stone-700">{selectedArticle.faqItems}</div></section>}
               <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
