@@ -614,6 +614,41 @@ export const api = {
     }
   },
 
+  async uploadArticleVideo(file: File): Promise<string> {
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    const allowedExtensions = ['mp4', 'webm', 'mov'];
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(extension)) {
+      throw new Error('Format video yang didukung: MP4, WebM, atau MOV.');
+    }
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      throw new Error('Ukuran video maksimal 100 MB. Kompres video lalu coba lagi.');
+    }
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${file.name}`;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 300_000);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          ...adminHeaders(),
+          'Content-Type': file.type,
+          'X-File-Name': encodeURIComponent(uniqueName),
+        },
+        body: file,
+        signal: controller.signal,
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.url) throw new Error(result.error || `Upload video gagal (HTTP ${res.status})`);
+      return result.url;
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Upload video melewati batas waktu. Periksa koneksi atau gunakan video lebih kecil.');
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  },
+
   // Export / Download all data
   getExportAllUrl(): string {
     return '/api/export/all';
