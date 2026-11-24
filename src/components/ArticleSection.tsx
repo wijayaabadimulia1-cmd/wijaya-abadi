@@ -72,7 +72,11 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
 
   const closeArticle = () => {
     setSelectedArticle(null);
-    if (window.location.pathname.startsWith('/artikel/') || window.location.hash.startsWith('#artikel-')) {
+    if (window.location.pathname.startsWith('/artikel/')) {
+      window.location.assign(`${window.location.origin}/#artikel`);
+      return;
+    }
+    if (window.location.hash.startsWith('#artikel-')) {
       window.history.replaceState({}, '', `${window.location.origin}/#artikel`);
     }
   };
@@ -176,12 +180,12 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
       {selectedArticle && (
         <div
           className={isDirectArticlePage
-            ? 'fixed inset-0 z-50 overflow-y-auto bg-[#fffefa]'
+            ? 'min-h-screen bg-[#fffefa]'
             : 'fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-3 backdrop-blur-md sm:p-6'}
           onMouseDown={!isDirectArticlePage ? (event) => { if (event.target === event.currentTarget) closeArticle(); } : undefined}
         >
           <article className={isDirectArticlePage
-            ? 'relative mx-auto min-h-screen w-full max-w-4xl bg-[#fffefa] text-stone-900'
+            ? 'relative mx-auto w-full max-w-4xl bg-[#fffefa] text-stone-900'
             : 'relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]'}
           >
             <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/70 bg-stone-950/70 text-white shadow-lg backdrop-blur hover:bg-red-700" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
