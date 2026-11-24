@@ -3348,12 +3348,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     </summary>
                     <div className="mt-4">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {(['instagram', 'facebook', 'youtube', 'x', 'linkedin'] as const).map((platform) => (
+                      {(['instagram', 'facebook', 'youtube', 'tiktok', 'x', 'linkedin'] as const).map((platform) => (
                         <label key={platform} className="text-xs font-semibold capitalize text-zinc-400">
-                          {platform === 'x' ? 'X / Twitter' : platform}
+                          {platform === 'x' ? 'X / Twitter' : platform === 'tiktok' ? 'TikTok' : platform}
                           <input
                             type="url"
-                            value={settings.socialLinks?.[platform] || (platform === 'facebook' ? 'https://www.facebook.com/people/Honda-wijaya-abadi-mulia' : platform === 'instagram' ? 'https://www.instagram.com/wijayaabadimulia' : '')}
+                            value={settings.socialLinks?.[platform] || (platform === 'facebook' ? 'https://www.facebook.com/people/Honda-wijaya-abadi-mulia' : platform === 'instagram' ? 'https://www.instagram.com/wijayaabadimulia' : platform === 'tiktok' ? 'https://www.tiktok.com/@wijayaabadimulia' : '')}
                             onChange={(event) => setSettings({
                               ...settings,
                               socialLinks: { ...settings.socialLinks, [platform]: event.target.value },
@@ -3364,7 +3364,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                         </label>
                       ))}
                     </div>
-                    <p className="mt-2 text-[11px] text-zinc-500">Kosongkan jika ingin memakai akun sosial Honda bawaan.</p>
+                    <p className="mt-2 text-[11px] text-zinc-500">TikTok menggunakan profil Wijaya Abadi Mulia; tautan lain yang kosong memakai akun sosial Honda bawaan.</p>
                     </div>
                   </details>
                   </>
@@ -3375,12 +3375,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                       <h2 className="text-lg font-bold text-white">Media Sosial Website</h2>
                       <p className="mt-1 text-xs text-zinc-400">Atur tombol media sosial yang tampil pada website akun ini.</p>
                       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        {(['instagram', 'facebook', 'youtube', 'x', 'linkedin'] as const).map((platform) => (
+                        {(['instagram', 'facebook', 'youtube', 'tiktok', 'x', 'linkedin'] as const).map((platform) => (
                           <label key={platform} className="text-xs font-semibold capitalize text-zinc-300">
-                            {platform === 'x' ? 'X / Twitter' : platform}
+                            {platform === 'x' ? 'X / Twitter' : platform === 'tiktok' ? 'TikTok' : platform}
                             <input
                               type="url"
-                              value={settings?.socialLinks?.[platform] || (platform === 'facebook' ? 'https://www.facebook.com/people/Honda-wijaya-abadi-mulia' : platform === 'instagram' ? 'https://www.instagram.com/wijayaabadimulia' : '')}
+                              value={settings?.socialLinks?.[platform] || (platform === 'facebook' ? 'https://www.facebook.com/people/Honda-wijaya-abadi-mulia' : platform === 'instagram' ? 'https://www.instagram.com/wijayaabadimulia' : platform === 'tiktok' ? 'https://www.tiktok.com/@wijayaabadimulia' : '')}
                               onChange={(event) => settings && setSettings({ ...settings, socialLinks: { ...settings.socialLinks, [platform]: event.target.value } })}
                               placeholder="https://..."
                               className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-950 px-3.5 py-2.5 text-xs text-white focus:border-red-500 focus:outline-none"
