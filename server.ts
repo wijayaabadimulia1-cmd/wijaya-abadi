@@ -3230,11 +3230,13 @@ async function startServer() {
     const sessionId = String(req.body?.sessionId || '');
     const pagePath = String(req.body?.path || '/');
     const host = normalizeAnalyticsHost(req.hostname);
+    const normalizedPath = pagePath.split(/[?#]/, 1)[0].toLocaleLowerCase('en-US');
     const allowedSources = new Set(['Organik Search', 'Social Media', 'Direct', 'Referral', 'Lainnya']);
     const source = allowedSources.has(String(req.body?.source || '')) ? String(req.body.source) : 'Lainnya';
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !pagePath.startsWith('/') || pagePath.length > 200 || pagePath.startsWith('/admin')) {
       return res.status(400).json({ error: 'Data kunjungan tidak valid.' });
     }
+    if (/^\/artikel(?:\/|$)/.test(normalizedPath)) return res.status(200).json({ recorded: false });
 
     const db = readDb();
     db.visitorLogs = Array.isArray(db.visitorLogs) ? db.visitorLogs : [];
