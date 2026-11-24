@@ -32,6 +32,16 @@ SATELLITE_DROPIN_FILES=(
 )
 SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
+SATELLITE_SERVICE_PRESENT=(0 0)
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  service="${SATELLITE_SERVICES[$index]}"
+  load_state="$(systemctl show "$service" --property=LoadState --value 2>/dev/null || true)"
+  if [ "$load_state" = "loaded" ]; then
+    SATELLITE_SERVICE_PRESENT[$index]=1
+  else
+    echo "Notice: $service unit is not installed; skipping this satellite."
+  fi
+done
 ID_SERVICE="kreditmotorhonda-id.service"
 ID_UNIT_FILE="/etc/systemd/system/${ID_SERVICE}"
 ID_DROPIN_DIR="/etc/systemd/system/${ID_SERVICE}.d"
@@ -89,6 +99,9 @@ cleanup() {
   if [ "$SATELLITE_UPDATES_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
     echo "Satellite catalog deployment failed; restoring previous service releases." >&2
     for index in "${!SATELLITE_SERVICES[@]}"; do
+      if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+        continue
+      fi
       if [ "${SATELLITE_DROPIN_EXISTED[$index]}" -eq 1 ] && [ -f "${SATELLITE_DROPIN_BACKUPS[$index]}" ]; then
         sudo install -m 644 "${SATELLITE_DROPIN_BACKUPS[$index]}" "${SATELLITE_DROPIN_FILES[$index]}"
       else
@@ -96,7 +109,11 @@ cleanup() {
       fi
     done
     sudo systemctl daemon-reload || true
-    for service in "${SATELLITE_SERVICES[@]}"; do
+    for index in "${!SATELLITE_SERVICES[@]}"; do
+      if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+        continue
+      fi
+      service="${SATELLITE_SERVICES[$index]}"
       sudo systemctl restart "$service" || true
     done
   fi
@@ -215,7 +232,11 @@ ID_SOURCE_DATA_DIR=""
 if systemctl is-active --quiet "$ID_SERVICE"; then
   ID_SOURCE_DATA_DIR="$(get_service_environment_value "$ID_SERVICE" DATA_DIR)"
 fi
-for service in "${SATELLITE_SERVICES[@]}"; do
+for index in "${!SATELLITE_SERVICES[@]}"; do
+  if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+    continue
+  fi
+  service="${SATELLITE_SERVICES[$index]}"
   if ! systemctl is-active --quiet "$service"; then
     echo "Notice: $service is currently inactive; proceeding with deployment and it will be restarted during cutover." >&2
     continue
@@ -392,6 +413,9 @@ check_http_200 "https://${DOMAIN}/sitemap.xml"
 check_http_200 "https://${DOMAIN}/owner-dashboard"
 
 for index in "${!SATELLITE_SERVICES[@]}"; do
+  if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+    continue
+  fi
   service="${SATELLITE_SERVICES[$index]}"
   dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
   if [ -e "$dropin_file" ]; then
@@ -407,6 +431,9 @@ done
 
 SATELLITE_UPDATES_STARTED=1
 for index in "${!SATELLITE_SERVICES[@]}"; do
+  if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+    continue
+  fi
   dropin_file="${SATELLITE_DROPIN_FILES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
   sudo install -d -m 755 "$(dirname "$dropin_file")"
@@ -422,6 +449,9 @@ done
 sudo systemctl daemon-reload
 
 for index in "${!SATELLITE_SERVICES[@]}"; do
+  if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
+    continue
+  fi
   service="${SATELLITE_SERVICES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
   sudo systemctl restart "$service"
