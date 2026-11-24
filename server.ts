@@ -4596,6 +4596,7 @@ async function startServer() {
           '/honda-pcx-bandung',
           '/honda-adv-bandung',
           '/honda-stylo-bandung',
+          '/owner-dashboard',
           '/admin',
           '/login',
           '/masuk',
