@@ -517,7 +517,6 @@ WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
 $ENV_FILE_DIRECTIVE
 Environment=NODE_ENV=production
-EnvironmentFile=$CATALOG_TOKEN_ENV_FILE
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
 Environment=APP_URL=https://$DOMAIN
@@ -790,6 +789,7 @@ WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
 $ENV_FILE_DIRECTIVE
 Environment=NODE_ENV=production
+EnvironmentFile=$CATALOG_TOKEN_ENV_FILE
 Environment=HOST=127.0.0.1
 Environment=PORT=3003
 Environment=APP_URL=https://kreditmotorhonda.id
