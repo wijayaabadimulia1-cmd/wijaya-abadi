@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Upload, X, Eye, Trash2 } from 'lucide-react';
-import type { DealerSettings, ThemeColorPalette, ThemeMode } from '../types';
+import type { DealerSettings, ThemeBackgroundPosition, ThemeColorPalette, ThemeMode } from '../types';
 import { api } from '../services/api';
 import { MAX_HERO_IMAGES } from '../constants';
 import {
@@ -18,6 +18,14 @@ interface CustomizationPanelProps {
   onSettingsChange: (settings: any) => void;
 }
 
+const clampBackgroundPosition = (value: number) => Math.round(Math.max(0, Math.min(100, value)));
+
+const getDefaultThemeBackgroundPosition = (template: string | undefined): ThemeBackgroundPosition => {
+  if (template === 'wijaya-meriah') return { x: 50, y: 58 };
+  if (template === 'showcase-wijaya-2') return { x: 50, y: 53 };
+  return { x: 52, y: 48 };
+};
+
 export function CustomizationPanel({ settings, onSettingsChange }: CustomizationPanelProps) {
   const [previewMode, setPreviewMode] = useState<'logo' | 'banner' | 'fonts' | 'colors' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -29,6 +37,17 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
   const customization = settings.customization || {};
+  const defaultBackgroundPosition = getDefaultThemeBackgroundPosition(settings.websiteTemplate);
+  const [backgroundPosition, setBackgroundPosition] = useState<ThemeBackgroundPosition>(
+    () => customization.themeBackgroundPosition || defaultBackgroundPosition,
+  );
+  const backgroundDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startPosition: ThemeBackgroundPosition;
+    position: ThemeBackgroundPosition;
+  } | null>(null);
   const basePalette: ThemeColorPalette = {
     primaryColor: customization.primaryColor || '#dc2626',
     secondaryColor: customization.secondaryColor || '#38bdf8',
@@ -75,6 +94,14 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
   useEffect(() => {
     loadHeroFont(selectedHeroFont);
   }, [selectedHeroFont]);
+
+  useEffect(() => {
+    setBackgroundPosition(customization.themeBackgroundPosition || defaultBackgroundPosition);
+  }, [
+    customization.themeBackgroundPosition?.x,
+    customization.themeBackgroundPosition?.y,
+    settings.websiteTemplate,
+  ]);
 
   const handleImageUpload = async (
     file: File,
@@ -171,6 +198,55 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
       setIsUploading(false);
       setUploadStatus('');
     }
+  };
+
+  const updateThemeBackgroundPosition = (position: ThemeBackgroundPosition) => {
+    const nextPosition = {
+      x: clampBackgroundPosition(position.x),
+      y: clampBackgroundPosition(position.y),
+    };
+    setBackgroundPosition(nextPosition);
+    onSettingsChange({
+      ...settings,
+      customization: { ...customization, themeBackgroundPosition: nextPosition },
+    });
+  };
+
+  const handleBackgroundPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || !customization.themeBackgroundImage) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    backgroundDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startPosition: backgroundPosition,
+      position: backgroundPosition,
+    };
+  };
+
+  const handleBackgroundPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = backgroundDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const nextPosition = {
+      x: clampBackgroundPosition(drag.startPosition.x - ((event.clientX - drag.startX) / bounds.width) * 100),
+      y: clampBackgroundPosition(drag.startPosition.y - ((event.clientY - drag.startY) / bounds.height) * 100),
+    };
+    drag.position = nextPosition;
+    setBackgroundPosition(nextPosition);
+  };
+
+  const handleBackgroundPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = backgroundDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    backgroundDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    updateThemeBackgroundPosition(drag.position);
   };
 
   const handleColorChange = (key: Exclude<keyof ThemeColorPalette, 'font'>, value: string) => {
@@ -328,16 +404,25 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold">Background Tema</h3>
-            <p className="mt-1 text-xs text-zinc-400">Ganti gambar latar untuk Wijaya Meriah dan Showcase Wijaya 2.</p>
+            <p className="mt-1 text-xs text-zinc-400">
+              Ganti gambar latar Wijaya Cool, Wijaya Meriah, atau Showcase Wijaya 2. Seret pratinjau untuk mengatur posisinya.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {customization.themeBackgroundImage && (
               <button
                 type="button"
-                onClick={() => onSettingsChange({
-                  ...settings,
-                  customization: { ...customization, themeBackgroundImage: '' },
-                })}
+                onClick={() => {
+                  setBackgroundPosition(defaultBackgroundPosition);
+                  onSettingsChange({
+                    ...settings,
+                    customization: {
+                      ...customization,
+                      themeBackgroundImage: '',
+                      themeBackgroundPosition: undefined,
+                    },
+                  });
+                }}
                 className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/5"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -366,14 +451,56 @@ export function CustomizationPanel({ settings, onSettingsChange }: Customization
           </div>
         </div>
         {customization.themeBackgroundImage ? (
-          <img
-            src={customization.themeBackgroundImage}
-            alt="Pratinjau background tema"
-            className="h-36 w-full rounded-md border border-white/10 object-cover"
-          />
+          <div
+            role="group"
+            aria-label="Atur posisi gambar background"
+            tabIndex={0}
+            onPointerDown={handleBackgroundPointerDown}
+            onPointerMove={handleBackgroundPointerMove}
+            onPointerUp={handleBackgroundPointerEnd}
+            onPointerCancel={handleBackgroundPointerEnd}
+            className="h-36 w-full touch-none cursor-grab overflow-hidden rounded-md border border-white/10 active:cursor-grabbing"
+          >
+            <img
+              src={customization.themeBackgroundImage}
+              alt="Pratinjau background tema. Seret gambar untuk mengatur posisinya."
+              draggable={false}
+              onDragStart={(event) => event.preventDefault()}
+              style={{ objectPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%` }}
+              className="pointer-events-none h-full w-full select-none object-cover"
+            />
+          </div>
         ) : (
           <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-zinc-700 text-xs text-zinc-400">
             Background bawaan tema sedang digunakan.
+          </div>
+        )}
+        {customization.themeBackgroundImage && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1 text-xs text-zinc-300">
+              Posisi horizontal
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={backgroundPosition.x}
+                aria-label="Posisi horizontal background"
+                onChange={(event) => updateThemeBackgroundPosition({ ...backgroundPosition, x: Number(event.target.value) })}
+                className="w-full accent-red-500"
+              />
+            </label>
+            <label className="space-y-1 text-xs text-zinc-300">
+              Posisi vertikal
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={backgroundPosition.y}
+                aria-label="Posisi vertikal background"
+                onChange={(event) => updateThemeBackgroundPosition({ ...backgroundPosition, y: Number(event.target.value) })}
+                className="w-full accent-red-500"
+              />
+            </label>
           </div>
         )}
       </div>

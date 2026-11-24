@@ -837,6 +837,9 @@ export default function App() {
     '--theme-background-image': customization.themeBackgroundImage
       ? `url("${customization.themeBackgroundImage.replace(/"/g, '\\"')}")`
       : undefined,
+    '--theme-background-position': customization.themeBackgroundPosition
+      ? `${Math.max(0, Math.min(100, customization.themeBackgroundPosition.x))}% ${Math.max(0, Math.min(100, customization.themeBackgroundPosition.y))}%`
+      : undefined,
   } as React.CSSProperties;
   const customizationClass = `site-font-${activePalette.font || 'jakarta'} hero-align-${customization.heroAlignment || 'left'} card-radius-${customization.cardRadius || 'round'} site-mode-${colorMode}`;
   const gradientMotionClass = settings.websiteTemplate === 'mulia-cerah' && customization.themeBackgroundAnimation !== false
@@ -947,6 +950,7 @@ export default function App() {
           <CatalogSection
             motors={motors}
             priceList={fifPriceList}
+            catalogOrder={settings.catalogMotorOrder}
             animation={settings.catalogAnimation}
             animationSpeed={settings.catalogAnimationSpeed}
             compareList={compareList}
@@ -1261,6 +1265,7 @@ export default function App() {
         <CatalogSection
           motors={motors}
           priceList={fifPriceList}
+          catalogOrder={settings.catalogMotorOrder}
           animation={settings.catalogAnimation}
           animationSpeed={settings.catalogAnimationSpeed}
           compareList={compareList}
