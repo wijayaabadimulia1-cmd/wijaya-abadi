@@ -3020,6 +3020,7 @@ async function startServer() {
     const excerpt = String(req.body.excerpt || '').trim();
     const content = String(req.body.content || '').trim();
     const images = normalizeMotorImages(req.body.images);
+    const video = String(req.body.video || '').trim();
     if (!title || !slug || !excerpt || !content) return res.status(400).json({ error: 'Judul, slug, ringkasan, dan isi artikel wajib diisi.' });
     if (articles.some((article: any) => article.slug === slug)) return res.status(409).json({ error: 'Slug artikel sudah digunakan.' });
     if (images.length > MAX_MOTOR_IMAGES) return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} gambar per artikel.` });
@@ -3034,6 +3035,7 @@ async function startServer() {
       content,
       image: images[0] || '',
       images,
+      video,
       animation: isCatalogAnimation(req.body.animation) ? req.body.animation : DEFAULT_CATALOG_ANIMATION,
       animationSpeed: normalizeCatalogAnimationSpeed(req.body.animationSpeed),
       author: String(req.body.author || 'Honda Wijaya Abadi').trim(),
@@ -3057,6 +3059,7 @@ async function startServer() {
     const excerpt = String(req.body.excerpt ?? current.excerpt).trim();
     const content = String(req.body.content ?? current.content).trim();
     const images = req.body.images === undefined ? normalizeMotorImages(current.images, current.image) : normalizeMotorImages(req.body.images);
+    const video = String(req.body.video ?? current.video ?? '').trim();
     if (!title || !slug || !excerpt || !content) return res.status(400).json({ error: 'Judul, slug, ringkasan, dan isi artikel wajib diisi.' });
     if (articles.some((article: any) => article.slug === slug && article.id !== current.id)) return res.status(409).json({ error: 'Slug artikel sudah digunakan.' });
     if (images.length > MAX_MOTOR_IMAGES) return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} gambar per artikel.` });
@@ -3070,6 +3073,7 @@ async function startServer() {
       content,
       image: images[0] || '',
       images,
+      video,
       animation: isCatalogAnimation(req.body.animation ?? current.animation) ? (req.body.animation ?? current.animation) : DEFAULT_CATALOG_ANIMATION,
       animationSpeed: normalizeCatalogAnimationSpeed(req.body.animationSpeed ?? current.animationSpeed),
       author: String(req.body.author ?? current.author ?? 'Honda Wijaya Abadi').trim(),
@@ -3691,7 +3695,7 @@ async function startServer() {
   });
 
   // File Upload (Base64)
-  app.post('/api/upload', express.raw({ type: ['image/*', 'application/octet-stream'], limit: MAX_IMAGE_UPLOAD_BYTES }), (req, res) => {
+  app.post('/api/upload', express.raw({ type: ['image/*', 'video/mp4', 'video/webm', 'application/octet-stream'], limit: MAX_IMAGE_UPLOAD_BYTES }), (req, res) => {
     try {
       let buffer: Buffer;
       let ext = 'png';
@@ -3706,11 +3710,19 @@ async function startServer() {
         }
         const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
         const knownImageExtension = ['avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp'].includes(fileExtension);
-        if (!mimeType.startsWith('image/') && !(mimeType === 'application/octet-stream' && knownImageExtension)) {
-          return res.status(415).json({ error: 'File yang diunggah harus berupa gambar' });
+        const videoMimeType = fileExtension === 'mp4' ? 'video/mp4' : fileExtension === 'webm' ? 'video/webm' : '';
+        const isVideoUpload = Boolean(videoMimeType && (mimeType === videoMimeType || mimeType === 'application/octet-stream'));
+        if (!mimeType.startsWith('image/') && !(mimeType === 'application/octet-stream' && knownImageExtension) && !isVideoUpload) {
+          return res.status(415).json({ error: 'File yang diunggah harus berupa gambar atau video MP4/WebM.' });
         }
         buffer = req.body;
-        ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+        ext = isVideoUpload ? fileExtension : mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+        if (isVideoUpload) {
+          const validSignature = videoMimeType === 'video/mp4'
+            ? buffer.length >= 12 && buffer.toString('ascii', 4, 8) === 'ftyp'
+            : buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+          if (!validSignature) return res.status(415).json({ error: 'File video tidak memiliki format MP4/WebM yang valid.' });
+        }
       } else {
         const { filename: legacyFilename, base64Data } = req.body || {};
         if (!base64Data) {
@@ -3727,9 +3739,7 @@ async function startServer() {
         }
       }
 
-      if (buffer.length === 0) {
-        return res.status(400).json({ error: 'File gambar kosong' });
-      }
+      if (buffer.length === 0) return res.status(400).json({ error: 'File kosong.' });
 
       const requestedName = (filename || `upload.${ext}`).replace(/[^a-zA-Z0-9._-]/g, '_');
       const safeName = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${requestedName}`;

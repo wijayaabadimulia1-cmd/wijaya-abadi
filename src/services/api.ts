@@ -34,6 +34,48 @@ async function downloadAdminFile(url: string, fallbackName: string): Promise<voi
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }
 
+async function uploadMediaFile(
+  file: File,
+  contentType: string,
+  options: { sharedCatalog?: boolean; mediaLabel: string; timeoutMs: number },
+): Promise<string> {
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+    throw new Error(options.mediaLabel === 'gambar'
+      ? 'Ukuran gambar melebihi batas 100 MB. Kompres gambar lalu coba lagi.'
+      : 'Ukuran video melebihi batas 100 MB.');
+  }
+  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${file.name}`;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), options.timeoutMs);
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        ...adminHeaders(),
+        'Content-Type': contentType,
+        'X-File-Name': encodeURIComponent(uniqueName),
+        ...(options.sharedCatalog ? { 'X-Catalog-Upload': 'true' } : {}),
+      },
+      body: file,
+      signal: controller.signal,
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.url) {
+      throw new Error(result.error || `Upload gagal (HTTP ${res.status})`);
+    }
+    return result.url;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(options.mediaLabel === 'gambar'
+        ? 'Upload melewati batas 120 detik. Periksa koneksi atau gunakan foto yang lebih kecil.'
+        : 'Upload video melewati batas 5 menit. Periksa koneksi atau gunakan video yang lebih kecil.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export const api = {
   async getCatalogStatus(): Promise<{ owner: boolean; canManageCatalog: boolean; adminUrl: string }> {
     const res = await fetch('/api/catalog/status', { headers: adminHeaders(), cache: 'no-store' });
@@ -570,9 +612,6 @@ export const api = {
   },
 
   async uploadImage(file: File, options: { sharedCatalog?: boolean } = {}): Promise<string> {
-    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
-      throw new Error('Ukuran gambar melebihi batas 100 MB. Kompres gambar lalu coba lagi.');
-    }
     const contentTypeByExtension: Record<string, string> = {
       avif: 'image/avif',
       gif: 'image/gif',
@@ -584,34 +623,20 @@ export const api = {
     };
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     const contentType = file.type || contentTypeByExtension[extension] || 'application/octet-stream';
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${file.name}`;
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 120_000);
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          ...adminHeaders(),
-          'Content-Type': contentType,
-          'X-File-Name': encodeURIComponent(uniqueName),
-          ...(options.sharedCatalog ? { 'X-Catalog-Upload': 'true' } : {}),
-        },
-        body: file,
-        signal: controller.signal,
-      });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok || !result.url) {
-        throw new Error(result.error || `Upload gagal (HTTP ${res.status})`);
-      }
-      return result.url;
-    } catch (error) {
-      if (controller.signal.aborted) {
-        throw new Error('Upload melewati batas 120 detik. Periksa koneksi atau gunakan foto yang lebih kecil.');
-      }
-      throw error;
-    } finally {
-      window.clearTimeout(timeoutId);
+    return uploadMediaFile(file, contentType, { ...options, mediaLabel: 'gambar', timeoutMs: 120_000 });
+  },
+
+  async uploadArticleVideo(file: File): Promise<string> {
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const contentTypeByExtension: Record<string, string> = {
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+    };
+    const contentType = contentTypeByExtension[extension];
+    if (!contentType || (file.type && file.type !== contentType && file.type !== 'application/octet-stream')) {
+      throw new Error('Gunakan file video MP4 atau WebM.');
     }
+    return uploadMediaFile(file, contentType, { mediaLabel: 'video', timeoutMs: 300_000 });
   },
 
   // Export / Download all data

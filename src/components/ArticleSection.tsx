@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, Share2, X } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Play, Share2, X } from 'lucide-react';
 import type { Article } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from '../catalogAnimation';
 
@@ -123,7 +123,9 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
                       </div>
                     ) : (
                       <div className="flex aspect-[16/9] items-end justify-between bg-zinc-100 p-5">
-                        <BookOpen className="h-8 w-8 text-red-500/70" aria-hidden="true" />
+                        {article.video
+                          ? <span className="inline-flex items-center gap-2 text-sm font-semibold text-red-600"><Play className="h-6 w-6" aria-hidden="true" />Video tersedia</span>
+                          : <BookOpen className="h-8 w-8 text-red-500/70" aria-hidden="true" />}
                       </div>
                     )}
                     <div className="flex flex-1 flex-col p-4 sm:p-5">
@@ -163,6 +165,11 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
                     <span className="absolute bottom-3 right-3 rounded bg-black/70 px-2 py-1 text-xs font-semibold text-white">{selectedImageIndex + 1} / {getArticleImages(selectedArticle).length}</span>
                   </>
                 )}
+              </div>
+            )}
+            {selectedArticle.video && (
+              <div className="bg-black px-5 pt-5 sm:px-10">
+                <video src={selectedArticle.video} controls preload="metadata" playsInline className="max-h-96 w-full rounded-lg bg-black" aria-label={`Video artikel ${selectedArticle.title}`} />
               </div>
             )}
             <div className="px-5 py-7 sm:px-10 sm:py-10">

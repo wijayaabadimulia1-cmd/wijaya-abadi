@@ -38,10 +38,12 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const imagesInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const loadArticles = async () => {
     setIsLoading(true);
@@ -69,6 +71,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       excerpt: '',
       content: '',
       images: [],
+      video: '',
       animation: DEFAULT_CATALOG_ANIMATION,
       animationSpeed: DEFAULT_CATALOG_ANIMATION_SPEED,
       author: 'Honda Wijaya Abadi',
@@ -104,6 +107,25 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       setErrorMessage(`Gagal mengunggah gambar: ${error.message}`);
     } finally {
       setIsUploadingImages(false);
+      input.value = '';
+    }
+  };
+
+  const handleUploadVideo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!editingArticle || !file) return;
+
+    setIsUploadingVideo(true);
+    setErrorMessage(null);
+    try {
+      const video = await api.uploadArticleVideo(file);
+      setEditingArticle((current) => current ? { ...current, video } : current);
+      setNotice('Video artikel berhasil diunggah.');
+    } catch (error: any) {
+      setErrorMessage(`Gagal mengunggah video: ${error.message}`);
+    } finally {
+      setIsUploadingVideo(false);
       input.value = '';
     }
   };
@@ -258,6 +280,20 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 ) : <p className="border border-dashed border-white/15 px-3 py-5 text-center text-xs text-zinc-500">Belum ada gambar yang diunggah.</p>}
               </section>
 
+              <section className="space-y-3 rounded-lg border border-white/10 bg-zinc-900/50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div><h4 className="font-bold text-white">Video artikel (opsional)</h4><p className="mt-1 text-[11px] text-zinc-400">Unggah satu video MP4 atau WebM, maksimal 100 MB.</p></div>
+                  <button type="button" disabled={isUploadingVideo} onClick={() => videoInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"><Upload className="h-4 w-4" />{isUploadingVideo ? 'Mengunggah...' : editingArticle.video ? 'Ganti video' : 'Unggah video'}</button>
+                  <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,.mp4,.webm" className="hidden" onChange={handleUploadVideo} />
+                </div>
+                {editingArticle.video ? (
+                  <div className="space-y-2">
+                    <video src={editingArticle.video} controls preload="metadata" playsInline className="max-h-80 w-full rounded-md bg-black" aria-label="Pratinjau video artikel" />
+                    <button type="button" onClick={() => setEditingArticle((current) => current ? { ...current, video: '' } : current)} className="text-xs font-semibold text-red-400 hover:text-red-300">Hapus video</button>
+                  </div>
+                ) : <p className="border border-dashed border-white/15 px-3 py-5 text-center text-xs text-zinc-500">Belum ada video yang diunggah.</p>}
+              </section>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="block space-y-1.5 font-semibold text-zinc-300">Penulis<input value={editingArticle.author || ''} onChange={(event) => setEditingArticle({ ...editingArticle, author: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" /></label>
                 <label className="block space-y-1.5 font-semibold text-zinc-300">Animasi gambar<select value={editingArticle.animation || DEFAULT_CATALOG_ANIMATION} onChange={(event) => setEditingArticle({ ...editingArticle, animation: event.target.value as Article['animation'] })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">{CATALOG_ANIMATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
@@ -266,7 +302,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               <label className="flex items-center gap-2.5 rounded-lg border border-white/10 bg-zinc-900/70 px-3 py-3 font-semibold text-zinc-200"><input type="checkbox" checked={editingArticle.published === true} onChange={(event) => setEditingArticle({ ...editingArticle, published: event.target.checked })} className="h-4 w-4 accent-red-600" />Terbitkan artikel di website</label>
               <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
                 <button type="button" onClick={() => setEditingArticle(null)} className="rounded-lg border border-white/10 px-4 py-2.5 font-semibold text-zinc-300 hover:bg-zinc-900">Batal</button>
-                <button type="submit" disabled={isSaving || isUploadingImages} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-4 w-4" />{isSaving ? 'Menyimpan...' : 'Simpan Artikel'}</button>
+                <button type="submit" disabled={isSaving || isUploadingImages || isUploadingVideo} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-4 w-4" />{isSaving ? 'Menyimpan...' : 'Simpan Artikel'}</button>
               </div>
             </form>
           </div>

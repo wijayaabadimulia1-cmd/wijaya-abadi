@@ -60,6 +60,7 @@ export interface Article {
   content: string;
   image?: string;
   images?: string[];
+  video?: string;
   animation?: CatalogAnimation;
   animationSpeed?: number;
   author: string;
