@@ -10,6 +10,7 @@ EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-tech.service"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
+ALLOW_EMPTY_CATALOG="${ALLOW_EMPTY_CATALOG:-false}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -n "${DEPLOY_COMMIT:-}" ]; then
   COMMIT="${DEPLOY_COMMIT}"
@@ -235,8 +236,11 @@ if [ -z "$WIJAYA_DATA_DIR" ] || [ -z "$SOLUSI_DATA_DIR" ] \
 fi
 
 EXPECTED_MOTORS="$(node -e 'const db = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (!Array.isArray(db.motors)) process.exit(2); console.log(db.motors.length)' "$DATA_DIR/db.json")"
-if [ "$EXPECTED_MOTORS" -lt 1 ]; then
+if [ "$EXPECTED_MOTORS" -lt 1 ] && [ "$ALLOW_EMPTY_CATALOG" != "true" ]; then
   fail "The live catalog is empty; refusing deployment."
+fi
+if [ "$EXPECTED_MOTORS" -lt 1 ]; then
+  echo "Notice: deployment explicitly allows the empty catalog."
 fi
 
 DEPLOY_USER="${SUDO_USER:-$(id -un)}"
@@ -295,7 +299,7 @@ staged_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0
 if [ "$staged_motors" != "$EXPECTED_MOTORS" ]; then
   fail "Staged catalog count differs from live data ($staged_motors vs $EXPECTED_MOTORS)."
 fi
-for path in / /sitemap.xml; do
+for path in / /sitemap.xml /owner-dashboard; do
   status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 "http://127.0.0.1:${STAGING_PORT}${path}")"
   if [ "$status" != "200" ]; then
     fail "Staged endpoint returned HTTP $status: ${path}"
@@ -385,6 +389,7 @@ if [ "$live_motors" != "$EXPECTED_MOTORS" ] || [ ! -s "$DATA_DIR/db.json" ]; the
 fi
 check_http_200 "https://${DOMAIN}/"
 check_http_200 "https://${DOMAIN}/sitemap.xml"
+check_http_200 "https://${DOMAIN}/owner-dashboard"
 
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
