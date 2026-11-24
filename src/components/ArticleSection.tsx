@@ -168,14 +168,16 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
             <div className="px-6 py-8 sm:px-12 sm:py-12">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-400">
                 <span className="text-red-700">{selectedArticle.category}</span>
-                <span>{formatDate(selectedArticle.created_at)}</span>
-                <span>{getReadingMinutes(selectedArticle.content)} menit membaca</span>
+                <span>{formatDate(selectedArticle.publishedAt || selectedArticle.created_at)}</span>
+                <span>{selectedArticle.readTime || getReadingMinutes(selectedArticle.content)} menit membaca</span>
               </div>
               <h2 className="mt-5 font-serif text-3xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-5xl">{selectedArticle.title}</h2>
               <p className="mt-5 border-l-2 border-red-600 pl-5 text-base leading-8 text-stone-600 sm:text-lg">{selectedArticle.excerpt}</p>
               <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
+              {selectedArticle.video && <a href={selectedArticle.video} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 text-xs font-bold text-white transition hover:bg-red-800">Tonton video terkait <ArrowRight className="h-4 w-4" /></a>}
+              {selectedArticle.sourceUrl && <p className="mt-6 text-xs text-stone-500">Referensi: <a href={selectedArticle.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-red-700 underline">Sumber informasi</a></p>}
               <p className="mt-10 border-t border-stone-200 pt-6 text-xs font-semibold tracking-wide text-stone-500">Ditulis oleh {selectedArticle.author}</p>
             </div>
           </article>
