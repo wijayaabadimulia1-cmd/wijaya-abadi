@@ -735,17 +735,17 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
 
                   <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div><h4 className="font-bold text-stone-950">Foto Artikel</h4><p className="mt-1 text-xs text-stone-500">Galeri foto terpisah dari video. Foto pertama menjadi sampul.</p></div>
+                      <div><h4 className="font-bold text-stone-950">Foto Artikel ({getArticleImages(editingArticle).length}/{MAX_MOTOR_IMAGES})</h4><p className="mt-1 text-xs text-stone-500">Bisa unggah beberapa foto sekaligus. Foto pertama menjadi sampul.</p></div>
                       <button type="button" disabled={isUploadingImages || getArticleImages(editingArticle).length >= MAX_MOTOR_IMAGES} onClick={() => imagesInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-xs font-bold text-stone-700 hover:bg-stone-50 disabled:opacity-50">
                         <Upload className="h-4 w-4" /> {isUploadingImages ? 'Mengunggah...' : 'Unggah foto'}
                       </button>
                       <input ref={imagesInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUploadImages} />
                     </div>
                     {getArticleImages(editingArticle).length ? (
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="flex flex-wrap gap-3">
                         {getArticleImages(editingArticle).map((image, index) => (
-                          <div key={`${image}-${index}`} className="relative overflow-hidden rounded-xl border border-stone-200">
-                            <img src={image} alt={`Foto artikel ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
+                          <div key={`${image}-${index}`} className="relative w-full max-w-[15rem] overflow-hidden rounded-xl border border-stone-200">
+                            <img src={image} alt={`Foto artikel ${index + 1}`} className="aspect-[4/3] w-full bg-stone-50 object-contain" />
                             <button type="button" onClick={() => updateCover(image)} className="absolute bottom-2 left-2 rounded-lg bg-black/75 px-2 py-1 text-[10px] font-bold text-white">{index === 0 ? 'Sampul' : 'Jadikan sampul'}</button>
                             <button type="button" onClick={() => removeImage(index)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/75 text-white hover:bg-red-700" aria-label={`Hapus foto ${index + 1}`}><X className="h-3.5 w-3.5" /></button>
                           </div>
