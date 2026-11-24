@@ -50,7 +50,7 @@
     linear-gradient(90deg, rgba(12, 22, 32, 0.76), rgba(12, 22, 32, 0.36) 48%, rgba(12, 22, 32, 0.12)),
     linear-gradient(0deg, rgba(12, 22, 32, 0.34), transparent 34%),
     var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
-  background-position: center, center, center 53%;
+  background-position: center, center, var(--theme-background-position, center 53%);
   background-size: cover;
 }
 
@@ -59,7 +59,7 @@
     linear-gradient(90deg, rgba(12, 22, 32, 0.42), rgba(12, 22, 32, 0.18) 48%, rgba(12, 22, 32, 0.06)),
     linear-gradient(0deg, rgba(12, 22, 32, 0.2), transparent 34%),
     var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape.webp'));
-  background-position: center, center, center 53%;
+  background-position: center, center, var(--theme-background-position, center 53%);
   background-size: cover;
 }
 
@@ -208,7 +208,7 @@
       linear-gradient(90deg, rgba(12, 22, 32, 0.72), rgba(12, 22, 32, 0.3)),
       linear-gradient(0deg, rgba(12, 22, 32, 0.38), transparent 40%),
       var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
-    background-position: center, center, center;
+    background-position: center, center, var(--theme-background-position, center);
   }
 
   .website-shell.website-template-showcase-wijaya-2.site-mode-dark main > #home {
@@ -216,6 +216,7 @@
       linear-gradient(90deg, rgba(12, 22, 32, 0.44), rgba(12, 22, 32, 0.2)),
       linear-gradient(0deg, rgba(12, 22, 32, 0.22), transparent 40%),
       var(--theme-background-image, url('/images/wijaya-cool-bandung-landscape-mobile.webp'));
+    background-position: center, center, var(--theme-background-position, center);
   }
 
   .website-shell.website-template-showcase-wijaya-2 main > .showcase-quick-links {

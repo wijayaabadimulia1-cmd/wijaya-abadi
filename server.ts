@@ -2446,6 +2446,15 @@ async function startServer() {
     const isGlobalAdmin = isGlobalSuperAdmin(session);
     const isPosAdmin = isPosSuperAdmin(session);
     const settingsUpdates = { ...(req.body || {}) };
+    if (Object.prototype.hasOwnProperty.call(settingsUpdates, 'catalogMotorOrder')) {
+      if (!Array.isArray(settingsUpdates.catalogMotorOrder)
+        || settingsUpdates.catalogMotorOrder.some((motorId: unknown) => typeof motorId !== 'string')) {
+        return res.status(400).json({ error: 'Urutan katalog motor tidak valid.' });
+      }
+      settingsUpdates.catalogMotorOrder = [...new Set(
+        settingsUpdates.catalogMotorOrder.map((motorId: string) => motorId.trim()).filter(Boolean),
+      )];
+    }
     let assignedPos: any;
     if (isPosAdmin) {
       assignedPos = (db.settings?.seoPages || []).find((item: any) => item.id === session.assignedSeoPageId
@@ -2457,7 +2466,7 @@ async function startServer() {
       const editableFields = new Set([
         'name', 'tagline', 'phone', 'address', 'email', 'workingHours', 'logo', 'heroImage', 'heroImages',
         'heroTitle', 'heroMainTitle', 'heroTitleHighlight', 'heroSubtitle', 'heroBadge', 'heroCaption', 'footerText',
-        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'customization', 'seoCanonicalUrl',
+        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'catalogMotorOrder', 'customization', 'socialLinks', 'seoCanonicalUrl',
         ...(isPosAdmin ? ['seoTitle', 'seoDescription', 'seoKeywords', 'seoRobots'] : []),
       ]);
       for (const key of Object.keys(settingsUpdates)) {
@@ -2504,7 +2513,7 @@ async function startServer() {
       const siteSettingFields = [
         'name', 'tagline', 'phone', 'address', 'email', 'workingHours', 'logo', 'heroImage', 'heroImages',
         'heroTitle', 'heroMainTitle', 'heroTitleHighlight', 'heroSubtitle', 'heroBadge', 'heroCaption', 'footerText',
-        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'featuredMotorRotationInterval', 'customization',
+        'websiteTemplate', 'catalogAnimation', 'catalogAnimationSpeed', 'catalogMotorOrder', 'featuredMotorRotationInterval', 'customization', 'socialLinks',
       ];
       const siteSettings = { ...(hostPage.siteSettings || {}) };
       for (const field of siteSettingFields) {

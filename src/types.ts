@@ -188,6 +188,11 @@ export interface ThemeColorPalette {
   heroTitleHighlightColor?: string;
 }
 
+export interface ThemeBackgroundPosition {
+  x: number;
+  y: number;
+}
+
 export interface WebsiteCustomization {
   primaryColor?: string;
   secondaryColor?: string;
@@ -214,6 +219,7 @@ export interface WebsiteCustomization {
   heroOverlayColor?: string;
   heroOverlayOpacity?: number;
   themeBackgroundImage?: string;
+  themeBackgroundPosition?: ThemeBackgroundPosition;
   themeBackgroundAnimation?: boolean;
   colorPalettes?: Partial<Record<ThemeMode, ThemeColorPalette>>;
   templatePaletteBackup?: Partial<Record<ThemeMode, ThemeColorPalette>>;
@@ -258,6 +264,7 @@ export interface DealerSettings {
   websiteTemplate?: WebsiteTemplate;
   catalogAnimation?: CatalogAnimation;
   catalogAnimationSpeed?: number;
+  catalogMotorOrder?: string[];
   featuredMotorRotationInterval?: number;
   customization?: WebsiteCustomization;
   updated_at?: string;
