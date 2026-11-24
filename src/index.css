@@ -3409,12 +3409,14 @@ html[data-color-mode="dark"] body {
   }
 }
 
-.article-management-studio .article-studio-template,
-.article-management-studio .article-studio-choice {
+.article-management-studio button:not([class*="text-white"]):not([class*="text-red-"]) {
   color: #292524 !important;
-  opacity: 1 !important;
 }
 
-.article-management-studio .article-studio-choice[aria-pressed="true"] {
+.article-management-studio button[class*="text-red-"] {
+  color: #991b1b !important;
+}
+
+.article-management-studio button[class*="text-white"] {
   color: #ffffff !important;
 }
