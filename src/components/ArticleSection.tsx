@@ -98,45 +98,45 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
 
   return (
     <>
-      <section id="artikel" className="relative border-y border-zinc-200 bg-white py-12 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-5 border-b border-zinc-200 pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <section id="artikel" className="relative overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-5 border-b border-stone-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase text-red-600">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-red-100 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-red-700 shadow-sm">
                 <BookOpen className="h-4 w-4" />
                 Wawasan &amp; Panduan
               </div>
-              <h2 className="text-3xl font-black text-zinc-950 sm:text-4xl">Artikel seputar Honda</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-600">Panduan memilih motor, memahami pembelian, dan merawat kendaraan untuk perjalanan sehari-hari.</p>
+              <h2 className="font-serif text-4xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-5xl">Cerita, tips &amp; inspirasi Honda</h2>
+              <p className="mt-4 max-w-xl text-sm leading-7 text-stone-600 sm:text-base">Temukan panduan pilihan, wawasan berkendara, dan inspirasi perawatan untuk menemani setiap perjalanan Anda.</p>
             </div>
-            <span className="text-sm font-semibold text-zinc-600">{visibleArticles.length} artikel</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">{visibleArticles.length} artikel pilihan</span>
           </div>
 
-          <div className="mt-7 grid grid-cols-1 items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-9 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
             {visibleArticles.map((article) => {
               const coverImage = getArticleImages(article)[0];
               return (
-                <article id={`artikel-${article.slug}`} key={article.id} className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+                <article id={`artikel-${article.slug}`} key={article.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.35rem] border border-stone-200/80 bg-white shadow-[0_8px_30px_rgba(41,37,36,0.045)] transition duration-500 hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_20px_48px_rgba(41,37,36,0.10)]">
                     {coverImage ? (
-                      <div className="aspect-[16/9] overflow-hidden bg-zinc-100">
-                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation h-full w-full object-contain" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
+                      <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
+                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation h-full w-full object-cover transition duration-700 group-hover:scale-[1.045]" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
                       </div>
                     ) : (
-                      <div className="flex aspect-[16/9] items-end justify-between bg-zinc-100 p-5">
+                      <div className="flex aspect-[16/10] items-end justify-between bg-gradient-to-br from-stone-100 via-stone-50 to-red-50 p-5">
                         <BookOpen className="h-8 w-8 text-red-500/70" aria-hidden="true" />
                       </div>
                     )}
-                    <div className="flex flex-1 flex-col p-4 sm:p-5">
-                      <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-1 flex-col p-5 sm:p-6">
+                      <div className="flex items-center justify-between gap-3 text-stone-500">
                         <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600"><CalendarDays className="h-4 w-4" />{formatDate(article.created_at)}</span>
-                        <button type="button" onClick={() => void shareArticle(article)} title={`Bagikan artikel ${article.title}`} aria-label={`Bagikan artikel ${article.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-red-300 hover:text-red-600">
+                        <button type="button" onClick={() => void shareArticle(article)} title={`Bagikan artikel ${article.title}`} aria-label={`Bagikan artikel ${article.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-stone-200 text-stone-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700">
                           <Share2 className="h-4 w-4" />
                         </button>
                       </div>
-                      <h3 className="mt-2 break-words text-lg font-bold leading-snug text-zinc-950">{article.title}</h3>
-                      {article.excerpt && <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-zinc-600">{article.excerpt}</p>}
+                      <h3 className="mt-4 break-words font-serif text-xl font-semibold leading-snug text-stone-950 transition group-hover:text-red-800 sm:text-2xl">{article.title}</h3>
+                      {article.excerpt && <p className="mt-3 whitespace-pre-line break-words text-sm leading-7 text-stone-600">{article.excerpt}</p>}
                       <div className="mt-auto pt-5">
-                        <a href={`/artikel/${encodeURIComponent(article.slug)}/`} className="inline-flex items-center gap-3 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:border-red-500 hover:text-red-700" aria-label={`Selengkapnya: ${article.title}`}>
+                        <a href={`/artikel/${encodeURIComponent(article.slug)}/`} className="inline-flex items-center gap-2 border-b border-stone-300 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-stone-800 transition hover:border-red-600 hover:text-red-700" aria-label={`Selengkapnya: ${article.title}`}>
                           Selengkapnya <ArrowRight className="h-4 w-4 text-red-600" />
                         </a>
                       </div>
@@ -150,12 +150,12 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
       </section>
 
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeArticle(); }}>
-          <article className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-zinc-950 text-zinc-100 shadow-2xl">
-            <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-3 backdrop-blur-md sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeArticle(); }}>
+          <article className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
+            <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/70 bg-stone-950/70 text-white shadow-lg backdrop-blur hover:bg-red-700" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
             {getArticleImages(selectedArticle).length > 0 && (
-              <div className="relative aspect-[16/9] max-h-80 overflow-hidden bg-zinc-100">
-                <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation absolute inset-0 h-full w-full object-contain" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
+              <div className="relative aspect-[16/9] max-h-[26rem] overflow-hidden bg-stone-100">
+                <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation absolute inset-0 h-full w-full object-cover" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
                 {getArticleImages(selectedArticle).length > 1 && (
                   <>
                     <button type="button" onClick={() => setSelectedImageIndex((index) => (index - 1 + getArticleImages(selectedArticle).length) % getArticleImages(selectedArticle).length)} className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Gambar sebelumnya"><ChevronLeft className="h-5 w-5" /></button>
@@ -165,18 +165,18 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
                 )}
               </div>
             )}
-            <div className="px-5 py-7 sm:px-10 sm:py-10">
+            <div className="px-6 py-8 sm:px-12 sm:py-12">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-400">
-                <span className="text-red-400">{selectedArticle.category}</span>
+                <span className="text-red-700">{selectedArticle.category}</span>
                 <span>{formatDate(selectedArticle.created_at)}</span>
                 <span>{getReadingMinutes(selectedArticle.content)} menit membaca</span>
               </div>
-              <h2 className="mt-4 text-2xl font-black leading-tight text-white sm:text-4xl">{selectedArticle.title}</h2>
-              <p className="mt-4 border-l-2 border-red-600 pl-4 text-base leading-7 text-zinc-300">{selectedArticle.excerpt}</p>
-              <div className="mt-7 space-y-5 text-sm leading-7 text-zinc-300 sm:text-base">
+              <h2 className="mt-5 font-serif text-3xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-5xl">{selectedArticle.title}</h2>
+              <p className="mt-5 border-l-2 border-red-600 pl-5 text-base leading-8 text-stone-600 sm:text-lg">{selectedArticle.excerpt}</p>
+              <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
-              <p className="mt-8 border-t border-white/10 pt-5 text-xs font-semibold text-zinc-500">Ditulis oleh {selectedArticle.author}</p>
+              <p className="mt-10 border-t border-stone-200 pt-6 text-xs font-semibold tracking-wide text-stone-500">Ditulis oleh {selectedArticle.author}</p>
             </div>
           </article>
         </div>
