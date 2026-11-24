@@ -3388,9 +3388,7 @@ async function startServer() {
       return res.status(404).json({ error: 'Tautan dashboard tidak valid atau sudah dinonaktifkan.' });
     }
 
-    const catalogDb = readCatalogDb();
-    const catalogOwnerPages = getOwnerSeoPages(catalogDb);
-    const catalogMotorCount = Array.isArray(catalogDb.motors) ? catalogDb.motors.length : null;
+    const catalogOwnerPages = getOwnerSeoPages(readCatalogDb());
     const validHosts = new Set<string>([...getOwnerDashboardHosts(db), 'kreditmotorhonda.id', ...Object.keys(OWNER_ANALYTICS_SITE_DB_FILES), ...(Array.isArray(db.settings?.seoPages) ? db.settings.seoPages : []).map((page: any) => `${String(page.subdomain || '').trim().toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`), ...catalogOwnerPages.map((page: any) => `${String(page.subdomain || '').trim().toLocaleLowerCase('en-US')}.${getSeoPageDomainSuffix(page)}`)].filter((host) => !host.startsWith('.') && !(Array.isArray(config.disabledHosts) ? config.disabledHosts : []).includes(host)));
     const validStart = isValidDateKey(req.body?.startDate) ? req.body.startDate : '';
     const validEnd = isValidDateKey(req.body?.endDate) ? req.body.endDate : '';
@@ -3441,19 +3439,6 @@ async function startServer() {
         .map((user: any) => ({ username: String(user.username || ''), role: String(user.role || 'Admin') }))
         .filter((user: any) => user.username);
       return { host, dataAvailable: databaseContents.has(sourceFile), admins };
-    });
-    const domainContentStats = [...validHosts].map((host) => {
-      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
-      const sourceDb = databaseContents.get(sourceFile);
-      const dataAvailable = Boolean(sourceDb);
-      const articles = dataAvailable ? getSiteArticles(sourceDb, host) : null;
-      const admins = dataAvailable && Array.isArray(sourceDb.adminUsers) ? sourceDb.adminUsers : null;
-      return {
-        host,
-        motorCount: catalogMotorCount,
-        articleCount: articles?.length ?? null,
-        adminCount: admins?.length ?? null,
-      };
     });
     const ownerPages = catalogOwnerPages;
     const ownerPageRows = ownerPages.map((page: any) => ({
@@ -3600,7 +3585,6 @@ async function startServer() {
       previousPeriodChange,
       siteCount: validHosts.size,
       sites,
-      domainContentStats,
       trafficSources,
       siteAdmins,
       posSites,

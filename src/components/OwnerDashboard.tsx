@@ -29,7 +29,6 @@ interface OwnerAnalytics {
   previousPeriodChange?: number | null;
   siteCount: number;
   sites: Array<{ host: string; visits: number }>;
-  domainContentStats: Array<{ host: string; motorCount: number | null; articleCount: number | null; adminCount: number | null }>;
   trafficSources: Array<{ source: string; visits: number }>;
   siteAdmins: Array<{ host: string; dataAvailable: boolean; admins: Array<{ username: string; role: string }> }>;
   posSites: Array<{ host: string; title: string; sslStatus: string; seoRobots: string; postCount: number; updatedAt: string }>;
@@ -646,30 +645,6 @@ export default function OwnerDashboard() {
                   <img src="/uploads/hero.jpeg" alt="Pilihan motor Honda" />
                   <span className="owner-promo-copy"><strong>Honda Tech</strong><span>Bangun ekosistem digital Honda bersama kami.</span><em>Pelajari lebih lanjut <ArrowUpRight className="h-3.5 w-3.5" /></em></span>
                 </a>
-              </section>}
-
-              {activeSection === 'domains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-100 p-5 dark:border-slate-800 sm:px-6">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Katalog &amp; Konten per Domain</h2>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Jumlah motor selalu mengikuti katalog utama kreditmotorhonda.tech; artikel dan admin dihitung dari data masing-masing domain.</p>
-                </div>
-                {(analytics?.domainContentStats || []).length ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] border-collapse text-left">
-                      <thead><tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-800/50"><th className="px-5 py-3 sm:px-6">Domain</th><th className="px-5 py-3 text-right">Motor</th><th className="px-5 py-3 text-right">Artikel</th><th className="px-5 py-3 text-right sm:px-6">Admin</th></tr></thead>
-                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
-                        {analytics!.domainContentStats.map((site) => (
-                          <tr key={site.host} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                            <td className="px-5 py-3.5 sm:px-6"><a href={`https://${site.host}`} target="_blank" rel="noreferrer" className="font-semibold text-slate-800 hover:text-red-600 dark:text-slate-200">{site.host}</a></td>
-                            <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white">{site.motorCount === null ? '—' : site.motorCount.toLocaleString('id-ID')}</td>
-                            <td className="px-5 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{site.articleCount === null ? '—' : site.articleCount.toLocaleString('id-ID')}</td>
-                            <td className="px-5 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 sm:px-6">{site.adminCount === null ? '—' : site.adminCount.toLocaleString('id-ID')}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Data katalog dan konten belum tersedia.</p>}
               </section>}
 
               {activeSection === 'domains' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
