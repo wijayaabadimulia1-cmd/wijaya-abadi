@@ -2125,7 +2125,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               { id: 'leads', label: `Peminat (${leads.length})`, icon: MessageSquare },
               ...(canManageSalesCounters ? [{ id: 'sales-counter', label: 'Sales Counter', icon: Users }] : []),
               { id: 'promos', label: `Promo (${promos.length})`, icon: Tag },
-              { id: 'articles', label: 'Artikel', icon: FileText },
+              { id: 'articles', label: 'Kelola Artikel', icon: FileText },
               { id: 'testimonials', label: `Ulasan (${testimonials.length})`, icon: Star },
               { id: 'settings', label: 'Pengaturan Dealer', icon: SettingsIcon },
               { id: 'social', label: 'Media Sosial', icon: Instagram },
@@ -2168,9 +2168,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                       isActive
                         ? 'bg-red-600 text-white shadow-lg shadow-red-900/30'
-                        : tab.id === 'theme'
-                          ? 'border border-red-500/25 bg-red-950/30 text-red-200 hover:border-red-400/50 hover:bg-red-950/50'
-                          : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        : tab.id === 'articles'
+                          ? 'border border-red-500/35 bg-red-950/25 text-red-200 hover:border-red-400/60 hover:bg-red-950/45'
+                          : tab.id === 'theme'
+                            ? 'border border-red-500/25 bg-red-950/30 text-red-200 hover:border-red-400/50 hover:bg-red-950/50'
+                            : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
