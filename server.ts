@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { execFile } from 'node:child_process';
 import { resolve4 } from 'node:dns/promises';
 import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import * as XLSX from 'xlsx';
@@ -2230,7 +2231,14 @@ async function startServer() {
       if (session) headers['x-catalog-actor'] = session.username;
     }
 
-    const upstream = httpRequest(target, { method: req.method, headers }, (upstreamResponse) => {
+    const request = target.protocol === 'https:'
+      ? httpsRequest
+      : target.protocol === 'http:'
+        ? httpRequest
+        : null;
+    if (!request) return res.status(503).json({ error: 'Protokol layanan katalog bersama tidak didukung.' });
+
+    const upstream = request(target, { method: req.method, headers }, (upstreamResponse) => {
       res.statusCode = upstreamResponse.statusCode || 502;
       for (const [name, value] of Object.entries(upstreamResponse.headers)) {
         if (value && !['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) {
