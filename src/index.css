@@ -3512,6 +3512,188 @@ html[data-color-mode="dark"] body {
   height: 100%;
   border: 0;
 }
+.article-editor-preview {
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+.article-editor-preview .article-preview-card {
+  overflow: hidden;
+}
+.article-editor-preview .article-preview-cover {
+  max-height: 360px;
+}
+.article-editor-preview .article-header h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #0f172a;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+.article-editor-preview .article-header p {
+  margin-bottom: 0;
+}
+.article-editor-preview .media-section {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+}
+.article-editor-preview .media-section h3 {
+  color: inherit;
+}
+.article-editor-preview.theme-honda-racing {
+  border-top: 4px solid #e60012;
+}
+.article-editor-preview.theme-dark-carbon,
+.article-editor-preview.theme-tiktok-reels,
+.article-editor-preview.theme-video-theater {
+  background: #020617;
+  color: #e2e8f0;
+}
+.article-editor-preview.theme-dark-carbon .article-preview-card,
+.article-editor-preview.theme-tiktok-reels .article-preview-card,
+.article-editor-preview.theme-video-theater .article-preview-card {
+  border-color: #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.article-editor-preview.theme-dark-carbon .article-header h2,
+.article-editor-preview.theme-tiktok-reels .article-header h2,
+.article-editor-preview.theme-video-theater .article-header h2 {
+  color: #f8fafc;
+}
+.article-editor-preview.theme-dark-carbon .article-content p,
+.article-editor-preview.theme-dark-carbon .article-content li,
+.article-editor-preview.theme-tiktok-reels .article-content p,
+.article-editor-preview.theme-tiktok-reels .article-content li,
+.article-editor-preview.theme-video-theater .article-content p,
+.article-editor-preview.theme-video-theater .article-content li {
+  color: #cbd5e1;
+}
+.article-editor-preview.theme-split-magazine .article-preview-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+}
+.article-editor-preview.theme-split-magazine .article-preview-header {
+  align-self: center;
+}
+.article-editor-preview.theme-split-magazine .article-preview-cover {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  align-self: center;
+}
+.article-editor-preview.theme-split-magazine .article-preview-body,
+.article-editor-preview.theme-split-magazine .article-preview-gallery,
+.article-editor-preview.theme-split-magazine .video-section,
+.article-editor-preview.theme-split-magazine .source-box {
+  grid-column: 1 / -1;
+}
+.article-editor-preview.theme-bento-grid .article-preview-header,
+.article-editor-preview.theme-infographic-deck .article-preview-body h2,
+.article-editor-preview.theme-faq-accordion .article-preview-body h2 {
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+  box-shadow: 0 6px 24px #0f172a12;
+}
+.article-editor-preview.theme-checklist-guide .article-preview-body ul {
+  border-left: 4px solid #e60012;
+}
+.article-editor-preview.theme-timeline-vertical .article-preview-body {
+  border-left: 2px solid #e60012;
+  padding-left: 1.25rem;
+}
+.article-editor-preview.theme-tiktok-reels {
+  max-width: 560px;
+  margin-inline: auto;
+}
+.article-editor-preview.theme-clean-medium {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.article-editor-preview.theme-gallery-lightbox .photo-grid,
+.article-editor-preview.layout-gallery .photo-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.article-editor-preview.theme-glassmorphism .article-preview-card {
+  background: #ffffffc9;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 35px #64748b20;
+}
+.article-editor-preview.theme-myth-vs-fact .article-content blockquote {
+  box-shadow: 0 0 0 1px #fecdd3;
+}
+.article-editor-preview.theme-floating-bottom .source-box {
+  position: sticky;
+  bottom: 0.75rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+  box-shadow: 0 10px 35px #0f172a33;
+}
+.article-editor-preview.theme-parallax-hero .featured-image {
+  margin-top: -0.5rem;
+}
+.article-editor-preview.theme-callout-heavy .article-content blockquote {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.article-editor-preview.theme-tabbed-section .article-body {
+  border-top: 3px solid #e60012;
+  padding-top: 1rem;
+}
+.article-editor-preview.theme-glassmorphism .media-section {
+  background: #ffffffc9;
+  backdrop-filter: blur(12px);
+}
+.article-editor-preview.theme-gallery-lightbox .photo-grid img {
+  height: 220px;
+}
+.article-editor-preview.theme-gamified-quiz .article-content ul li::marker {
+  color: #e60012;
+}
+.article-editor-preview.layout-mobile-story .article-header {
+  text-align: center;
+}
+.article-editor-preview.layout-card-deck .article-content ul {
+  box-shadow: 0 8px 22px #0f172a10;
+}
+.article-editor-preview.layout-comparison .article-content h2:nth-of-type(even) {
+  border-left-color: #16a34a;
+}
+.article-editor-preview.layout-accordion .article-content h2 {
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #e60012;
+  border-radius: 0.625rem;
+  background: #fff;
+  padding: 0.875rem 1rem;
+}
+.article-editor-preview.layout-callout-focus .source-box {
+  background: #991b1b;
+  color: #fff;
+}
+.article-editor-preview.layout-tabbed .article-body {
+  border-top: 3px solid #e60012;
+  padding-top: 1rem;
+}
+.article-editor-preview.theme-dark-carbon .article-content ul,
+.article-editor-preview.theme-tiktok-reels .article-content ul,
+.article-editor-preview.theme-video-theater .article-content ul {
+  border-color: #334155;
+  background: #1e293b;
+}
+@media (max-width: 720px) {
+  .article-editor-preview.theme-split-magazine .article-preview-card {
+    display: block;
+  }
+  .article-editor-preview.theme-split-magazine .article-preview-cover {
+    margin-top: 1rem;
+  }
+  .article-editor-preview.theme-gallery-lightbox .photo-grid,
+  .article-editor-preview.layout-gallery .photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .dark-mode-content p,
 .dark-mode-content li {
   color: #cbd5e1 !important;

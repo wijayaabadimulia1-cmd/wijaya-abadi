@@ -12,6 +12,8 @@ import {
   normalizeCatalogAnimationSpeed,
 } from '../catalogAnimation';
 import { ARTICLE_THEMES, DEFAULT_ARTICLE_THEME, getArticleTheme, isArticleThemeId } from '../data/articleThemes';
+import { parseArticleContent, serializeArticleContent, type ArticleEditorSection } from '../utils/articleEditorContent';
+import { sanitizeArticleContent } from '../utils/articleContent';
 
 function slugifyArticle(value: string) {
   return value
@@ -47,6 +49,9 @@ interface ArticleManagerProps {
 export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [editingArticle, setEditingArticle] = useState<Partial<Article> | null>(null);
+  const [articleIntro, setArticleIntro] = useState('');
+  const [articleSections, setArticleSections] = useState<ArticleEditorSection[]>([]);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -57,6 +62,8 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   const imagesInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const selectedTheme = getArticleTheme(editingArticle?.theme || DEFAULT_ARTICLE_THEME);
+  const previewContent = serializeArticleContent(articleIntro, articleSections);
+  const previewImages = editingArticle ? getArticleImages(editingArticle) : [];
 
   const loadArticles = async () => {
     setIsLoading(true);
@@ -77,6 +84,9 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   const openNewArticle = () => {
     setErrorMessage(null);
     setIsSlugManuallyEdited(false);
+    setIsPreviewing(false);
+    setArticleIntro('');
+    setArticleSections([{ id: 'section-1', heading: '', body: '' }]);
     setEditingArticle({
       title: '',
       slug: '',
@@ -154,13 +164,15 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
     event.preventDefault();
     if (!editingArticle) return;
 
+    const content = serializeArticleContent(articleIntro, articleSections);
     const articleData = {
       ...editingArticle,
+      content,
       slug: slugifyArticle(editingArticle.slug || editingArticle.title || ''),
       metaDescription: String(editingArticle.metaDescription ?? editingArticle.excerpt ?? '').trim(),
       excerpt: String(editingArticle.metaDescription ?? editingArticle.excerpt ?? '').trim(),
       publishedAt: editingArticle.publishedAt || getTodayDate(),
-      readTime: editingArticle.readTime?.trim() || getEstimatedReadTime(editingArticle.content || ''),
+      readTime: getEstimatedReadTime(content),
       thumbnail: editingArticle.thumbnail || editingArticle.image || getArticleImages(editingArticle)[0] || '',
       image: editingArticle.thumbnail || editingArticle.image || getArticleImages(editingArticle)[0] || '',
       images: (() => {
@@ -171,7 +183,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       animation: editingArticle.animation || DEFAULT_CATALOG_ANIMATION,
       animationSpeed: normalizeCatalogAnimationSpeed(editingArticle.animationSpeed ?? DEFAULT_CATALOG_ANIMATION_SPEED),
     };
-    if (!articleData.title?.trim() || !articleData.slug || !articleData.metaDescription || !articleData.category?.trim() || !articleData.author?.trim() || !articleData.publishedAt || !articleData.readTime || !articleData.content?.trim()) {
+    if (!articleData.title?.trim() || !articleData.slug || !articleData.metaDescription || !articleData.category?.trim() || !articleData.author?.trim() || !articleData.publishedAt || !articleData.readTime || !articleData.content.trim()) {
       setErrorMessage('Judul, slug, meta description, kategori, penulis, tanggal terbit, waktu baca, dan isi artikel wajib diisi.');
       return;
     }
@@ -254,7 +266,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 <h3 className="mt-2 truncate text-sm font-bold text-white">{article.title}</h3>
                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-400">{article.metaDescription || article.excerpt}</p>
                 <div className="mt-3 flex items-center justify-end gap-3">
-                  <button type="button" onClick={() => { setErrorMessage(null); setIsSlugManuallyEdited(true); setEditingArticle({ ...article, metaDescription: article.metaDescription || article.excerpt, publishedAt: article.publishedAt || article.created_at?.slice(0, 10) || getTodayDate(), thumbnail: article.thumbnail || article.image, images: getArticleImages(article) }); }} className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-300 hover:text-white" aria-label={`Edit ${article.title}`}><Edit2 className="h-3.5 w-3.5" /> Edit</button>
+                  <button type="button" onClick={() => { setErrorMessage(null); setIsSlugManuallyEdited(true); setIsPreviewing(false); const parsedContent = parseArticleContent(article.content || ''); setArticleIntro(parsedContent.intro); setArticleSections(parsedContent.sections); setEditingArticle({ ...article, metaDescription: article.metaDescription || article.excerpt, publishedAt: article.publishedAt || article.created_at?.slice(0, 10) || getTodayDate(), thumbnail: article.thumbnail || article.image, images: getArticleImages(article) }); }} className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-300 hover:text-white" aria-label={`Edit ${article.title}`}><Edit2 className="h-3.5 w-3.5" /> Edit</button>
                   <button type="button" onClick={() => void handleDeleteArticle(article)} className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300" aria-label={`Hapus ${article.title}`}><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
                 </div>
               </div>
@@ -280,6 +292,60 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               <button type="button" onClick={() => setEditingArticle(null)} className="grid h-9 w-9 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-900 hover:text-white" aria-label="Tutup formulir"><X className="h-4 w-4" /></button>
             </div>
             <form onSubmit={handleSaveArticle} className="space-y-4">
+              <section className="space-y-3 rounded-lg border border-red-500/30 bg-red-950/10 p-4">
+                <div>
+                  <h4 className="font-bold text-white">1. Pilih tema artikel</h4>
+                  <p className="mt-1 text-[11px] leading-5 text-zinc-400">Pilih tampilan lebih dulu. Tema dan isi dapat dilihat bersama di pratinjau sebelum artikel diterbitkan.</p>
+                </div>
+                <label className="block space-y-1.5 font-semibold text-zinc-300">
+                  Tema tampilan
+                  <select
+                    value={selectedTheme.id}
+                    onChange={(event) => setEditingArticle((current) => current ? {
+                      ...current,
+                      theme: isArticleThemeId(event.target.value) ? event.target.value : DEFAULT_ARTICLE_THEME,
+                    } : current)}
+                    className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
+                  >
+                    {ARTICLE_THEMES.map((theme) => <option key={theme.id} value={theme.id}>{theme.name}</option>)}
+                  </select>
+                </label>
+                <button type="button" aria-expanded={isPreviewing} onClick={() => setIsPreviewing((current) => !current)} className="inline-flex items-center gap-2 rounded-lg border border-red-500/40 px-3 py-2 text-xs font-bold text-red-200 transition hover:bg-red-500/10">
+                  {isPreviewing ? 'Tutup pratinjau' : 'Pratinjau sebelum terbit'}
+                </button>
+                {isPreviewing && (
+                  <div className={`article-editor-preview rounded-lg p-3 sm:p-5 ${selectedTheme.wrapper} theme-${selectedTheme.id} layout-${selectedTheme.layout}`}>
+                    <article className={`article-preview-card mx-auto max-w-4xl rounded-xl border p-4 shadow-sm sm:p-7 ${selectedTheme.card}`}>
+                      {selectedTheme.layout === 'theater-top' && editingArticle.video && (
+                        <video src={editingArticle.video} controls preload="metadata" playsInline className="mb-5 max-h-80 w-full rounded-lg bg-black" aria-label="Pratinjau video artikel" />
+                      )}
+                      <header className="article-header article-preview-header">
+                        <span className="text-xs font-bold uppercase tracking-wider text-red-600">{editingArticle.category || 'Kategori artikel'}</span>
+                        <h2 className="mt-2 text-2xl font-black leading-tight text-slate-950 sm:text-4xl">{editingArticle.title || 'Judul artikel'}</h2>
+                        {editingArticle.metaDescription || editingArticle.excerpt ? <p className="mt-3 text-sm leading-6 text-slate-600">{editingArticle.metaDescription || editingArticle.excerpt}</p> : null}
+                        <p className="mt-3 text-xs text-slate-500">{editingArticle.author || 'Penulis'} · {editingArticle.publishedAt || getTodayDate()} · {getEstimatedReadTime(previewContent)}</p>
+                      </header>
+                      {previewImages[0] && <img src={previewImages[0]} alt={editingArticle.title || 'Sampul artikel'} className="featured-image article-preview-cover mt-5 w-full rounded-lg object-cover" />}
+                      <div className="article-body article-content article-preview-body mt-5" dangerouslySetInnerHTML={{ __html: sanitizeArticleContent(previewContent) }} />
+                      {previewImages.length > 1 && (
+                        <section className="media-section article-preview-gallery mt-6">
+                          <h3 className="mb-3 text-lg font-bold">Foto artikel</h3>
+                          <div className="photo-grid grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            {previewImages.slice(1).map((image, index) => <img key={`${image}-${index}`} src={image} alt={`Foto artikel ${index + 2}`} loading="lazy" className="aspect-[4/3] w-full rounded-lg object-cover" />)}
+                          </div>
+                        </section>
+                      )}
+                      {editingArticle.video && selectedTheme.layout !== 'theater-top' && (
+                        <section className="media-section video-section mt-6">
+                          <h3 className="mb-3 text-lg font-bold">Video artikel</h3>
+                          <video src={editingArticle.video} controls preload="metadata" playsInline className="max-h-80 w-full rounded-lg bg-black" aria-label="Pratinjau video artikel" />
+                        </section>
+                      )}
+                      {editingArticle.sourceUrl && <p className="source-box mt-6 border-t border-slate-200 pt-4 text-xs">Situs pemilik: {editingArticle.sourceUrl}</p>}
+                    </article>
+                  </div>
+                )}
+              </section>
               <label className="block space-y-1.5 font-semibold text-zinc-300">
                 Judul artikel *
                 <input required value={editingArticle.title || ''} onChange={(event) => setEditingArticle({ ...editingArticle, title: event.target.value, ...(!isSlugManuallyEdited ? { slug: slugifyArticle(event.target.value) } : {}) })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Panduan memilih motor untuk kebutuhan harian" />
@@ -292,33 +358,33 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="block space-y-1.5 font-semibold text-zinc-300">Penulis *<input required value={editingArticle.author || ''} onChange={(event) => setEditingArticle({ ...editingArticle, author: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" /></label>
                 <label className="block space-y-1.5 font-semibold text-zinc-300">Tanggal terbit *<input required type="date" value={editingArticle.publishedAt || editingArticle.created_at?.slice(0, 10) || getTodayDate()} onChange={(event) => setEditingArticle({ ...editingArticle, publishedAt: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" /></label>
-                <label className="block space-y-1.5 font-semibold text-zinc-300">Waktu baca *<input value={editingArticle.readTime || ''} onChange={(event) => setEditingArticle({ ...editingArticle, readTime: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="4 Menit Baca (kosongkan untuk hitung otomatis)" /></label>
-                <label className="block space-y-1.5 font-semibold text-zinc-300">Thumbnail / foto sampul URL<input value={editingArticle.thumbnail || editingArticle.image || ''} onChange={(event) => setEditingArticle((current) => { if (!current) return current; const thumbnail = event.target.value; return { ...current, thumbnail, image: thumbnail, images: thumbnail ? [thumbnail, ...getArticleImages(current).filter((image) => image !== thumbnail)] : getArticleImages(current) }; })} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="https://domain.com/foto.jpg atau unggah dari Galeri artikel" /></label>
               </div>
-              <label className="block space-y-1.5 font-semibold text-zinc-300">Isi artikel *<textarea required rows={10} value={editingArticle.content || ''} onChange={(event) => setEditingArticle({ ...editingArticle, content: event.target.value })} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-6 text-white focus:border-red-500 focus:outline-none" placeholder={'Gunakan struktur HTML artikel: <p class="lead">...</p>, <h2>...</h2>, <p>...</p>, <ul><li>...</li></ul>.'} /></label>
-
-              <section className="space-y-3 rounded-lg border border-white/10 bg-zinc-900/50 p-4">
-                <label className="block space-y-1.5 font-semibold text-zinc-300">
-                  Tema tampilan artikel
-                  <select
-                    value={selectedTheme.id}
-                    onChange={(event) => setEditingArticle((current) => current ? {
-                      ...current,
-                      theme: isArticleThemeId(event.target.value) ? event.target.value : DEFAULT_ARTICLE_THEME,
-                    } : current)}
-                    className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
-                  >
-                    {ARTICLE_THEMES.map((theme) => <option key={theme.id} value={theme.id}>{theme.name}</option>)}
-                  </select>
-                </label>
-                <p className="text-[11px] leading-5 text-zinc-400">Tema ini diterapkan pada halaman publik artikel setelah disimpan.</p>
-                <div className={`rounded-lg border p-4 ${selectedTheme.wrapper}`}>
-                  <div className={`rounded-lg border p-3 text-sm shadow-sm ${selectedTheme.card}`}>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">{selectedTheme.name}</span>
-                    <h4 className="mt-2 font-bold">{editingArticle.title || 'Judul artikel'}</h4>
-                    <p className="mt-1 text-xs opacity-70">Pratinjau warna latar dan kartu tema terpilih.</p>
-                  </div>
+              <section className="space-y-4 rounded-lg border border-white/10 bg-zinc-900/50 p-4">
+                <div>
+                  <h4 className="font-bold text-white">Isi artikel *</h4>
+                  <p className="mt-1 text-[11px] leading-5 text-zinc-400">Tulis dengan bahasa biasa. Pengantar, judul bagian, paragraf, dan daftar akan ditata otomatis.</p>
                 </div>
+                <label className="block space-y-1.5 font-semibold text-zinc-300">
+                  Pengantar artikel
+                  <textarea rows={3} value={articleIntro} onChange={(event) => setArticleIntro(event.target.value)} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-6 text-white focus:border-red-500 focus:outline-none" placeholder="Jelaskan inti artikel dalam beberapa kalimat." />
+                </label>
+                {articleSections.map((section, index) => (
+                  <section key={section.id} className="space-y-3 rounded-lg border border-white/10 bg-zinc-950/70 p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h5 className="font-bold text-zinc-200">Bagian {index + 1}</h5>
+                      {articleSections.length > 1 && <button type="button" onClick={() => setArticleSections((current) => current.filter((item) => item.id !== section.id))} className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400 hover:text-red-300"><X className="h-3.5 w-3.5" /> Hapus bagian</button>}
+                    </div>
+                    <label className="block space-y-1.5 font-semibold text-zinc-300">
+                      Judul bagian
+                      <input value={section.heading} onChange={(event) => setArticleSections((current) => current.map((item) => item.id === section.id ? { ...item, heading: event.target.value } : item))} className="w-full rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none" placeholder="Contoh: Gunakan perlengkapan berkendara" />
+                    </label>
+                    <label className="block space-y-1.5 font-semibold text-zinc-300">
+                      Isi bagian
+                      <textarea rows={4} value={section.body} onChange={(event) => setArticleSections((current) => current.map((item) => item.id === section.id ? { ...item, body: event.target.value } : item))} className="w-full resize-y rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm leading-6 text-white focus:border-red-500 focus:outline-none" placeholder={'Tulis isi dengan bahasa biasa.\nPisahkan paragraf dengan baris kosong.\n\nUntuk daftar, awali setiap baris dengan "- ".\n- Contoh poin pertama'} />
+                    </label>
+                  </section>
+                ))}
+                <button type="button" onClick={() => setArticleSections((current) => [...current, { id: `section-${Date.now()}-${current.length}`, heading: '', body: '' }])} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-800"><Plus className="h-4 w-4" /> Tambah bagian</button>
               </section>
 
               <section className="space-y-3 rounded-lg border border-white/10 bg-zinc-900/50 p-4">
