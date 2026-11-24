@@ -146,8 +146,8 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
               return (
                 <article id={`artikel-${article.slug}`} key={article.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.35rem] border border-stone-200/80 bg-white shadow-[0_8px_30px_rgba(41,37,36,0.045)] transition duration-500 hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_20px_48px_rgba(41,37,36,0.10)]">
                     {coverImage ? (
-                      <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
-                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation h-full w-full object-cover transition duration-700 group-hover:scale-[1.045]" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
+                      <div className="relative overflow-hidden bg-stone-100">
+                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation block h-auto w-full object-contain transition duration-700" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
                       </div>
                     ) : (
                       <div className="flex aspect-[16/10] items-end justify-between bg-gradient-to-br from-stone-100 via-stone-50 to-red-50 p-5">
