@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FileText,
   Globe,
   LayoutDashboard,
   Link2,
@@ -40,6 +41,8 @@ interface OwnerAnalytics {
   dailyVisitors: Array<{ date: string; label: string; visits: number }>;
   topPages: Array<{ page: string; visits: number }>;
   topPagesTotal: number;
+  articleReads: Array<{ host: string; slug: string; title: string; url: string; readers: number }>;
+  articleReadsTotal: number;
   searchTerms: Array<{ keyword: string; searches: number; uniqueVisitors: number }>;
   googleSearchConsole?: {
     configured: boolean;
@@ -55,7 +58,7 @@ interface OwnerAnalytics {
 }
 
 type DateRange = '7d' | '30d' | '90d' | 'all' | 'custom';
-type OwnerDashboardSection = 'overview' | 'domains' | 'admins' | 'leads' | 'pages' | 'pos' | 'sales-counters';
+type OwnerDashboardSection = 'overview' | 'domains' | 'admins' | 'leads' | 'pages' | 'articles' | 'pos' | 'sales-counters';
 
 function jakartaDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
@@ -298,6 +301,7 @@ export default function OwnerDashboard() {
     { id: 'admins', label: 'Admin Owner', icon: <Users className="h-4 w-4" /> },
     { id: 'leads', label: 'Prospek Masuk', icon: <Users className="h-4 w-4" /> },
     { id: 'pages', label: 'Landing Page', icon: <Link2 className="h-4 w-4" /> },
+    { id: 'articles', label: 'Artikel Dibaca', icon: <FileText className="h-4 w-4" /> },
   ];
   const sectionTitles: Record<OwnerDashboardSection, string> = {
     overview: 'Ringkasan Analitik Network',
@@ -305,6 +309,7 @@ export default function OwnerDashboard() {
     admins: 'Admin Owner',
     leads: 'Prospek Masuk',
     pages: 'URL Landing Pages',
+    articles: 'Pembaca Artikel',
     pos: 'POS',
     'sales-counters': 'Sales Counter',
   };
@@ -808,6 +813,42 @@ export default function OwnerDashboard() {
                   <span>{isLoading ? 'Memperbarui...' : 'Realtime'}</span>
                 </div>
                 <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.topPagesTotal || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+              </section>
+
+              <section id="articles" className={`${activeSection === 'articles' ? '' : 'hidden'} overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:px-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pembaca Artikel per Domain</h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Jumlah pembaca unik untuk setiap artikel di seluruh domain POS, Sales Counter, dan website lain pada periode terpilih.</p>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{analytics?.articleReadsTotal || 0} artikel terpantau</span>
+                </div>
+                {analytics?.articleReads.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] border-collapse text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                          <th className="px-5 py-3.5 sm:px-6">Domain</th>
+                          <th className="px-5 py-3.5 sm:px-6">Judul artikel</th>
+                          <th className="px-5 py-3.5 text-right sm:px-6">Pembaca unik</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800/60">
+                        {paginateRows(analytics.articleReads, currentPage, pageSize).map((article) => (
+                          <tr key={`${article.host}-${article.slug}`} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                            <td className="px-5 py-3.5 font-semibold text-slate-600 dark:text-slate-300 sm:px-6">{article.host}</td>
+                            <td className="px-5 py-3.5 sm:px-6">
+                              <a href={article.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-800 hover:text-red-600 dark:text-slate-200 dark:hover:text-red-400">{article.title}</a>
+                              <span className="mt-1 block truncate text-[10px] text-slate-400">{article.url}</span>
+                            </td>
+                            <td className="px-5 py-3.5 text-right font-bold tabular-nums text-slate-900 dark:text-white sm:px-6">{article.readers.toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="px-6 py-10 text-center text-xs text-slate-500">Belum ada artikel terbit atau pembaca tercatat pada periode ini.</p>}
+                <TablePagination page={currentPage} pageSize={pageSize} total={analytics?.articleReadsTotal || 0} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
               </section>
 
               {activeSection === 'pos' && <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

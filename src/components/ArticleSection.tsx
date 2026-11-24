@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Play, Share2, X } from 'lucide-react';
 import type { Article } from '../types';
 import { DEFAULT_CATALOG_ANIMATION, DEFAULT_CATALOG_ANIMATION_SPEED } from '../catalogAnimation';
+import { sanitizeArticleContent } from '../utils/articleContent';
 
 interface ArticleSectionProps {
   articles: Article[];
@@ -155,36 +156,42 @@ export function ArticleSection({ articles }: ArticleSectionProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeArticle(); }}>
           <article className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-zinc-950 text-zinc-100 shadow-2xl">
             <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
-            {getArticleImages(selectedArticle).length > 0 && (
-              <div className="relative aspect-[16/9] max-h-80 overflow-hidden bg-zinc-100">
-                <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation absolute inset-0 h-full w-full object-contain" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
-                {getArticleImages(selectedArticle).length > 1 && (
-                  <>
-                    <button type="button" onClick={() => setSelectedImageIndex((index) => (index - 1 + getArticleImages(selectedArticle).length) % getArticleImages(selectedArticle).length)} className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Gambar sebelumnya"><ChevronLeft className="h-5 w-5" /></button>
-                    <button type="button" onClick={() => setSelectedImageIndex((index) => (index + 1) % getArticleImages(selectedArticle).length)} className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Gambar berikutnya"><ChevronRight className="h-5 w-5" /></button>
-                    <span className="absolute bottom-3 right-3 rounded bg-black/70 px-2 py-1 text-xs font-semibold text-white">{selectedImageIndex + 1} / {getArticleImages(selectedArticle).length}</span>
-                  </>
-                )}
-              </div>
-            )}
-            {selectedArticle.video && (
-              <div className="bg-black px-5 pt-5 sm:px-10">
-                <video src={selectedArticle.video} controls preload="metadata" playsInline className="max-h-96 w-full rounded-lg bg-black" aria-label={`Video artikel ${selectedArticle.title}`} />
-              </div>
-            )}
             <div className="px-5 py-7 sm:px-10 sm:py-10">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-400">
                 <span className="text-red-400">{selectedArticle.category}</span>
                 <span>{formatDate(selectedArticle.created_at)}</span>
-                <span>{getReadingMinutes(selectedArticle.content)} menit membaca</span>
+                <span>{selectedArticle.readTime || `${getReadingMinutes(selectedArticle.content)} menit membaca`}</span>
               </div>
               <h2 className="mt-4 text-2xl font-black leading-tight text-white sm:text-4xl">{selectedArticle.title}</h2>
               <p className="mt-4 border-l-2 border-red-600 pl-4 text-base leading-7 text-zinc-300">{selectedArticle.excerpt}</p>
-              <div className="mt-7 space-y-5 text-sm leading-7 text-zinc-300 sm:text-base">
-                {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
-              </div>
-              <p className="mt-8 border-t border-white/10 pt-5 text-xs font-semibold text-zinc-500">Ditulis oleh {selectedArticle.author}</p>
+              <div className="article-content mt-7 rounded-xl bg-white p-5 text-sm leading-7 sm:p-7 sm:text-base" dangerouslySetInnerHTML={{ __html: sanitizeArticleContent(selectedArticle.content) }} />
+              <p className="mt-8 border-t border-white/10 pt-5 text-xs font-semibold text-zinc-400">Ditulis oleh {selectedArticle.author}</p>
             </div>
+            {getArticleImages(selectedArticle).length > 0 && (
+              <section className="mx-5 mb-6 rounded-xl border border-white/10 bg-zinc-900 p-4 sm:mx-10 sm:p-6" aria-label="Foto artikel">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <div><h3 className="text-lg font-bold text-white">Foto dan ilustrasi</h3><p className="mt-1 text-xs text-zinc-400">Galeri foto artikel, terpisah dari video.</p></div>
+                  {getArticleImages(selectedArticle).length > 1 && <span className="text-xs font-semibold text-zinc-400">{selectedImageIndex + 1} / {getArticleImages(selectedArticle).length}</span>}
+                </div>
+                <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-black">
+                  <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, foto ${selectedImageIndex + 1}`} className="catalog-photo-animation absolute inset-0 h-full w-full object-contain" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
+                  {getArticleImages(selectedArticle).length > 1 && (
+                    <>
+                      <button type="button" onClick={() => setSelectedImageIndex((index) => (index - 1 + getArticleImages(selectedArticle).length) % getArticleImages(selectedArticle).length)} className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Foto sebelumnya"><ChevronLeft className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => setSelectedImageIndex((index) => (index + 1) % getArticleImages(selectedArticle).length)} className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Foto berikutnya"><ChevronRight className="h-5 w-5" /></button>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
+            {selectedArticle.video && (
+              <section className="mx-5 mb-6 rounded-xl border border-red-500/20 bg-zinc-900 p-4 sm:mx-10 sm:p-6" aria-label="Video artikel">
+                <h3 className="text-lg font-bold text-white">Video keselamatan berkendara</h3>
+                <p className="mt-1 text-xs text-zinc-400">Video ditampilkan di bagian tersendiri, bukan di galeri foto.</p>
+                <div className="article-content mt-4"><div className="video-wrapper"><video src={selectedArticle.video} controls preload="metadata" playsInline aria-label={`Video artikel ${selectedArticle.title}`} /></div></div>
+              </section>
+            )}
+            {selectedArticle.sourceUrl && <p className="mx-5 mb-8 border-t border-white/10 pt-5 text-sm text-zinc-300 sm:mx-10">Situs pemilik artikel: <a href={selectedArticle.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-red-300 underline">{selectedArticle.sourceUrl}</a></p>}
           </article>
         </div>
       )}

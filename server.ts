@@ -14,6 +14,9 @@ import * as XLSX from 'xlsx';
 import { DEFAULT_SEO_DESCRIPTION, DEFAULT_SEO_TITLE, MAX_IMAGE_UPLOAD_BYTES, MAX_MOTOR_IMAGES, MAX_PROMO_IMAGES } from './src/constants';
 import { DEFAULT_CATALOG_ANIMATION, isCatalogAnimation, normalizeCatalogAnimationSpeed } from './src/catalogAnimation';
 import { findSeoLandingPost, getSeoLandingPosts, getSeoLandingPostPath } from './src/utils/seoPosts';
+import { sanitizeArticleContent } from './src/utils/articleContent';
+import { ARTICLES } from './src/data/articles.js';
+import { DEFAULT_ARTICLE_THEME, getArticleTheme, isArticleThemeId } from './src/data/articleThemes';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -111,7 +114,6 @@ function readDb() {
 function readSiteDb() {
   return readJsonDbFile(PERSISTENT_DB_FILE) || {
     settings: {},
-    articles: [],
     auditLogs: [],
   };
 }
@@ -140,13 +142,79 @@ function getArticleSiteKey(hostname: string, db: any) {
 }
 
 function getSiteArticles(db: any, hostname: string) {
+  const bundledArticles = normalizeAdminHost(hostname) === 'kreditmotorhonda.id'
+    ? ARTICLES.map((article) => ({
+        id: String(article.id),
+        title: article.title,
+        slug: article.slug,
+        category: article.category,
+        excerpt: article.metaDescription,
+        metaDescription: article.metaDescription,
+        content: article.content,
+        image: article.thumbnail,
+        thumbnail: article.thumbnail,
+        images: article.images,
+        video: article.video,
+        sourceUrl: article.sourceUrl,
+        readTime: article.readTime,
+        theme: article.theme,
+        author: article.author,
+        publishedAt: article.publishedAt,
+        published: true,
+        created_at: `${article.publishedAt}T00:00:00+07:00`,
+        updated_at: `${article.publishedAt}T00:00:00+07:00`,
+      }))
+    : [];
+  const mergeBundledArticles = (storedArticles: any[]) => {
+    const merged = [...storedArticles];
+    for (const bundledArticle of bundledArticles) {
+      const index = merged.findIndex((article) => article.slug === bundledArticle.slug);
+      if (index < 0) {
+        merged.unshift(bundledArticle);
+      } else if (!isArticleThemeId(merged[index].theme)) {
+        merged[index] = {
+          ...bundledArticle,
+          id: merged[index].id,
+          created_at: merged[index].created_at || bundledArticle.created_at,
+          updated_at: merged[index].updated_at || bundledArticle.updated_at,
+        };
+      }
+    }
+    return merged;
+  };
   const siteKey = getArticleSiteKey(hostname, db);
-  if (!siteKey) return Array.isArray(db.articles) ? db.articles : [];
+  if (!siteKey) {
+    if (Array.isArray(db.articles)) {
+      return db.articles.length ? mergeBundledArticles(db.articles) : [];
+    }
+    return bundledArticles;
+  }
 
   const site = Array.isArray(db.articleSites)
     ? db.articleSites.find((item: any) => item.host === siteKey)
     : undefined;
-  return Array.isArray(site?.articles) ? site.articles : [];
+  if (site) {
+    if (!Array.isArray(site.articles) || !site.articles.length) return [];
+    return mergeBundledArticles(site.articles);
+  }
+  return bundledArticles;
+}
+
+function normalizeArticleSourceUrl(value: unknown): string | null {
+  const sourceUrl = String(value || '').trim();
+  if (!sourceUrl) return '';
+  try {
+    const parsedUrl = new URL(sourceUrl);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol) || parsedUrl.username || parsedUrl.password) return null;
+    return parsedUrl.href;
+  } catch {
+    return null;
+  }
+}
+
+function getArticleReadTime(content: string) {
+  const wordCount = content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.ceil(wordCount / 200))} Menit Baca`;
 }
 
 function setSiteArticles(db: any, hostname: string, articles: any[]) {
@@ -1352,6 +1420,131 @@ function getSeoMotorPages(db: any): Array<{ motor: any; slug: string; path: stri
   });
 }
 
+function renderArticleSeoPage(article: any, settings: any = {}, hostname = '') {
+  const origin = hostname ? `https://${normalizeAdminHost(hostname)}` : getSiteOrigin(settings);
+  const canonical = `${origin}/artikel/${encodeURIComponent(article.slug)}/`;
+  const title = String(article.title || 'Artikel berkendara').trim();
+  const theme = getArticleTheme(article.theme);
+  const dealerName = String(settings.name || 'Honda Wijaya Abadi').trim();
+  const description = String(article.excerpt || article.content || '').trim().replace(/\s+/g, ' ').slice(0, 160);
+  const category = String(article.category || 'Tips Berkendara').trim();
+  const author = String(article.author || dealerName).trim();
+  const sourceUrl = normalizeArticleSourceUrl(article.sourceUrl) || '';
+  const hostPage = getSeoPageForHost(settings, hostname);
+  const robots = hostPage && hostPage.sslStatus !== 'active'
+    ? 'noindex, follow'
+    : String(hostPage?.seoRobots || settings.seoRobots || 'index, follow').trim();
+  const escape = (value: unknown) => escapeHtmlAttribute(String(value ?? ''));
+  const resolveMediaUrl = (value: unknown) => {
+    const rawUrl = String(value || '').trim();
+    if (!rawUrl) return '';
+    try {
+      const parsedUrl = new URL(rawUrl, origin);
+      return ['http:', 'https:'].includes(parsedUrl.protocol) ? parsedUrl.href : '';
+    } catch {
+      return '';
+    }
+  };
+  const images = [...new Set([
+    ...(Array.isArray(article.images) ? article.images : []),
+    article.image,
+  ].map(resolveMediaUrl).filter(Boolean))];
+  const videoUrl = resolveMediaUrl(article.video);
+  const articleContentHtml = sanitizeArticleContent(String(article.content || ''));
+  const publishDate = article.created_at && !Number.isNaN(new Date(article.created_at).getTime())
+    ? new Date(article.created_at).toISOString()
+    : undefined;
+  const updatedDate = article.updated_at && !Number.isNaN(new Date(article.updated_at).getTime())
+    ? new Date(article.updated_at).toISOString()
+    : publishDate;
+  const dateLabel = publishDate
+    ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date(publishDate))
+    : '';
+  const wordCount = String(article.content || '').replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
+  const readingTime = String(article.readTime || `${readingMinutes} menit membaca`);
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    ...(images.length ? { image: images } : {}),
+    ...(publishDate ? { datePublished: publishDate } : {}),
+    ...(updatedDate ? { dateModified: updatedDate } : {}),
+    articleSection: category,
+    author: { '@type': 'Organization', name: author },
+    publisher: { '@type': 'Organization', name: dealerName },
+    mainEntityOfPage: canonical,
+    ...(sourceUrl ? { citation: sourceUrl, isBasedOn: sourceUrl } : {}),
+  };
+  const featuredImage = images[0]
+    ? `<figure class="featured-image"><img src="${escape(images[0])}" alt="${escape(title)}" fetchpriority="high"><figcaption>Foto utama: ${escape(title)}</figcaption></figure>`
+    : '';
+  const photoGallery = images.length > 1
+    ? `<section id="photo-gallery" class="media-section" aria-labelledby="gallery-title"><div class="section-heading"><span class="eyebrow">Dokumentasi</span><h2 id="gallery-title">Foto dan ilustrasi</h2><p>Lihat foto-foto pendukung artikel berikut secara terpisah dari video.</p></div><div class="photo-grid">${images.slice(1).map((image: string, index: number) => `<figure><img src="${escape(image)}" alt="${escape(title)} - foto ${index + 2}" loading="lazy"><figcaption>Foto ${index + 2}</figcaption></figure>`).join('')}</div></section>`
+    : '';
+  const videoSection = videoUrl
+    ? `<section id="video-section" class="media-section video-section" aria-labelledby="video-title"><div class="section-heading"><span class="eyebrow">Video</span><h2 id="video-title">Tonton panduan berkendara</h2><p>Video disajikan di bagian tersendiri agar mudah ditonton tanpa bercampur dengan galeri foto.</p></div><video controls preload="metadata" playsinline aria-label="Video artikel ${escape(title)}"><source src="${escape(videoUrl)}">Browser Anda tidak mendukung pemutaran video.</video></section>`
+    : '';
+  const articleHeader = `<header class="article-header"><span class="category">${escape(category)}</span><h1>${escape(title)}</h1><p class="lead">${escape(article.excerpt || '')}</p><div class="byline"><span>Ditulis oleh ${escape(author)}</span>${dateLabel ? `<time datetime="${escape(publishDate)}">${escape(dateLabel)}</time>` : ''}<span>${escape(readingTime)}</span></div></header>`;
+  const splitHero = theme.layout === 'split-hero'
+    ? `<section class="split-hero">${articleHeader}${featuredImage}</section>`
+    : `${articleHeader}${featuredImage}`;
+  const articleSidebar = ['sidebar-right', 'dual-sidebar'].includes(theme.layout)
+    ? `<aside class="article-sidebar"><h2>Jelajahi artikel</h2><a href="#article-body">Baca isi artikel</a>${photoGallery ? '<a href="#photo-gallery">Lihat foto</a>' : ''}${videoSection ? '<a href="#video-section">Tonton video</a>' : ''}${sourceUrl ? `<a href="${escape(sourceUrl)}" target="_blank" rel="noopener noreferrer">Situs pemilik</a>` : ''}</aside>`
+    : '';
+  const videoBeforeArticle = theme.layout === 'theater-top' ? videoSection : '';
+  const videoAfterArticle = theme.layout === 'theater-top' ? '' : videoSection;
+  const articleSchema = JSON.stringify(schema).replace(/</g, '\\u003c');
+
+  return `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escape(title)} | ${escape(dealerName)}</title>
+  <meta name="description" content="${escape(description)}">
+  <meta name="keywords" content="${escape([title, category, settings.seoKeywords].filter(Boolean).join(', '))}">
+  <meta name="robots" content="${escape(robots)}">
+  <link rel="canonical" href="${escape(canonical)}">
+  <meta property="og:type" content="article"><meta property="og:title" content="${escape(title)}">
+  <meta property="og:description" content="${escape(description)}"><meta property="og:url" content="${escape(canonical)}">
+  ${images[0] ? `<meta property="og:image" content="${escape(images[0])}"><meta name="twitter:image" content="${escape(images[0])}">` : ''}
+  <meta name="twitter:card" content="summary_large_image">
+  ${publishDate ? `<meta property="article:published_time" content="${escape(publishDate)}">` : ''}
+  <script type="application/ld+json">${articleSchema}</script>
+  <script src="/article-view.js" data-article-slug="${escape(article.slug)}" defer></script>
+  <style>
+    :root{font-family:Arial,Helvetica,sans-serif;color:#18181b;background:#f8fafc;font-synthesis:none;text-rendering:optimizeLegibility}*{box-sizing:border-box}body{margin:0}.site-header{background:#fff;border-bottom:1px solid #e4e4e7}.header-inner{max-width:1120px;margin:auto;padding:17px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand,.back-link{color:#18181b;text-decoration:none;font-weight:700}.brand{font-size:17px}.back-link{font-size:14px;color:#b91c1c}.page{max-width:900px;margin:auto;padding:38px 24px 72px}.breadcrumbs{font-size:13px;color:#71717a}.breadcrumbs a{color:#52525b;text-decoration:none}.article-header{padding:30px 0 24px}.category{display:inline-flex;padding:7px 11px;border-radius:999px;background:#fee2e2;color:#991b1b;text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:800}.article-header h1{max-width:850px;margin:17px 0 14px;font-size:clamp(34px,6vw,54px);line-height:1.08;letter-spacing:-.035em;color:#18181b}.lead{max-width:760px;margin:0;color:#52525b;font-size:19px;line-height:1.7}.byline{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:20px;color:#71717a;font-size:13px}.featured-image{margin:8px 0 34px;overflow:hidden;border-radius:18px;background:#e4e4e7}.featured-image img{display:block;width:100%;max-height:520px;object-fit:contain;background:#f4f4f5}.featured-image figcaption,.photo-grid figcaption{padding:10px 14px;color:#71717a;font-size:12px}.article-body{max-width:760px;margin:0 auto 42px;color:#3f3f46;font-size:17px;line-height:1.9}.article-body p{margin:0 0 21px}.media-section{margin:42px 0;padding:28px;border:1px solid #e4e4e7;border-radius:18px;background:#fff}.section-heading{margin-bottom:20px}.eyebrow{color:#b91c1c;text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:800}.section-heading h2{margin:7px 0;font-size:26px;letter-spacing:-.02em}.section-heading p{margin:0;color:#71717a;line-height:1.6}.photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.photo-grid figure{margin:0;overflow:hidden;border:1px solid #e4e4e7;border-radius:12px;background:#fafafa}.photo-grid img{display:block;width:100%;height:260px;object-fit:contain;background:#f4f4f5}.video-section{border-color:#fecaca;background:#fffafa}.video-section video{display:block;width:100%;max-height:560px;border-radius:12px;background:#09090b}.source-box{margin-top:42px;padding:22px;border-radius:14px;background:#18181b;color:#fff}.source-box p{margin:0 0 12px;color:#d4d4d8;line-height:1.6}.source-box a{color:#fca5a5;font-weight:700;overflow-wrap:anywhere}.site-footer{border-top:1px solid #e4e4e7;background:#fff}.footer-inner{max-width:900px;margin:auto;padding:20px 24px;color:#71717a;font-size:13px}.footer-inner a{color:#b91c1c;font-weight:700;text-decoration:none}@media(max-width:600px){.header-inner{padding:15px 18px}.brand{font-size:14px}.back-link{font-size:12px}.page{padding:28px 18px 52px}.article-header{padding-top:24px}.lead{font-size:17px}.article-body{font-size:16px;line-height:1.8}.media-section{padding:20px 16px}.section-heading h2{font-size:23px}.photo-grid{grid-template-columns:1fr}.photo-grid img{height:240px}}
+  </style>
+  <style>
+    .theme-dark-carbon,.theme-tiktok-reels,.theme-video-theater{background:#020617;color:#e2e8f0}.theme-dark-carbon .article-header h1,.theme-tiktok-reels .article-header h1,.theme-video-theater .article-header h1{color:#f8fafc}.theme-dark-carbon .article-body,.theme-tiktok-reels .article-body,.theme-video-theater .article-body{background:#0f172a;color:#cbd5e1;padding:26px;border:1px solid #334155;border-radius:18px}.theme-dark-carbon .article-content h2,.theme-tiktok-reels .article-content h2,.theme-video-theater .article-content h2{color:#fff}.theme-dark-carbon .article-content p,.theme-dark-carbon .article-content li,.theme-tiktok-reels .article-content p,.theme-tiktok-reels .article-content li,.theme-video-theater .article-content p,.theme-video-theater .article-content li{color:#cbd5e1}.theme-dark-carbon .article-content ul,.theme-tiktok-reels .article-content ul,.theme-video-theater .article-content ul{background:#1e293b;border-color:#334155}.theme-dark-carbon .article-content blockquote,.theme-tiktok-reels .article-content blockquote,.theme-video-theater .article-content blockquote{background:rgba(230,0,18,.15);color:#f8fafc}.theme-dark-carbon .media-section,.theme-tiktok-reels .media-section,.theme-video-theater .media-section{background:#0f172a;border-color:#334155}.theme-dark-carbon .section-heading p,.theme-tiktok-reels .section-heading p,.theme-video-theater .section-heading p{color:#cbd5e1}.theme-tiktok-reels{max-width:560px}.theme-clean-medium{max-width:760px}.theme-split-magazine .split-hero{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}.theme-split-magazine .featured-image{margin:0}.theme-bento-grid .article-header{padding:24px;border-radius:18px;background:#fff;box-shadow:0 6px 24px #0f172a12}.theme-checklist-guide .article-content ul{border-left:4px solid #e60012}.theme-timeline-vertical .article-content{border-left:2px solid #e60012;padding-left:22px}.theme-timeline-vertical .article-content h2{position:relative}.theme-timeline-vertical .article-content h2:before{content:"";position:absolute;left:-32px;top:.35rem;width:14px;height:14px;border:3px solid #e60012;border-radius:50%;background:#fff}.theme-infographic-deck .article-content h2{padding:16px;border:1px solid #e2e8f0;border-left:5px solid #e60012;border-radius:14px;background:#fff;box-shadow:0 8px 24px #0f172a0d}.theme-myth-vs-fact .article-content blockquote{box-shadow:0 0 0 1px #fecdd3}.theme-floating-bottom .source-box{position:sticky;bottom:12px;box-shadow:0 10px 35px #0f172a33}.theme-parallax-hero .featured-image{margin-top:-10px}.theme-callout-heavy .article-content blockquote{font-size:18px;font-weight:700}.theme-tabbed-section .article-body{border-top:3px solid #e60012;padding-top:24px}.theme-glassmorphism .article-body,.theme-glassmorphism .media-section{background:#ffffffc9;backdrop-filter:blur(12px);box-shadow:0 12px 35px #64748b20}.theme-gallery-lightbox .photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.theme-gallery-lightbox .photo-grid img{height:220px}.theme-gamified-quiz .article-content ul li::marker{color:#e60012}.layout-dual-sidebar .page-layout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:28px;align-items:start}.article-sidebar{position:sticky;top:20px;display:grid;gap:12px;padding:18px;border:1px solid #e4e4e7;border-radius:14px;background:#fff;font-size:13px}.article-sidebar h2{margin:0;font-size:16px}.article-sidebar a{color:#b91c1c;text-decoration:none;font-weight:700}.layout-split-hero .page-layout{max-width:1100px}.split-hero .article-header{padding:24px}.layout-theater-top .video-section{margin-top:24px}.layout-mobile-story .article-header{text-align:center}.layout-card-deck .article-content ul{box-shadow:0 8px 22px #0f172a10}.layout-comparison .article-content h2:nth-of-type(even){border-left-color:#16a34a}.layout-accordion .article-content h2{padding:14px 16px;border:1px solid #e2e8f0;border-left:4px solid #e60012;border-radius:10px;background:#fff}.layout-callout-focus .source-box{background:#991b1b}.layout-tabbed .article-body{border-top:3px solid #e60012;padding-top:24px}.layout-gallery .photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:720px){.theme-split-magazine .split-hero{grid-template-columns:1fr}.layout-dual-sidebar .page-layout{grid-template-columns:1fr}.article-sidebar{position:static;order:-1}.theme-gallery-lightbox .photo-grid,.layout-gallery .photo-grid{grid-template-columns:1fr}}
+  </style>
+  <style>
+    .article-content h2{font-size:1.45rem;font-weight:800;color:#0f172a;margin:2.25rem 0 .85rem;padding-left:.85rem;border-left:4px solid #e60012}.article-content p{color:#334155;line-height:1.8;margin-bottom:1.15rem}.article-content p.lead{font-size:1.1rem;font-weight:500;color:#1e293b}.article-content ul{background:#f8fafc;border:1px solid #e2e8f0;border-radius:.85rem;padding:1.15rem 1.4rem 1.15rem 2.3rem;margin-bottom:1.4rem;list-style-type:disc}.article-content ul li{margin-bottom:.5rem;color:#334155}.article-content blockquote{background:#fff1f2;border-left:4px solid #e60012;padding:1rem 1.25rem;border-radius:0 .85rem .85rem 0;margin:1.5rem 0;color:#1e293b}
+  </style>
+  </style>
+</head>
+<body>
+  <header class="site-header"><div class="header-inner"><a class="brand" href="/">${escape(dealerName)}</a><a class="back-link" href="/#artikel">← Kembali ke artikel</a></div></header>
+  <main class="page theme-${theme.id} layout-${theme.layout}">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Beranda</a> / <a href="/#artikel">Artikel</a> / ${escape(title)}</nav>
+    ${videoBeforeArticle}
+    <div class="page-layout">
+      <article>
+        ${splitHero}
+        <div id="article-body" class="article-body article-content">${articleContentHtml}</div>
+        ${photoGallery}
+        ${videoAfterArticle}
+        ${sourceUrl ? `<aside id="source" class="source-box"><p>Artikel ini merujuk pada sumber asli. Kunjungi situs pemilik artikel untuk membaca informasi selengkapnya.</p><a href="${escape(sourceUrl)}" target="_blank" rel="noopener noreferrer">Baca artikel di situs sumber ↗</a></aside>` : ''}
+      </article>
+      ${articleSidebar}
+    </div>
+  </main>
+  <footer class="site-footer"><div class="footer-inner">Informasi berkendara dari <a href="/">${escape(dealerName)}</a>.</div></footer>
+</body>
+</html>`;
+}
+
 function renderMotorSeoPage(motor: any, slug: string, settings: any = {}, hostname = '') {
   const hostPage = getSeoPageForHost(settings, hostname);
   const origin = hostPage ? getSeoPageOrigin(hostPage) : getSiteOrigin(settings, hostname);
@@ -2291,7 +2484,7 @@ async function startServer() {
 
     const isPublicWrite =
       req.method === 'POST' &&
-      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/search' || req.path === '/analytics/whatsapp' || req.path === '/owner-dashboard/analytics');
+      (req.path === '/admin/login' || req.path === '/testimonials' || req.path === '/interests' || req.path === '/analytics/visit' || req.path === '/analytics/article-view' || req.path === '/analytics/search' || req.path === '/analytics/whatsapp' || req.path === '/owner-dashboard/analytics');
     const hostPost = getSeoPageForHost(readDb().settings || {}, req.hostname);
     if (hostPost && req.method !== 'GET' && !isPublicWrite) {
       const session = getSession(req);
@@ -3045,11 +3238,18 @@ async function startServer() {
     const articles = getSiteArticles(db, req.hostname);
     const title = String(req.body.title || '').trim();
     const slug = String(req.body.slug || title).toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/g, '');
-    const excerpt = String(req.body.excerpt || '').trim();
+    const metaDescription = String(req.body.metaDescription ?? req.body.excerpt ?? '').trim();
+    const excerpt = metaDescription;
     const content = String(req.body.content || '').trim();
-    const images = normalizeMotorImages(req.body.images);
+    const thumbnail = String(req.body.thumbnail ?? req.body.image ?? '').trim();
+    const images = normalizeMotorImages(req.body.images ?? (thumbnail ? [thumbnail] : []));
     const video = String(req.body.video || '').trim();
-    if (!title || !slug || !excerpt || !content) return res.status(400).json({ error: 'Judul, slug, ringkasan, dan isi artikel wajib diisi.' });
+    const sourceUrl = normalizeArticleSourceUrl(req.body.sourceUrl);
+    const theme = req.body.theme === undefined ? DEFAULT_ARTICLE_THEME : req.body.theme;
+    const publishedAt = String(req.body.publishedAt || new Date().toISOString().slice(0, 10)).trim();
+    if (!title || !slug || !metaDescription || !content || !/^\d{4}-\d{2}-\d{2}$/.test(publishedAt) || Number.isNaN(Date.parse(`${publishedAt}T00:00:00Z`))) return res.status(400).json({ error: 'Judul, slug, meta description, tanggal terbit valid, dan isi artikel wajib diisi.' });
+    if (sourceUrl === null) return res.status(400).json({ error: 'Tautan sumber harus menggunakan URL HTTP atau HTTPS yang valid.' });
+    if (!isArticleThemeId(theme)) return res.status(400).json({ error: 'Tema artikel tidak dikenal.' });
     if (articles.some((article: any) => article.slug === slug)) return res.status(409).json({ error: 'Slug artikel sudah digunakan.' });
     if (images.length > MAX_MOTOR_IMAGES) return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} gambar per artikel.` });
 
@@ -3060,15 +3260,21 @@ async function startServer() {
       slug,
       category: String(req.body.category || 'Tips Berkendara').trim(),
       excerpt,
+      metaDescription,
       content,
-      image: images[0] || '',
+      image: thumbnail || images[0] || '',
+      thumbnail: thumbnail || images[0] || '',
       images,
       video,
+      sourceUrl,
+      theme,
       animation: isCatalogAnimation(req.body.animation) ? req.body.animation : DEFAULT_CATALOG_ANIMATION,
       animationSpeed: normalizeCatalogAnimationSpeed(req.body.animationSpeed),
       author: String(req.body.author || 'Honda Wijaya Abadi').trim(),
+      publishedAt,
+      readTime: String(req.body.readTime || '').trim() || getArticleReadTime(content),
       published: req.body.published === true,
-      created_at: now,
+      created_at: `${publishedAt}T00:00:00+07:00`,
       updated_at: now,
     };
     setSiteArticles(db, req.hostname, [article, ...articles]);
@@ -3084,11 +3290,20 @@ async function startServer() {
     const current = articles[index];
     const title = String(req.body.title ?? current.title).trim();
     const slug = String(req.body.slug ?? current.slug).toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/g, '');
-    const excerpt = String(req.body.excerpt ?? current.excerpt).trim();
+    const metaDescription = String(req.body.metaDescription ?? req.body.excerpt ?? current.metaDescription ?? current.excerpt).trim();
+    const excerpt = metaDescription;
     const content = String(req.body.content ?? current.content).trim();
-    const images = req.body.images === undefined ? normalizeMotorImages(current.images, current.image) : normalizeMotorImages(req.body.images);
+    const thumbnail = String(req.body.thumbnail ?? req.body.image ?? current.thumbnail ?? current.image ?? '').trim();
+    const images = req.body.images === undefined
+      ? normalizeMotorImages(current.images, thumbnail)
+      : normalizeMotorImages(req.body.images);
     const video = String(req.body.video ?? current.video ?? '').trim();
-    if (!title || !slug || !excerpt || !content) return res.status(400).json({ error: 'Judul, slug, ringkasan, dan isi artikel wajib diisi.' });
+    const sourceUrl = normalizeArticleSourceUrl(req.body.sourceUrl ?? current.sourceUrl);
+    const theme = req.body.theme ?? current.theme ?? DEFAULT_ARTICLE_THEME;
+    const publishedAt = String(req.body.publishedAt ?? current.publishedAt ?? current.created_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)).trim();
+    if (!title || !slug || !metaDescription || !content || !/^\d{4}-\d{2}-\d{2}$/.test(publishedAt) || Number.isNaN(Date.parse(`${publishedAt}T00:00:00Z`))) return res.status(400).json({ error: 'Judul, slug, meta description, tanggal terbit valid, dan isi artikel wajib diisi.' });
+    if (sourceUrl === null) return res.status(400).json({ error: 'Tautan sumber harus menggunakan URL HTTP atau HTTPS yang valid.' });
+    if (!isArticleThemeId(theme)) return res.status(400).json({ error: 'Tema artikel tidak dikenal.' });
     if (articles.some((article: any) => article.slug === slug && article.id !== current.id)) return res.status(409).json({ error: 'Slug artikel sudah digunakan.' });
     if (images.length > MAX_MOTOR_IMAGES) return res.status(400).json({ error: `Maksimal ${MAX_MOTOR_IMAGES} gambar per artikel.` });
 
@@ -3098,14 +3313,21 @@ async function startServer() {
       slug,
       category: String(req.body.category ?? current.category ?? 'Tips Berkendara').trim(),
       excerpt,
+      metaDescription,
       content,
-      image: images[0] || '',
+      image: thumbnail || images[0] || '',
+      thumbnail: thumbnail || images[0] || '',
       images,
       video,
+      sourceUrl,
+      theme,
       animation: isCatalogAnimation(req.body.animation ?? current.animation) ? (req.body.animation ?? current.animation) : DEFAULT_CATALOG_ANIMATION,
       animationSpeed: normalizeCatalogAnimationSpeed(req.body.animationSpeed ?? current.animationSpeed),
       author: String(req.body.author ?? current.author ?? 'Honda Wijaya Abadi').trim(),
+      publishedAt,
+      readTime: String(req.body.readTime ?? current.readTime ?? '').trim() || getArticleReadTime(content),
       published: req.body.published === undefined ? current.published === true : req.body.published === true,
+      created_at: `${publishedAt}T00:00:00+07:00`,
       updated_at: new Date().toISOString(),
     };
     setSiteArticles(db, req.hostname, articles);
@@ -3295,6 +3517,43 @@ async function startServer() {
     return res.status(201).json({ recorded: true });
   });
 
+  app.post('/api/analytics/article-view', (req, res) => {
+    const sessionId = String(req.body?.sessionId || '');
+    const slug = String(req.body?.slug || '');
+    const host = normalizeAnalyticsHost(req.hostname);
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId) || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(slug)) {
+      return res.status(400).json({ error: 'Data kunjungan artikel tidak valid.' });
+    }
+
+    const article = getSiteArticles(readSiteDb(), req.hostname)
+      .find((item: any) => item.slug === slug && item.published === true);
+    if (!article) return res.status(404).json({ error: 'Artikel tidak tersedia.' });
+
+    if (/\b(?:bot|crawler|spider|preview)\b/i.test(String(req.header('user-agent') || ''))) {
+      return res.status(200).json({ recorded: false });
+    }
+
+    const db = readDb();
+    db.articleViewLogs = Array.isArray(db.articleViewLogs) ? db.articleViewLogs : [];
+    const existing = db.articleViewLogs.find((entry: any) =>
+      normalizeAnalyticsHost(entry.host || '') === host
+      && entry.sessionId === sessionId
+      && entry.slug === slug
+    );
+    if (existing) return res.status(200).json({ recorded: false });
+
+    db.articleViewLogs.push({
+      id: `article-view-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+      sessionId,
+      host,
+      slug,
+      title: String(article.title || slug),
+      timestamp: new Date().toISOString(),
+    });
+    if (!writeDb(db)) return res.status(500).json({ error: 'Gagal menyimpan kunjungan artikel.' });
+    return res.status(201).json({ recorded: true });
+  });
+
   app.post('/api/analytics/search', (req, res) => {
     const sessionId = String(req.body?.sessionId || '');
     const eventId = String(req.body?.eventId || '');
@@ -3453,6 +3712,7 @@ async function startServer() {
     }
     const databaseContents = new Map<string, any>();
     const allLogs: Array<{ timestamp: string; path?: string; host?: string; sessionId?: string; source?: string }> = [];
+    const allArticleViewLogs: Array<{ timestamp: string; slug?: string; title?: string; host?: string; sessionId?: string }> = [];
     const allSearchLogs: Array<{ timestamp: string; keyword?: string; host?: string; sessionId?: string }> = [];
     const allWhatsappLogs: Array<{ timestamp: string; path?: string; menu?: string; host?: string; sessionId?: string }> = [];
     for (const [sourceFile, legacyHost] of databaseSources) {
@@ -3460,9 +3720,14 @@ async function startServer() {
         const sourceDb = JSON.parse(fs.readFileSync(sourceFile, 'utf-8'));
         databaseContents.set(sourceFile, sourceDb);
         const sourceLogs = Array.isArray(sourceDb.visitorLogs) ? sourceDb.visitorLogs : [];
+        const sourceArticleViewLogs = Array.isArray(sourceDb.articleViewLogs) ? sourceDb.articleViewLogs : [];
         const sourceSearchLogs = Array.isArray(sourceDb.searchLogs) ? sourceDb.searchLogs : [];
         const sourceWhatsappLogs = Array.isArray(sourceDb.whatsappLogs) ? sourceDb.whatsappLogs : [];
         allLogs.push(...sourceLogs.map((log: any) => ({
+          ...log,
+          host: normalizeAnalyticsHost(log.host || legacyHost),
+        })));
+        allArticleViewLogs.push(...sourceArticleViewLogs.map((log: any) => ({
           ...log,
           host: normalizeAnalyticsHost(log.host || legacyHost),
         })));
@@ -3526,6 +3791,44 @@ async function startServer() {
       .filter((log) => validHosts.has(log.host || ''))
       .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
       .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    const articleRows = new Map<string, { host: string; slug: string; title: string; url: string; readers: number }>();
+    for (const host of validHosts) {
+      const sourceFile = OWNER_ANALYTICS_SITE_DB_FILES[host] || DB_FILE;
+      const sourceDb = databaseContents.get(sourceFile) || {};
+      for (const article of getSiteArticles(sourceDb, host).filter((item: any) => item.published === true)) {
+        const slug = String(article.slug || '');
+        if (!slug) continue;
+        const key = `${host}\u0000${slug}`;
+        articleRows.set(key, {
+          host,
+          slug,
+          title: String(article.title || slug),
+          url: `https://${host}/artikel/${encodeURIComponent(slug)}/`,
+          readers: 0,
+        });
+      }
+    }
+    const articleViewLogs = allArticleViewLogs
+      .filter((log) => validHosts.has(log.host || '') && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(String(log.slug || '')))
+      .map((log) => ({ ...log, host: normalizeAnalyticsHost(log.host), ...getJakartaDateParts(log.timestamp) }))
+      .filter((log) => (!startDate || log.date >= startDate) && (!endDate || log.date <= endDate));
+    for (const log of articleViewLogs) {
+      const host = log.host || '';
+      const slug = String(log.slug || '');
+      const key = `${host}\u0000${slug}`;
+      const current = articleRows.get(key) || {
+        host,
+        slug,
+        title: String(log.title || slug),
+        url: `https://${host}/artikel/${encodeURIComponent(slug)}/`,
+        readers: 0,
+      };
+      current.readers += 1;
+      articleRows.set(key, current);
+    }
+    const articleReads = [...articleRows.values()].sort((left, right) =>
+      right.readers - left.readers || left.host.localeCompare(right.host, 'en') || left.title.localeCompare(right.title, 'id')
+    );
     const previousPeriodChange = (() => {
       if (!startDate || !endDate) return null;
       const periodDays = buildDateKeys(startDate, endDate).length;
@@ -3645,6 +3948,8 @@ async function startServer() {
       dailyVisitors,
       topPages,
       topPagesTotal: allTopPages.length,
+      articleReads,
+      articleReadsTotal: articleReads.length,
       searchTerms,
       searchTermsTotal: allSearchTerms.length,
       googleSearchConsole,
@@ -4550,15 +4855,13 @@ async function startServer() {
     });
     app.get('/artikel/:slug', async (req, res, next) => {
       try {
-        const indexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
-        const transformedHtml = await vite.transformIndexHtml(req.originalUrl, indexHtml);
         const db = readDb();
         db.articles = getSiteArticles(readSiteDb(), req.hostname);
         const initialData = await createSsrInitialData(db, req.hostname);
         const article = (initialData as any).articles?.find((item: any) => item.slug === req.params.slug && item.published === true);
         if (!article) return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
         res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(transformedHtml, db.settings || {}, req.path, initialData, req.hostname));
+        res.type('html').send(renderArticleSeoPage(article, db.settings || {}, req.hostname));
       } catch (error) {
         next(error);
       }
@@ -4666,6 +4969,10 @@ async function startServer() {
           }
         }
         res.set('Cache-Control', 'no-cache');
+        const article = articlePath
+          ? initialData.articles.find((item: any) => item.slug === articlePath[1] && item.published === true)
+          : null;
+        if (article) return res.type('html').send(renderArticleSeoPage(article, db.settings || {}, req.hostname));
         res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
       } catch (error) {
         next(error);

@@ -1,4 +1,5 @@
 import type { CatalogAnimation } from './catalogAnimation';
+import type { ArticleThemeId } from './data/articleThemes';
 
 export interface MotorSpec {
   id?: string;
@@ -57,12 +58,18 @@ export interface Article {
   slug: string;
   category: string;
   excerpt: string;
+  metaDescription?: string;
   content: string;
+  readTime?: string;
   image?: string;
+  thumbnail?: string;
   images?: string[];
   video?: string;
+  sourceUrl?: string;
+  publishedAt?: string;
   animation?: CatalogAnimation;
   animationSpeed?: number;
+  theme?: ArticleThemeId;
   author: string;
   published: boolean;
   created_at?: string;
