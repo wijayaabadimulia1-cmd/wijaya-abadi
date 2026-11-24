@@ -82,6 +82,11 @@ SITE_SERVICES_UPDATED=0
 PM2_PREVIOUS_RELEASE=""
 PM2_SITE_NAMES=()
 PM2_CATALOG_TOKEN=""
+CATALOG_SHARED_TOKEN=""
+CATALOG_TOKEN_ENV_FILE="/etc/wijaya-abadi/catalog-service-token.env"
+CATALOG_TOKEN_ENV_BACKUP=""
+CATALOG_TOKEN_ENV_EXISTED=0
+CATALOG_TOKEN_ENV_UPDATED=0
 
 fail() {
   echo "$*" >&2
@@ -90,6 +95,14 @@ fail() {
 
 cleanup() {
   local result=$?
+  if [ "$CATALOG_TOKEN_ENV_UPDATED" -eq 1 ] \
+    && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
+    if [ "$CATALOG_TOKEN_ENV_EXISTED" -eq 1 ] && [ -f "$CATALOG_TOKEN_ENV_BACKUP" ]; then
+      sudo install -m 600 "$CATALOG_TOKEN_ENV_BACKUP" "$CATALOG_TOKEN_ENV_FILE"
+    else
+      sudo rm -f "$CATALOG_TOKEN_ENV_FILE"
+    fi
+  fi
   if [ "$ID_SERVICE_UPDATED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ] && [ "$SITE_SERVICES_UPDATED" -ne 1 ]; then
     echo "Kreditmotorhonda.id deployment failed; restoring its previous service." >&2
     if [ -n "$ID_UNIT_BACKUP" ] && [ -f "$ID_UNIT_BACKUP" ]; then
@@ -316,6 +329,35 @@ get_pm2_catalog_service_token() {
   ' "$process_names"
 }
 
+PM2_TOKEN_SOURCE_NAMES=()
+for index in "${!SATELLITE_PM2_PRESENT[@]}"; do
+  if [ "${SATELLITE_PM2_PRESENT[$index]}" -eq 1 ]; then
+    PM2_TOKEN_SOURCE_NAMES+=("${SATELLITE_PM2_NAMES[$index]}")
+  fi
+done
+if [ "$ID_PM2_PRESENT" -eq 1 ]; then
+  PM2_TOKEN_SOURCE_NAMES+=("$ID_PM2_NAME")
+fi
+system_catalog_token="$(get_service_environment_value "$SERVICE" CATALOG_SERVICE_TOKEN)"
+satellite_catalog_token=""
+if [ "${#PM2_TOKEN_SOURCE_NAMES[@]}" -gt 0 ]; then
+  PM2_TOKEN_SOURCE_NAMES_CSV="$(IFS=,; echo "${PM2_TOKEN_SOURCE_NAMES[*]}")"
+  satellite_catalog_token="$(get_pm2_catalog_service_token "$PM2_TOKEN_SOURCE_NAMES_CSV" || true)"
+fi
+if [[ "$system_catalog_token" =~ ^[a-fA-F0-9]{64}$ ]]; then
+  if [[ "$satellite_catalog_token" =~ ^[a-fA-F0-9]{64}$ ]] \
+    && [ "$system_catalog_token" != "$satellite_catalog_token" ]; then
+    fail "Systemd and PM2 satellite catalog service tokens do not match."
+  fi
+  CATALOG_SHARED_TOKEN="$system_catalog_token"
+else
+  CATALOG_SHARED_TOKEN="$satellite_catalog_token"
+fi
+if ! [[ "$CATALOG_SHARED_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
+  fail "Could not load a valid CATALOG_SERVICE_TOKEN for shared catalog proxy services."
+fi
+PM2_CATALOG_TOKEN="$CATALOG_SHARED_TOKEN"
+
 OWNER_ANALYTICS_ROOT_DIR="$(get_service_environment_value "$SERVICE" OWNER_ANALYTICS_ROOT_DIR)"
 OWNER_ANALYTICS_ROOT_DIR="${OWNER_ANALYTICS_ROOT_DIR:-$(dirname "$DATA_DIR")}"
 WIJAYA_DATA_DIR="$(get_service_environment_value kreditmotorhonda.service DATA_DIR)"
@@ -475,6 +517,7 @@ WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
 $ENV_FILE_DIRECTIVE
 Environment=NODE_ENV=production
+EnvironmentFile=$CATALOG_TOKEN_ENV_FILE
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
 Environment=APP_URL=https://$DOMAIN
@@ -570,6 +613,18 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
 done
 
 SATELLITE_UPDATES_STARTED=1
+sudo install -d -m 700 "$(dirname "$CATALOG_TOKEN_ENV_FILE")"
+if [ -e "$CATALOG_TOKEN_ENV_FILE" ]; then
+  CATALOG_TOKEN_ENV_BACKUP="$STAGING_DIR/catalog-service-token.env.previous"
+  sudo cp "$CATALOG_TOKEN_ENV_FILE" "$CATALOG_TOKEN_ENV_BACKUP"
+  CATALOG_TOKEN_ENV_EXISTED=1
+fi
+sudo install -m 600 /dev/null "$CATALOG_TOKEN_ENV_FILE"
+sudo tee "$CATALOG_TOKEN_ENV_FILE" >/dev/null <<EOF
+CATALOG_SERVICE_TOKEN=$CATALOG_SHARED_TOKEN
+EOF
+CATALOG_TOKEN_ENV_UPDATED=1
+sudo chmod 600 "$CATALOG_TOKEN_ENV_FILE"
 for index in "${!SATELLITE_SERVICES[@]}"; do
   if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
     continue
@@ -581,6 +636,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
 [Service]
 WorkingDirectory=$RELEASE_DIR
 Environment=CATALOG_API_URL=https://kreditmotorhonda.tech
+  EnvironmentFile=$CATALOG_TOKEN_ENV_FILE
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
 ExecStart=/usr/bin/env PORT=$port /usr/bin/node $RELEASE_DIR/dist/server.cjs
@@ -642,19 +698,9 @@ if [ "${#PM2_SITE_NAMES[@]}" -gt 0 ]; then
   if [ ! -f "$PM2_PREVIOUS_RELEASE/ecosystem.config.cjs" ]; then
     fail "Previous PM2 release does not contain ecosystem.config.cjs; refusing an unsafe satellite update."
   fi
-  system_catalog_token="$(get_service_environment_value "$SERVICE" CATALOG_SERVICE_TOKEN)"
-  satellite_catalog_token="$(get_pm2_catalog_service_token "$PM2_SITE_NAMES_CSV" || true)"
-  if [[ "$system_catalog_token" =~ ^[a-fA-F0-9]{64}$ ]]; then
-    if [[ "$satellite_catalog_token" =~ ^[a-fA-F0-9]{64}$ ]] \
-      && [ "$system_catalog_token" != "$satellite_catalog_token" ]; then
-      fail "Systemd and PM2 satellite catalog service tokens do not match."
-    fi
-    PM2_CATALOG_TOKEN="$system_catalog_token"
-  else
-    PM2_CATALOG_TOKEN="$satellite_catalog_token"
-  fi
+  PM2_CATALOG_TOKEN="$CATALOG_SHARED_TOKEN"
   if ! [[ "$PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
-    fail "Could not load a valid CATALOG_SERVICE_TOKEN from the systemd service or PM2 satellite processes."
+    fail "Could not load a valid CATALOG_SERVICE_TOKEN for PM2-managed satellite sites."
   fi
   mkdir -p "$RELEASE_DIR/logs"
   SATELLITE_PM2_UPDATES_STARTED=1
@@ -723,9 +769,7 @@ if [ "$ID_PM2_PRESENT" -eq 1 ]; then
     fail "Previous PM2-managed .id release is missing ecosystem.config.cjs; refusing to remove it."
   fi
   ID_PM2_CATALOG_TOKEN="$(get_pm2_catalog_service_token "$ID_PM2_NAME" || true)"
-  if ! [[ "$ID_PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
-    ID_PM2_CATALOG_TOKEN="$PM2_CATALOG_TOKEN"
-  fi
+  ID_PM2_CATALOG_TOKEN="${ID_PM2_CATALOG_TOKEN:-$CATALOG_SHARED_TOKEN}"
   if ! [[ "$ID_PM2_CATALOG_TOKEN" =~ ^[a-fA-F0-9]{64}$ ]]; then
     fail "Could not preserve a valid CATALOG_SERVICE_TOKEN for the PM2-managed .id process."
   fi
