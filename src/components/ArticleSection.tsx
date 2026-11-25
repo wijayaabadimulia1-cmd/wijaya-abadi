@@ -14,6 +14,13 @@ function getArticleImages(article: Article) {
   return images.length ? images : article.image ? [article.image] : [];
 }
 
+function getArticleUrl(article: Article) {
+  const articleUrl = new URL(window.location.href);
+  articleUrl.pathname = `/artikel/${encodeURIComponent(article.slug)}/`;
+  articleUrl.hash = '';
+  return articleUrl.href;
+}
+
 function getReadingMinutes(content: string) {
   return Math.max(1, Math.ceil(content.trim().split(/\s+/).filter(Boolean).length / 200));
 }
@@ -37,6 +44,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
   const visibleArticles = articles.filter((article) => article.published);
+  const isDirectArticlePage = /^\/artikel\/[^/]+\/?$/.test(window.location.pathname);
 
   useEffect(() => {
     const syncArticleRoute = () => {
@@ -71,25 +79,27 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
 
   const closeArticle = () => {
     setSelectedArticle(null);
-    if (window.location.pathname.startsWith('/artikel/') || window.location.hash.startsWith('#artikel-')) {
+    if (window.location.pathname.startsWith('/artikel/')) {
+      window.location.assign(`${window.location.origin}/#artikel`);
+      return;
+    }
+    if (window.location.hash.startsWith('#artikel-')) {
       window.history.replaceState({}, '', `${window.location.origin}/#artikel`);
     }
   };
 
   const shareArticle = async (article: Article) => {
-    const articleUrl = new URL(window.location.href);
-    articleUrl.pathname = `/artikel/${encodeURIComponent(article.slug)}/`;
-    articleUrl.hash = '';
-    const shareData = { title: article.title, text: article.excerpt, url: articleUrl.href };
+    const articleUrl = getArticleUrl(article);
+    const shareData = { title: article.title, text: article.excerpt, url: articleUrl };
     try {
       const shareNavigator = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
       if (shareNavigator.share) {
         await shareNavigator.share(shareData);
       } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(articleUrl.href);
+        await navigator.clipboard.writeText(articleUrl);
         setShareMessage('Tautan artikel disalin.');
       } else {
-        setShareMessage(articleUrl.href);
+        setShareMessage(articleUrl);
       }
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) setShareMessage('Tautan artikel tidak dapat dibagikan.');
@@ -121,7 +131,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
 
   return (
     <>
-      <section id="artikel" className="relative overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24">
+      <section id="artikel" className={`relative overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24 ${isDirectArticlePage ? 'hidden' : ''}`}>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 border-b border-stone-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
@@ -141,8 +151,8 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
               return (
                 <article id={`artikel-${article.slug}`} key={article.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.35rem] border border-stone-200/80 bg-white shadow-[0_8px_30px_rgba(41,37,36,0.045)] transition duration-500 hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_20px_48px_rgba(41,37,36,0.10)]">
                     {coverImage ? (
-                      <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
-                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation h-full w-full object-cover transition duration-700 group-hover:scale-[1.045]" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
+                      <div className="relative overflow-hidden bg-stone-100">
+                        <img src={coverImage} alt={article.title} loading="lazy" decoding="async" className="catalog-photo-animation block h-auto w-full object-contain transition duration-700" data-catalog-animation={article.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(article)} />
                       </div>
                     ) : (
                       <div className="flex aspect-[16/10] items-end justify-between bg-gradient-to-br from-stone-100 via-stone-50 to-red-50 p-5">
@@ -173,12 +183,20 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
       </section>
 
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-3 backdrop-blur-md sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeArticle(); }}>
-          <article className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
+        <div
+          className={isDirectArticlePage
+            ? 'min-h-screen bg-[#fffefa]'
+            : 'fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-3 backdrop-blur-md sm:p-6'}
+          onMouseDown={!isDirectArticlePage ? (event) => { if (event.target === event.currentTarget) closeArticle(); } : undefined}
+        >
+          <article className={isDirectArticlePage
+            ? 'relative mx-auto w-full max-w-4xl bg-[#fffefa] text-stone-900'
+            : 'relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]'}
+          >
             <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/70 bg-stone-950/70 text-white shadow-lg backdrop-blur hover:bg-red-700" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
             {getArticleImages(selectedArticle).length > 0 && (
-              <div className="relative aspect-[16/9] max-h-[26rem] overflow-hidden bg-stone-100">
-                <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation absolute inset-0 h-full w-full object-cover" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
+              <div className="relative mx-auto mt-8 w-fit max-w-full overflow-hidden bg-stone-100">
+                <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation mx-auto block max-h-[24rem] max-w-full object-contain" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
                 {getArticleImages(selectedArticle).length > 1 && (
                   <>
                     <button type="button" onClick={() => setSelectedImageIndex((index) => (index - 1 + getArticleImages(selectedArticle).length) % getArticleImages(selectedArticle).length)} className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/70 text-white hover:bg-black" aria-label="Gambar sebelumnya"><ChevronLeft className="h-5 w-5" /></button>
@@ -199,10 +217,10 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
               {selectedArticle.motorModel && <p className="mt-5 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700"><strong>Model yang diulas:</strong> {selectedArticle.motorModel}</p>}
               {selectedArticle.productFacts && <p className="mt-4 whitespace-pre-line rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-700">{selectedArticle.productFacts}</p>}
               {selectedArticle.promoPeriod && <p className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"><strong>Periode promo:</strong> {selectedArticle.promoPeriod}</p>}
-              {selectedArticle.faqItems && <section className="mt-7 rounded-2xl border border-stone-200 bg-stone-50 p-5"><h3 className="font-serif text-xl font-semibold text-stone-900">Pertanyaan yang sering diajukan</h3><div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-7 text-stone-700">{selectedArticle.faqItems}</div></section>}
               <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
+              {selectedArticle.faqItems && <section className="mt-7 rounded-2xl border border-stone-200 bg-stone-50 p-5"><h3 className="font-serif text-xl font-semibold text-stone-900">Pertanyaan yang sering diajukan</h3><div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-7 text-stone-700">{selectedArticle.faqItems}</div></section>}
               {getVideoDetails(selectedArticle) && (
                 <section className="mt-10 border-t border-stone-200 pt-8" aria-label="Video artikel">
                   <h3 className="mb-4 font-serif text-2xl font-semibold text-stone-950">Video artikel</h3>
@@ -243,7 +261,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
                 <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                   <p className="text-sm font-semibold leading-6 text-emerald-950">{selectedArticle.whatsappCta}</p>
                   {whatsappDigits.length >= 8 && whatsappDigits.length <= 15 && (
-                    <a href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Saya ingin bertanya tentang: ${selectedArticle.title}`)}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Hubungi via WhatsApp</a>
+                    <a href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Saya ingin bertanya tentang: ${selectedArticle.title}\n\nLink artikel: ${getArticleUrl(selectedArticle)}`)}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Hubungi via WhatsApp</a>
                   )}
                 </div>
               )}

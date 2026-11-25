@@ -117,6 +117,7 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GSC_SITE_URLS: ${{ vars.GSC_SITE_URLS || 'sc-domain:kreditmotorhonda.tech,https://kreditmotorhonda.id/,sc-domain:solusikreditmotor.cloud' }}
           ALLOW_EMPTY_CATALOG: ${{ inputs.allow_empty_catalog }}
         run: |
@@ -172,6 +173,9 @@ jobs:
           CLEANUP
           if [ -n "$GSC_SERVICE_ACCOUNT_JSON" ]; then
             printf '%s' "$GSC_SERVICE_ACCOUNT_JSON" | ssh "${VPS_USER}@${VPS_HOST}" 'sudo install -d -m 700 /etc/wijaya-abadi && sudo tee /etc/wijaya-abadi/gsc-service-account.json >/dev/null && sudo chmod 600 /etc/wijaya-abadi/gsc-service-account.json'
+          fi
+          if [ -n "$GEMINI_API_KEY" ]; then
+            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" | ssh "${VPS_USER}@${VPS_HOST}" 'sudo install -d -m 700 /etc/wijaya-abadi && sudo sh -c "umask 077; cat > /etc/wijaya-abadi/gemini.env; chmod 600 /etc/wijaya-abadi/gemini.env"'
           fi
           ARCHIVE_PATH="$(mktemp)"
           trap 'rm -f "$ARCHIVE_PATH"' EXIT

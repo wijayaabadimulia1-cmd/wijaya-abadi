@@ -115,6 +115,8 @@ export default function App() {
     return 'light';
   });
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  const directArticleSlug = currentPath.match(/^\/artikel\/([^/]+)$/)?.[1];
+  const directArticle = articles.find((article) => article.slug === directArticleSlug && article.published);
   const hostname = window.location.hostname.toLocaleLowerCase('en-US').replace(/^www\./, '');
   const seoRootDomains = ['kreditmotorhonda.tech', 'kreditmotorhonda.id', 'solusikreditmotor.cloud'];
   const seoRootDomain = seoRootDomains.find((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
@@ -879,6 +881,16 @@ export default function App() {
           onRefreshData={loadData}
         />
       </Suspense>
+    );
+  }
+
+  if (directArticle) {
+    return (
+      <div style={customizationStyle} className={`website-shell ${templateClass} ${customizationClass} min-h-screen bg-[#fffefa] text-stone-900`}>
+        <main className="min-h-screen">
+          <ArticleSection articles={[directArticle]} whatsappNumber={settings.phone} />
+        </main>
+      </div>
     );
   }
 

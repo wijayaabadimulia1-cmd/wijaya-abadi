@@ -414,6 +414,7 @@ sudo tee "$DROPIN_FILE" >/dev/null <<EOF
 WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
 $ENV_FILE_DIRECTIVE
+EnvironmentFile=-/etc/wijaya-abadi/gemini.env
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
@@ -498,6 +499,7 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
   sudo tee "$dropin_file" >/dev/null <<EOF
 [Service]
 WorkingDirectory=$RELEASE_DIR
+EnvironmentFile=-/etc/wijaya-abadi/gemini.env
 Environment=CATALOG_API_URL=$CATALOG_API_URL
 Environment=CATALOG_OWNER_DATA_FILE=$DATA_DIR/db.json
 ExecStart=
@@ -664,6 +666,7 @@ Group=$SERVICE_GROUP
 WorkingDirectory=$RELEASE_DIR
 EnvironmentFile=
 $ENV_FILE_DIRECTIVE
+EnvironmentFile=-/etc/wijaya-abadi/gemini.env
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3003

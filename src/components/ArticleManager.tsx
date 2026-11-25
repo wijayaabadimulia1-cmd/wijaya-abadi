@@ -589,6 +589,35 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 </section>
               ) : (
                 <>
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-stone-800">Jenis konten</p>
+                    <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Jenis konten artikel">
+                      <button
+                        type="button"
+                        aria-pressed={editingArticle.template !== 'video'}
+                        onClick={() => setEditingArticle((current) => current?.template === 'video'
+                          ? { ...current, template: 'blog', category: 'Artikel' }
+                          : current)}
+                        className={`article-studio-choice inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 ${editingArticle.template !== 'video' ? 'border-red-700 bg-red-700 text-white shadow-sm' : 'border-stone-200 bg-white text-stone-800 hover:bg-stone-50'}`}
+                      >
+                        <FileText className="h-4 w-4" /> Artikel Teks
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={editingArticle.template === 'video'}
+                        onClick={() => setEditingArticle((current) => current ? {
+                          ...current,
+                          template: 'video',
+                          category: current.template === 'video' ? current.category : 'Video Honda',
+                          videoMedia: current.videoMedia || { source: 'youtube' },
+                        } : current)}
+                        className={`article-studio-choice inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 ${editingArticle.template === 'video' ? 'border-red-700 bg-red-700 text-white shadow-sm' : 'border-stone-200 bg-white text-stone-800 hover:bg-stone-50'}`}
+                      >
+                        <Video className="h-4 w-4" /> Video Article
+                      </button>
+                    </div>
+                    <p className="text-xs leading-5 text-stone-600">Di Video Article, tempel tautan YouTube atau unggah file MP4.</p>
+                  </div>
                   <div className="grid gap-5 lg:grid-cols-2">
                     <label className={labelClass}>Judul artikel *
                       <input required value={editingArticle.title || ''} onChange={(event) => setEditingArticle({ ...editingArticle, title: event.target.value, ...(!isSlugManuallyEdited ? { slug: slugifyArticle(event.target.value) } : {}) })} className={inputClass} placeholder="Contoh: Review Honda Vario 160 Terbaru" />
@@ -643,25 +672,37 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-100 text-red-700"><Video className="h-5 w-5" /></span>
                         <div><h4 className="font-bold text-stone-950">Video Article Studio</h4><p className="mt-1 text-xs leading-5 text-stone-600">Pilih YouTube atau MP4. Video dipisahkan dari galeri foto artikel.</p></div>
                       </div>
-                      <label className={labelClass}>Sumber video
-                        <select value={editingArticle.videoMedia?.source || 'youtube'} onChange={(event) => {
-                          const source = event.target.value as ArticleVideo['source'];
-                          setEditingArticle({ ...editingArticle, videoMedia: { source } });
-                        }} className={inputClass}>
-                          <option value="youtube">Link YouTube</option>
-                          <option value="upload">Upload video MP4</option>
-                        </select>
-                      </label>
-                      {editingArticle.videoMedia?.source !== 'upload' ? (
+                      <div className="space-y-2">
+                        <p className={labelClass}>Pilih sumber video</p>
+                        <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Pilih sumber video">
+                          <button
+                            type="button"
+                            aria-pressed={(editingArticle.videoMedia?.source || 'youtube') === 'youtube'}
+                            onClick={() => updateVideoMedia({ source: 'youtube' })}
+                            className={`article-studio-choice inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 ${(editingArticle.videoMedia?.source || 'youtube') === 'youtube' ? 'border-red-700 bg-red-700 text-white shadow-sm' : 'border-stone-200 bg-white text-stone-800 hover:bg-stone-50'}`}
+                          >
+                            Tempel link YouTube
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={editingArticle.videoMedia?.source === 'upload'}
+                            onClick={() => updateVideoMedia({ source: 'upload' })}
+                            className={`article-studio-choice inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 ${editingArticle.videoMedia?.source === 'upload' ? 'border-red-700 bg-red-700 text-white shadow-sm' : 'border-stone-200 bg-white text-stone-800 hover:bg-stone-50'}`}
+                          >
+                            <Upload className="h-4 w-4" /> Unggah MP4
+                          </button>
+                        </div>
+                      </div>
+                      {(editingArticle.videoMedia?.source || 'youtube') === 'youtube' ? (
                         <label className={labelClass}>YouTube URL
-                          <input type="url" value={editingArticle.videoMedia?.youtubeUrl || ''} onChange={(event) => updateVideoMedia({ source: 'youtube', youtubeUrl: event.target.value })} className={inputClass} placeholder="https://www.youtube.com/watch?v=..." />
+                          <input type="url" value={editingArticle.videoMedia?.youtubeUrl || ''} onChange={(event) => updateVideoMedia({ source: 'youtube', youtubeUrl: event.target.value })} className={inputClass} placeholder="Tempel tautan YouTube, Shorts, atau youtu.be" />
                         </label>
                       ) : (
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-3">
                             <button type="button" disabled={isUploadingVideo} onClick={() => videoInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-800 disabled:opacity-50">
                               {isUploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                              {isUploadingVideo ? 'Mengunggah video...' : 'Pilih video MP4'}
+                              {isUploadingVideo ? 'Mengunggah video...' : 'Pilih file video MP4'}
                             </button>
                             <input ref={videoInputRef} type="file" accept="video/mp4,.mp4" className="hidden" onChange={handleUploadVideo} />
                             <span className="text-xs text-stone-600">Maksimal 250 MB, diunggah secara streaming.</span>
@@ -697,17 +738,17 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
 
                   <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div><h4 className="font-bold text-stone-950">Foto Artikel</h4><p className="mt-1 text-xs text-stone-500">Galeri foto terpisah dari video. Foto pertama menjadi sampul.</p></div>
+                      <div><h4 className="font-bold text-stone-950">Foto Artikel ({getArticleImages(editingArticle).length}/{MAX_MOTOR_IMAGES})</h4><p className="mt-1 text-xs text-stone-500">Galeri foto terpisah dari video. Foto pertama menjadi sampul.</p></div>
                       <button type="button" disabled={isUploadingImages || getArticleImages(editingArticle).length >= MAX_MOTOR_IMAGES} onClick={() => imagesInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-xs font-bold text-stone-700 hover:bg-stone-50 disabled:opacity-50">
                         <Upload className="h-4 w-4" /> {isUploadingImages ? 'Mengunggah...' : 'Unggah foto'}
                       </button>
                       <input ref={imagesInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUploadImages} />
                     </div>
                     {getArticleImages(editingArticle).length ? (
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="flex flex-wrap gap-3">
                         {getArticleImages(editingArticle).map((image, index) => (
-                          <div key={`${image}-${index}`} className="relative overflow-hidden rounded-xl border border-stone-200">
-                            <img src={image} alt={`Foto artikel ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
+                          <div key={`${image}-${index}`} className="relative w-full max-w-[15rem] overflow-hidden rounded-xl border border-stone-200">
+                            <img src={image} alt={`Foto artikel ${index + 1}`} className="aspect-[4/3] w-full bg-stone-50 object-contain" />
                             <button type="button" onClick={() => updateCover(image)} className="absolute bottom-2 left-2 rounded-lg bg-black/75 px-2 py-1 text-[10px] font-bold text-white">{index === 0 ? 'Sampul' : 'Jadikan sampul'}</button>
                             <button type="button" onClick={() => removeImage(index)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/75 text-white hover:bg-red-700" aria-label={`Hapus foto ${index + 1}`}><X className="h-3.5 w-3.5" /></button>
                           </div>

@@ -47,6 +47,10 @@ CATALOG_SERVICE_TOKEN=output-dari-openssl-rand-hex-32
 
 Generate `CATALOG_SERVICE_TOKEN` with `openssl rand -hex 32` and use the same value for all four processes. Do not commit `.env` or paste secrets into GitHub logs.
 
+### Gemini AI untuk semua domain
+
+Tambahkan `GEMINI_API_KEY` sebagai GitHub Actions repository secret. Workflow deployment akan menyimpan key secara privat di `/etc/wijaya-abadi/gemini.env` pada VPS dan menghubungkannya ke proses keempat domain. Jangan menaruh key di Git atau mengirimkannya melalui chat. Tanpa secret tersebut, fitur AI tetap nonaktif dan artikel masih dapat dibuat atau diedit manual.
+
 ## 5. Install dependency dan build
 
 ```bash
