@@ -9,7 +9,7 @@ fi
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-tech.service"
-CATALOG_API_URL="http://127.0.0.1:3000"
+CATALOG_API_URL="https://kreditmotorhonda.tech"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 ALLOW_EMPTY_CATALOG="${ALLOW_EMPTY_CATALOG:-false}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -582,7 +582,31 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     fail "$service did not become healthy on port ${port}."
   fi
 
-  satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+  satellite_motors_response_file="$STAGING_DIR/satellite-${index}-motors.json"
+  satellite_motors_status="$(curl --silent --show-error --output "$satellite_motors_response_file" --write-out '%{http_code}' --max-time 10 "http://127.0.0.1:${port}/api/motors")" \
+    || {
+      sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 40 >&2 || true
+      fail "$service catalog API request failed on port ${port}."
+    }
+  if [ "$satellite_motors_status" != "200" ]; then
+    sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 40 >&2 || true
+    fail "$service catalog API returned HTTP $satellite_motors_status on port ${port}."
+  fi
+  satellite_motors="$(node -e '
+    const fs = require("node:fs");
+    let motors;
+    try {
+      motors = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    } catch {
+      console.error("Catalog API returned invalid JSON.");
+      process.exit(2);
+    }
+    if (!Array.isArray(motors)) {
+      console.error("Catalog API did not return a motor list.");
+      process.exit(2);
+    }
+    console.log(motors.length);
+  ' "$satellite_motors_response_file")" || fail "$service catalog API response could not be validated."
   if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
     fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
   fi
