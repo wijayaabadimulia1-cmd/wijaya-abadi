@@ -457,13 +457,64 @@ EOF
 done
 sudo systemctl daemon-reload
 
+stop_orphaned_satellite_listener() {
+  local port="$1"
+  local listeners
+  local listener_pids
+  local listener_pid
+  local executable
+  local listener_cgroup
+  local listener_cwd
+  local command_line
+
+  listeners="$(sudo ss -H -ltnp "sport = :${port}")"
+  [ -n "$listeners" ] || return 0
+  listener_pids="$(printf '%s\n' "$listeners" | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | sort -u)"
+  if [ -z "$listener_pids" ]; then
+    printf '%s\n' "$listeners" >&2
+    fail "Port ${port} is occupied by a listener that cannot be safely identified."
+  fi
+
+  while IFS= read -r listener_pid; do
+    [ -n "$listener_pid" ] || continue
+    executable="$(sudo readlink -f "/proc/${listener_pid}/exe" 2>/dev/null || true)"
+    listener_cgroup="$(sudo cat "/proc/${listener_pid}/cgroup" 2>/dev/null || true)"
+    listener_cwd="$(sudo readlink -f "/proc/${listener_pid}/cwd" 2>/dev/null || true)"
+    command_line="$(sudo sh -c 'tr "\000" " " < "$1"' _ "/proc/${listener_pid}/cmdline" 2>/dev/null || true)"
+
+    if [ "$(basename "$executable")" != "node" ] \
+      || ! grep -Eq '^0::/user\.slice/user-[0-9]+\.slice/session-[^/]+\.scope$' <<< "$listener_cgroup" \
+      || ! [[ "$listener_cwd" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]] \
+      || [[ "$command_line" != *server.cjs* ]]; then
+      printf 'Port %s listener PID %s was not stopped; executable=%s cwd=%s cgroup=%s\n' \
+        "$port" "$listener_pid" "$executable" "$listener_cwd" "$listener_cgroup" >&2
+      fail "Port ${port} is occupied by a process outside the managed satellite release; refusing to stop it."
+    fi
+
+    echo "Stopping orphaned satellite release server PID ${listener_pid} on port ${port}."
+    sudo kill -TERM "$listener_pid"
+  done <<< "$listener_pids"
+
+  for attempt in $(seq 1 10); do
+    listeners="$(sudo ss -H -ltnp "sport = :${port}")"
+    [ -z "$listeners" ] && return 0
+    sleep 1
+  done
+  printf '%s\n' "$listeners" >&2
+  fail "Port ${port} remains occupied after stopping its orphaned satellite release server."
+}
+
 for index in "${!SATELLITE_SERVICES[@]}"; do
   if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
     continue
   fi
   service="${SATELLITE_SERVICES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
-  sudo systemctl restart "$service"
+  if systemctl is-active --quiet "$service"; then
+    sudo systemctl stop "$service"
+  fi
+  stop_orphaned_satellite_listener "$port"
+  sudo systemctl start "$service"
   if ! systemctl is-active --quiet "$service" \
     || ! systemctl show "$service" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
     systemctl show "$service" --property=FragmentPath --property=DropInPaths --property=ExecStart --no-pager >&2 || true
