@@ -191,9 +191,10 @@
   }
 
   .website-shell.website-template-showcase-wijaya-2 main > #katalog { order: 3; }
-  .website-shell.website-template-showcase-wijaya-2 main > #simulasi { order: 4; }
-  .website-shell.website-template-showcase-wijaya-2 main > #manifesto { order: 5; }
-  .website-shell.website-template-showcase-wijaya-2 main > #testimoni { order: 6; }
+  .website-shell.website-template-showcase-wijaya-2 main > #artikel { order: 3; }
+  .website-shell.website-template-showcase-wijaya-2 main > #simulasi { order: 5; }
+  .website-shell.website-template-showcase-wijaya-2 main > #manifesto { order: 6; }
+  .website-shell.website-template-showcase-wijaya-2 main > #testimoni { order: 7; }
 
   .website-shell.website-template-showcase-wijaya-2 #katalog .mt-8.grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
