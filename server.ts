@@ -842,7 +842,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     .replaceAll('https://kreditmotorhonda.tech', escape(siteOrigin));
   return replaceFirstJsonLdScript(
     renderedHtml,
-    (jsonText) => `<script type="application/ld+json">${updateSeoJsonLdForPage(jsonText, pathname, canonical, title, description)}</script>`
+    (jsonText) => updateSeoJsonLdForPage(jsonText, pathname, canonical, title, description)
   );
 }
 
