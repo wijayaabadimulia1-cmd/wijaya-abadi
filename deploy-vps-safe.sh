@@ -503,7 +503,13 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
       --property=ExecStart \
       --property=Restart \
       --no-pager >&2 || true
-    sudo ss -ltnp "sport = :${port}" >&2 || true
+    listener="$(sudo ss -ltnp "sport = :${port}" 2>/dev/null || true)"
+    printf '%s\n' "$listener" >&2
+    listener_pid="$(printf '%s\n' "$listener" | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -n 1)"
+    if [ -n "$listener_pid" ]; then
+      sudo readlink -f "/proc/${listener_pid}/exe" >&2 || true
+      sudo cat "/proc/${listener_pid}/cgroup" >&2 || true
+    fi
     sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 80 >&2 || true
     fail "$service homepage returned HTTP $satellite_home_status on port $port."
   fi
