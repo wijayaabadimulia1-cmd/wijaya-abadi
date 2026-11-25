@@ -405,6 +405,10 @@
   background: #f5f7f9;
 }
 
+.website-shell.website-template-showcase-wijaya-2 #artikel {
+  order: 3;
+}
+
 .website-shell.website-template-showcase-wijaya-2 #katalog .text-center.max-w-3xl {
   max-width: none;
   margin: 0;
@@ -435,7 +439,7 @@
 .website-shell.website-template-showcase-wijaya-2 #simulasi,
 .website-shell.website-template-showcase-wijaya-2 #manifesto,
 .website-shell.website-template-showcase-wijaya-2 #testimoni {
-  order: 3;
+  order: 4;
 }
 
 .website-shell.website-template-showcase-wijaya-2.site-mode-dark #promo,
