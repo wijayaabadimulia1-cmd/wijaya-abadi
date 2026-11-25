@@ -14,6 +14,13 @@ function getArticleImages(article: Article) {
   return images.length ? images : article.image ? [article.image] : [];
 }
 
+function getArticleUrl(article: Article) {
+  const articleUrl = new URL(window.location.href);
+  articleUrl.pathname = `/artikel/${encodeURIComponent(article.slug)}/`;
+  articleUrl.hash = '';
+  return articleUrl.href;
+}
+
 function getReadingMinutes(content: string) {
   return Math.max(1, Math.ceil(content.trim().split(/\s+/).filter(Boolean).length / 200));
 }
@@ -82,19 +89,17 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
   };
 
   const shareArticle = async (article: Article) => {
-    const articleUrl = new URL(window.location.href);
-    articleUrl.pathname = `/artikel/${encodeURIComponent(article.slug)}/`;
-    articleUrl.hash = '';
-    const shareData = { title: article.title, text: article.excerpt, url: articleUrl.href };
+    const articleUrl = getArticleUrl(article);
+    const shareData = { title: article.title, text: article.excerpt, url: articleUrl };
     try {
       const shareNavigator = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
       if (shareNavigator.share) {
         await shareNavigator.share(shareData);
       } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(articleUrl.href);
+        await navigator.clipboard.writeText(articleUrl);
         setShareMessage('Tautan artikel disalin.');
       } else {
-        setShareMessage(articleUrl.href);
+        setShareMessage(articleUrl);
       }
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) setShareMessage('Tautan artikel tidak dapat dibagikan.');
@@ -212,10 +217,10 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
               {selectedArticle.motorModel && <p className="mt-5 rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700"><strong>Model yang diulas:</strong> {selectedArticle.motorModel}</p>}
               {selectedArticle.productFacts && <p className="mt-4 whitespace-pre-line rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-700">{selectedArticle.productFacts}</p>}
               {selectedArticle.promoPeriod && <p className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"><strong>Periode promo:</strong> {selectedArticle.promoPeriod}</p>}
-              {selectedArticle.faqItems && <section className="mt-7 rounded-2xl border border-stone-200 bg-stone-50 p-5"><h3 className="font-serif text-xl font-semibold text-stone-900">Pertanyaan yang sering diajukan</h3><div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-7 text-stone-700">{selectedArticle.faqItems}</div></section>}
               <div className="mt-8 space-y-5 text-sm leading-8 text-stone-700 sm:text-base sm:leading-9">
                 {selectedArticle.content.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={`${selectedArticle.id}-${index}`}>{paragraph}</p>)}
               </div>
+              {selectedArticle.faqItems && <section className="mt-7 rounded-2xl border border-stone-200 bg-stone-50 p-5"><h3 className="font-serif text-xl font-semibold text-stone-900">Pertanyaan yang sering diajukan</h3><div className="mt-3 space-y-2 whitespace-pre-line text-sm leading-7 text-stone-700">{selectedArticle.faqItems}</div></section>}
               {getVideoDetails(selectedArticle) && (
                 <section className="mt-10 border-t border-stone-200 pt-8" aria-label="Video artikel">
                   <h3 className="mb-4 font-serif text-2xl font-semibold text-stone-950">Video artikel</h3>
@@ -256,7 +261,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
                 <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                   <p className="text-sm font-semibold leading-6 text-emerald-950">{selectedArticle.whatsappCta}</p>
                   {whatsappDigits.length >= 8 && whatsappDigits.length <= 15 && (
-                    <a href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Saya ingin bertanya tentang: ${selectedArticle.title}`)}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Hubungi via WhatsApp</a>
+                    <a href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Saya ingin bertanya tentang: ${selectedArticle.title}\n\nLink artikel: ${getArticleUrl(selectedArticle)}`)}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Hubungi via WhatsApp</a>
                   )}
                 </div>
               )}

@@ -188,7 +188,7 @@ export default function App() {
     try {
       const [settingsData, motorsData, promosData, articlesData, testiData, manifestoData, priceListData] = await Promise.all([
         api.getSettings().catch(() => null),
-        api.getMotors().catch(() => []),
+        api.getMotors().catch(() => null),
         api.getPromos().catch(() => []),
         api.getArticles().catch(() => []),
         api.getTestimonials().catch(() => []),
@@ -200,7 +200,7 @@ export default function App() {
       if (settingsData && settingsData.name) {
         setSettings(settingsData);
       }
-      if (motorsData && motorsData.length > 0) {
+      if (motorsData) {
         setMotors(motorsData.map((motor) => normalizeMotorOtrPrice(motor, priceListData)));
       }
       if (promosData && promosData.length > 0) {
@@ -252,7 +252,7 @@ export default function App() {
     const loadSecondaryData = async () => {
       try {
         const [motorsData, promosData, articlesData, testiData, manifestoData, priceListData] = await Promise.all([
-          api.getMotors().catch(() => []),
+          api.getMotors().catch(() => null),
           api.getPromos().catch(() => []),
           api.getArticles().catch(() => []),
           api.getTestimonials().catch(() => []),
@@ -262,7 +262,7 @@ export default function App() {
         if (!isCurrent) return;
 
         setFifPriceList(priceListData);
-        if (motorsData.length > 0) {
+        if (motorsData) {
           setMotors(motorsData.map((motor) => normalizeMotorOtrPrice(motor, priceListData)));
         }
         if (promosData.length > 0) setPromos(promosData);
