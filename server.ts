@@ -797,7 +797,7 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     : [
         String(pageSettings.heroMainTitle || '').trim(),
         String(pageSettings.heroTitleHighlight || '').trim(),
-      ].filter(Boolean).join(' '));
+      ].filter(Boolean).join(' ') || DEFAULT_SEO_TITLE.split(/[|–—]/)[0].trim());
   const shouldAddH1Fallback = normalizedSeoPath === '/' || Boolean(page) || Boolean(hostPage) || Boolean(article);
   const htmlWithH1Fallback =
     shouldAddH1Fallback &&
