@@ -311,28 +311,28 @@ function readCatalogDb() {
       // newly selected template or domain settings on the next request.
       ...(primaryDb.settings || {}),
     },
-    motors: Array.isArray(ownerDb?.motors) && ownerDb.motors.length > 0
+    motors: Array.isArray(ownerDb?.motors)
       ? ownerDb.motors
       : Array.isArray(baseDb.motors) && baseDb.motors.length > 0
         ? baseDb.motors
         : Array.isArray(primaryDb.motors)
           ? primaryDb.motors
           : [],
-    promos: Array.isArray(ownerDb?.promos) && ownerDb.promos.length > 0
+    promos: Array.isArray(ownerDb?.promos)
       ? ownerDb.promos
       : Array.isArray(baseDb.promos) && baseDb.promos.length > 0
         ? baseDb.promos
         : Array.isArray(primaryDb.promos)
           ? primaryDb.promos
           : [],
-    testimonials: Array.isArray(ownerDb?.testimonials) && ownerDb.testimonials.length > 0
+    testimonials: Array.isArray(ownerDb?.testimonials)
       ? ownerDb.testimonials
       : Array.isArray(baseDb.testimonials) && baseDb.testimonials.length > 0
         ? baseDb.testimonials
         : Array.isArray(primaryDb.testimonials)
           ? primaryDb.testimonials
           : [],
-    manifesto: Array.isArray(ownerDb?.manifesto) && ownerDb.manifesto.length > 0
+    manifesto: Array.isArray(ownerDb?.manifesto)
       ? ownerDb.manifesto
       : Array.isArray(baseDb.manifesto) && baseDb.manifesto.length > 0
         ? baseDb.manifesto
