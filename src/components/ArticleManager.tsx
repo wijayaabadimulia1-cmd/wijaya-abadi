@@ -127,7 +127,10 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       setAnalyticsError(null);
     } else {
       setAnalytics(emptyAnalytics);
-      setAnalyticsError('Data pembaca artikel belum dapat dimuat.');
+      console.error('Failed to load article reader analytics:', analyticsResult.reason);
+      setAnalyticsError(analyticsResult.reason instanceof Error
+        ? `Data pembaca artikel belum dapat dimuat: ${analyticsResult.reason.message}`
+        : 'Data pembaca artikel belum dapat dimuat.');
     }
 
     if (aiStatusResult.status === 'fulfilled') setAiConfigured(aiStatusResult.value.configured);
@@ -404,7 +407,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               </td>
               <td className="px-4 py-4 tabular-nums text-stone-600">{analyticsError ? '—' : analytics.readersBySlug[article.slug] || 0}</td>
               <td className="px-4 py-4">
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${article.published ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${article.published ? 'article-studio-status-published bg-emerald-50 text-emerald-700' : 'article-studio-status-draft bg-amber-50 text-amber-700'}`}>
                   {article.published ? 'Publish' : 'Draft'}
                 </span>
               </td>
@@ -444,7 +447,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
           <h2 className="mt-2 font-serif text-2xl font-semibold sm:text-3xl">Honda Article Management Studio</h2>
           <p className="mt-2 text-sm text-red-50">CMS Artikel · Kelola konten khusus untuk website yang sedang dibuka.</p>
         </div>
-        <button type="button" onClick={openNewArticle} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50">
+        <button type="button" onClick={openNewArticle} className="article-studio-cta inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50">
           <Plus className="h-4 w-4" /> Tulis Artikel
         </button>
       </header>
@@ -667,7 +670,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                     <section className="space-y-5 rounded-2xl border border-red-100 bg-red-50/50 p-4 sm:p-6">
                       <div className="flex items-start gap-3">
                         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-100 text-red-700"><Video className="h-5 w-5" /></span>
-                        <div><h4 className="font-bold text-stone-950">Video Article Studio</h4><p className="mt-1 text-xs leading-5 text-stone-600">Tempel tautan YouTube atau unggah MP4. Video dipisahkan dari galeri foto artikel.</p></div>
+                        <div><h4 className="font-bold text-stone-950">Video Article Studio</h4><p className="mt-1 text-xs leading-5 text-stone-600">Pilih YouTube atau MP4. Video dipisahkan dari galeri foto artikel.</p></div>
                       </div>
                       <div className="space-y-2">
                         <p className={labelClass}>Pilih sumber video</p>
@@ -735,7 +738,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
 
                   <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div><h4 className="font-bold text-stone-950">Foto Artikel ({getArticleImages(editingArticle).length}/{MAX_MOTOR_IMAGES})</h4><p className="mt-1 text-xs text-stone-500">Bisa unggah beberapa foto sekaligus. Foto pertama menjadi sampul.</p></div>
+                      <div><h4 className="font-bold text-stone-950">Foto Artikel ({getArticleImages(editingArticle).length}/{MAX_MOTOR_IMAGES})</h4><p className="mt-1 text-xs text-stone-500">Galeri foto terpisah dari video. Foto pertama menjadi sampul.</p></div>
                       <button type="button" disabled={isUploadingImages || getArticleImages(editingArticle).length >= MAX_MOTOR_IMAGES} onClick={() => imagesInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-xs font-bold text-stone-700 hover:bg-stone-50 disabled:opacity-50">
                         <Upload className="h-4 w-4" /> {isUploadingImages ? 'Mengunggah...' : 'Unggah foto'}
                       </button>

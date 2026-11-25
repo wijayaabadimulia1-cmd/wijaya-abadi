@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { execFile } from 'node:child_process';
 import { resolve4 } from 'node:dns/promises';
 import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
@@ -408,6 +409,55 @@ function escapeHtmlAttribute(value: string) {
   })[character] || character);
 }
 
+function insertAfterFirstTag(html: string, tagName: string, content: string) {
+  const lowerHtml = html.toLowerCase();
+  const tagStart = lowerHtml.indexOf(`<${tagName}`);
+  if (tagStart < 0) return html;
+  const tagEnd = lowerHtml.indexOf('>', tagStart);
+  if (tagEnd < 0) return html;
+  return `${html.slice(0, tagEnd + 1)}${content}${html.slice(tagEnd + 1)}`;
+}
+
+function replaceFirstTag(html: string, tagName: string, attributeName: string, attributeValue: string, replacement: string) {
+  const lowerHtml = html.toLowerCase();
+  const headStart = lowerHtml.indexOf('<head');
+  const headEnd = lowerHtml.indexOf('</head>', headStart);
+  let tagStart = lowerHtml.indexOf(`<${tagName}`, headStart < 0 ? 0 : headStart);
+  const expectedAttribute = `${attributeName.toLowerCase()}="${attributeValue.toLowerCase()}"`;
+
+  while (tagStart >= 0 && (headEnd < 0 || tagStart < headEnd)) {
+    const tagEnd = lowerHtml.indexOf('>', tagStart);
+    if (tagEnd < 0 || (headEnd >= 0 && tagEnd >= headEnd)) return html;
+    if (lowerHtml.slice(tagStart, tagEnd).includes(expectedAttribute)) {
+      return `${html.slice(0, tagStart)}${replacement}${html.slice(tagEnd + 1)}`;
+    }
+    tagStart = lowerHtml.indexOf(`<${tagName}`, tagEnd + 1);
+  }
+
+  return html;
+}
+
+function replaceFirstTitle(html: string, replacement: string) {
+  const lowerHtml = html.toLowerCase();
+  const titleStart = lowerHtml.indexOf('<title>');
+  if (titleStart < 0) return html;
+  const titleEnd = lowerHtml.indexOf('</title>', titleStart + 7);
+  if (titleEnd < 0) return html;
+  return `${html.slice(0, titleStart)}${replacement}${html.slice(titleEnd + 8)}`;
+}
+
+function replaceFirstJsonLdScript(html: string, replaceJson: (jsonText: string) => string) {
+  const lowerHtml = html.toLowerCase();
+  const scriptStart = lowerHtml.indexOf('<script type="application/ld+json"');
+  if (scriptStart < 0) return html;
+  const contentStart = lowerHtml.indexOf('>', scriptStart);
+  if (contentStart < 0) return html;
+  const scriptEnd = lowerHtml.indexOf('</script>', contentStart + 1);
+  if (scriptEnd < 0) return html;
+  const jsonText = html.slice(contentStart + 1, scriptEnd);
+  return `${html.slice(0, contentStart + 1)}${replaceJson(jsonText)}${html.slice(scriptEnd)}`;
+}
+
 function createPublicInitialData(db: any, hostname?: string) {
   const hostPage = hostname ? getSeoPageForHost(db.settings || {}, hostname) : undefined;
   const siteArticles = getSiteArticles(readSiteDb(), hostname || '');
@@ -436,6 +486,30 @@ function createPublicInitialData(db: any, hostname?: string) {
     manifesto: Array.isArray(db.manifesto) ? db.manifesto : [],
     fifPriceList: currentFifPriceList(db),
   };
+}
+
+function sendProductionPage(
+  req: express.Request,
+  res: express.Response,
+  indexHtml: string,
+  db?: any,
+  initialData?: unknown
+) {
+  try {
+    const pageDb = db || readDb();
+    const pageInitialData = initialData || createPublicInitialData(pageDb, req.hostname);
+    res.set('Cache-Control', 'no-cache');
+    res.type('html').send(renderSeoMetadata(indexHtml, pageDb.settings || {}, req.path, pageInitialData, req.hostname));
+  } catch (error) {
+    console.error('SEO page rendering failed; serving the client-rendered app shell.', {
+      host: req.hostname,
+      url: req.originalUrl,
+      error,
+    });
+    res.set('Cache-Control', 'no-cache');
+    res.set('X-SEO-Render-Fallback', 'client');
+    res.type('html').send(indexHtml);
+  }
 }
 
 async function createSsrInitialData(db: any, hostname?: string) {
@@ -605,6 +679,8 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   const article = articleSlug
     ? (Array.isArray((initialData as any)?.articles) ? (initialData as any).articles : []).find((item: any) => item.slug === articleSlug && item.published === true)
     : undefined;
+  const articleContentDescription = typeof article?.content === 'string' ? article.content.trim().slice(0, 160) : '';
+  const hostPostDescription = typeof hostPost?.content === 'string' ? hostPost.content.trim().slice(0, 160) : '';
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
   const pageSettings = getSettingsForSeoPage(settings, hostPage);
   const isHostPost = Boolean(hostPost && hostPage && hostPost.id !== hostPage.id);
@@ -612,8 +688,8 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     ? `${article.metaTitle || article.title} | ${pageSettings.name || 'Honda Wijaya Abadi Mulia'}`
     : isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || DEFAULT_SEO_TITLE).trim();
   const description = String(article
-    ? article.metaDescription || article.excerpt || article.content.trim().slice(0, 160)
-    : isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || DEFAULT_SEO_DESCRIPTION).trim();
+    ? article.metaDescription || article.excerpt || articleContentDescription
+    : isHostPost ? hostPostDescription : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || DEFAULT_SEO_DESCRIPTION).trim();
   const keywords = String(article
     ? article.metaKeywords || [article.title, article.category, pageSettings.seoKeywords].filter(Boolean).join(', ')
     : hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
@@ -737,29 +813,37 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   // Avoid cross-domain hreflang links that incorrectly associate unrelated pages.
   const htmlWithHreflang = htmlWithH1Fallback;
 
-  return htmlWithHreflang
-    .replace(/<head[^>]*>/i, (head) => `${head}${heroImagePreload}${googleTrackingScript}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>${articleStructuredData}`)
-    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escape(title)}</title>`)
-    .replace(/<meta\s+name="description"[^>]*>/i, `<meta name="description" content="${escape(description)}" />`)
-    .replace(/<meta\s+name="keywords"[^>]*>/i, `<meta name="keywords" content="${escape(keywords)}" />`)
-    .replace(/<meta\s+name="robots"[^>]*>/i, `<meta name="robots" content="${escape(robots)}" />`)
-    .replace(/<link\s+rel="canonical"[^>]*>/i, `<link rel="canonical" href="${escape(canonical)}" />`)
-    .replace(/<meta\s+property="og:title"[^>]*>/i, `<meta property="og:title" content="${escape(title)}" />`)
-    .replace(/<meta\s+property="og:description"[^>]*>/i, `<meta property="og:description" content="${escape(description)}" />`)
-    .replace(/<meta\s+property="og:type"[^>]*>/i, `<meta property="og:type" content="${article ? 'article' : 'website'}" />`)
-    .replace(/<meta\s+property="og:url"[^>]*>/i, `<meta property="og:url" content="${escape(canonical)}" />`)
-    .replace(/<meta\s+name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escape(title)}" />`)
-    .replace(/<meta\s+name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escape(description)}" />`)
-    .replace(/<meta\s+property="og:image"[^>]*>/i, `<meta property="og:image" content="${escape(articleImages[0] || socialImageUrl)}" />`)
-    .replace(/<meta\s+property="og:image:width"[^>]*>/i, '<meta property="og:image:width" content="1200" />')
-    .replace(/<meta\s+property="og:image:height"[^>]*>/i, '<meta property="og:image:height" content="630" />')
-    .replace(/<meta\s+name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escape(articleImages[0] || socialImageUrl)}" />`)
-    .replace(/https:\/\/kreditmotorhonda\.tech\/uploads\/logo\.jpeg/g, escape(logoUrl))
-    .replace(/https:\/\/kreditmotorhonda\.tech/g, escape(siteOrigin))
-    .replace(
-      /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i,
-      (_match, jsonText) => `<script type="application/ld+json">${updateSeoJsonLdForPage(jsonText, pathname, canonical, title, description)}</script>`
-    );;
+  const htmlWithHeadScripts = insertAfterFirstTag(
+    htmlWithHreflang,
+    'head',
+    `${heroImagePreload}${googleTrackingScript}<script>window.__HWA_INITIAL_SETTINGS__=${initialSettings};window.__HWA_INITIAL_DATA__=${initialPublicData};</script>${articleStructuredData}`
+  );
+  const metadata = [
+    ['name', 'description', `<meta name="description" content="${escape(description)}" />`],
+    ['name', 'keywords', `<meta name="keywords" content="${escape(keywords)}" />`],
+    ['name', 'robots', `<meta name="robots" content="${escape(robots)}" />`],
+    ['property', 'og:title', `<meta property="og:title" content="${escape(title)}" />`],
+    ['property', 'og:description', `<meta property="og:description" content="${escape(description)}" />`],
+    ['property', 'og:type', `<meta property="og:type" content="${article ? 'article' : 'website'}" />`],
+    ['property', 'og:url', `<meta property="og:url" content="${escape(canonical)}" />`],
+    ['name', 'twitter:title', `<meta name="twitter:title" content="${escape(title)}" />`],
+    ['name', 'twitter:description', `<meta name="twitter:description" content="${escape(description)}" />`],
+    ['property', 'og:image', `<meta property="og:image" content="${escape(articleImages[0] || socialImageUrl)}" />`],
+    ['property', 'og:image:width', '<meta property="og:image:width" content="1200" />'],
+    ['property', 'og:image:height', '<meta property="og:image:height" content="630" />'],
+    ['name', 'twitter:image', `<meta name="twitter:image" content="${escape(articleImages[0] || socialImageUrl)}" />`],
+  ] as const;
+  let renderedHtml = replaceFirstTitle(htmlWithHeadScripts, `<title>${escape(title)}</title>`);
+  for (const [attribute, value, replacement] of metadata) {
+    renderedHtml = replaceFirstTag(renderedHtml, 'meta', attribute, value, replacement);
+  }
+  renderedHtml = replaceFirstTag(renderedHtml, 'link', 'rel', 'canonical', `<link rel="canonical" href="${escape(canonical)}" />`)
+    .replaceAll('https://kreditmotorhonda.tech/uploads/logo.jpeg', escape(logoUrl))
+    .replaceAll('https://kreditmotorhonda.tech', escape(siteOrigin));
+  return replaceFirstJsonLdScript(
+    renderedHtml,
+    (jsonText) => `<script type="application/ld+json">${updateSeoJsonLdForPage(jsonText, pathname, canonical, title, description)}</script>`
+  );
 }
 
 function getSiteOrigin(settings: any = {}, hostname = '') {
@@ -794,6 +878,7 @@ function getSeoPageForHost(settings: any = {}, hostname: string) {
   const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
   const pages = Array.isArray(settings.seoPages) ? settings.seoPages : [];
   return pages.find((page: any) => {
+    if (!page || typeof page !== 'object') return false;
     // Older SEO records may not have domainSuffix. In that case resolve the
     // suffix from the current request host so an .id admin does not fall back
     // to the historical .tech default.
@@ -1385,7 +1470,9 @@ function publicSettings(settings: any = {}) {
   const { ownerDashboard: _ownerDashboard, ...publicValues } = settings;
   return {
     ...publicValues,
-    seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : []).map(publicSeoPage),
+    seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : [])
+      .filter((page: any) => page && typeof page === 'object')
+      .map(publicSeoPage),
   };
 }
 
@@ -2379,14 +2466,28 @@ async function startServer() {
       return res.status(403).json({ error: 'Edit katalog hanya tersedia di admin utama kreditmotorhonda.tech.' });
     }
 
-    let target: URL;
+    let catalogApi: URL;
+    let upstreamPath: string;
     try {
-      target = new URL(req.originalUrl, CATALOG_API_URL);
+      const requestUrl = new URL(req.originalUrl, 'http://localhost');
+      if (requestUrl.origin !== 'http://localhost') {
+        return res.status(400).json({ error: 'Path permintaan katalog bersama tidak valid.' });
+      }
+      catalogApi = new URL(CATALOG_API_URL);
+      upstreamPath = `${requestUrl.pathname}${requestUrl.search}`;
     } catch {
       return res.status(503).json({ error: 'URL layanan katalog bersama tidak valid.' });
     }
+    const makeUpstreamRequest = catalogApi.protocol === 'https:'
+      ? httpsRequest
+      : catalogApi.protocol === 'http:'
+        ? httpRequest
+        : null;
+    if (!makeUpstreamRequest) {
+      return res.status(503).json({ error: 'Protokol layanan katalog bersama tidak didukung.' });
+    }
 
-    const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
+    const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: catalogApi.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
     delete headers['x-admin-token'];
     delete headers['x-catalog-actor'];
     delete headers.connection;
@@ -2399,7 +2500,14 @@ async function startServer() {
       if (session) headers['x-catalog-actor'] = session.username;
     }
 
-    const upstream = httpRequest(target, { method: req.method, headers }, (upstreamResponse) => {
+    const upstream = makeUpstreamRequest({
+      protocol: catalogApi.protocol,
+      hostname: catalogApi.hostname,
+      port: catalogApi.port || undefined,
+      method: req.method,
+      path: upstreamPath,
+      headers,
+    }, (upstreamResponse) => {
       res.statusCode = upstreamResponse.statusCode || 502;
       for (const [name, value] of Object.entries(upstreamResponse.headers)) {
         if (value && !['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) {
@@ -3218,10 +3326,12 @@ async function startServer() {
   app.get('/api/articles/analytics', requireAdmin, (req, res) => {
     const db = readSiteDb();
     const host = normalizeAnalyticsHost(req.hostname);
-    const logs = Array.isArray(db.articleReadLogs) ? db.articleReadLogs : [];
+    const logs = Array.isArray(db.articleReadLogs)
+      ? db.articleReadLogs.filter((entry: any) => entry && typeof entry === 'object')
+      : [];
     const readersBySlug: Record<string, number> = {};
 
-    for (const article of getSiteArticles(db, req.hostname)) {
+    for (const article of getSiteArticles(db, req.hostname).filter((item: any) => item && typeof item === 'object')) {
       const slug = String(article.slug || '').toLocaleLowerCase('id-ID');
       if (!slug) continue;
       const readers = new Set(logs
@@ -4989,7 +5099,8 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.get([
+    const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+    const seoLandingRoutes = [
       '/',
       '/dealer-honda-bandung',
       '/kredit-motor-honda-bandung',
@@ -5000,40 +5111,9 @@ async function startServer() {
       '/honda-vario-bandung',
       '/honda-pcx-bandung',
       '/honda-adv-bandung',
-    ], (req, res, next) => {
-      try {
-        // Serve the dedicated, pre-rendered SEO document for the primary
-        // kreditmotorhonda.tech landing pages instead of the generic SPA shell.
-        // Other hostnames keep the existing host-aware rendering behavior.
-        if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
-          const staticSeoPagePath = path.join(
-            distPath,
-            req.path.replace(/^\/+|\/+$/g, ''),
-            'index.html'
-          );
-          if (fs.existsSync(staticSeoPagePath)) {
-            if (!req.path.endsWith('/')) {
-              const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-              return res.redirect(301, `${req.path}/${queryString}`);
-            }
-            res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-            return res.sendFile(staticSeoPagePath);
-          }
-        }
-
-        const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-        const db = readDb();
-        res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
-      } catch (error) {
-        next(error);
-      }
-    });
-    app.use('/.well-known', express.static(path.join(distPath, '.well-known'), {
-      dotfiles: 'allow',
-      index: false,
-    }));
-    app.use(express.static(distPath, {
+    ];
+    const staticSeoRouteSet = new Set(seoLandingRoutes);
+    const staticFiles = express.static(distPath, {
       setHeaders(res, filePath) {
         const fileName = path.basename(filePath);
         const relativePath = path.relative(distPath, filePath);
@@ -5047,48 +5127,82 @@ async function startServer() {
             : 'public, max-age=0, must-revalidate';
         res.setHeader('Cache-Control', cacheControl);
       },
-    }));
-    app.get('*', (req, res) => {
-      if (path.extname(req.path)) return res.sendStatus(404);
-      const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-      const db = readDb();
-      db.articles = getSiteArticles(readSiteDb(), req.hostname);
-      const initialData = createPublicInitialData(db, req.hostname);
-      const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
-      if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
-        return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
+    });
+    app.use((req, res, next) => {
+      const normalizedPath = req.path.endsWith('/') ? req.path.slice(0, -1) || '/' : req.path;
+      if (
+        normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech'
+        && staticSeoRouteSet.has(normalizedPath)
+      ) {
+        return staticFiles(req, res, next);
       }
+      return next();
+    });
+    app.get(seoLandingRoutes, (req, res, next) => {
+      try {
+        return sendProductionPage(req, res, indexHtml);
+      } catch (error) {
+        next(error);
+      }
+    });
+    app.use('/.well-known', express.static(path.join(distPath, '.well-known'), {
+      dotfiles: 'allow',
+      index: false,
+    }));
+    app.use(staticFiles);
+    app.get('*', (req, res, next) => {
+      if (path.extname(req.path)) return res.sendStatus(404);
+      try {
+        const db = readDb();
+        const initialData = createPublicInitialData(db, req.hostname);
+        const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
+        if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
+          return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
+        }
 
-      // The primary .tech site has a defined set of public routes. Do not
-      // return the SPA shell with HTTP 200 for arbitrary, nonexistent URLs.
-      if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
-        const normalizedPath = req.path.replace(/\/+$/, '') || '/';
-        const knownLandingPaths = new Set([
-          '/',
-          '/dealer-honda-bandung',
-          '/kredit-motor-honda-bandung',
-          '/simulasi-kredit-honda',
-          '/harga-motor-honda-bandung',
-          '/honda-beat-bandung',
-          '/honda-scoopy-bandung',
-          '/honda-vario-bandung',
-          '/honda-pcx-bandung',
-          '/honda-adv-bandung',
-          '/honda-stylo-bandung',
-          '/owner-dashboard',
-          '/admin',
-          '/login',
-          '/masuk',
-          '/dashboard',
-        ]);
-        const isPublishedArticle = articlePath
-          && initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true);
-        if (!knownLandingPaths.has(normalizedPath) && !isPublishedArticle) {
-          return res.status(404).type('html').send('<!doctype html><html lang="id"><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Halaman tidak ditemukan | Kredit Motor Honda</title><body><main><h1>Halaman tidak ditemukan</h1><p>Halaman yang Anda cari tidak tersedia.</p><a href="/">Kembali ke beranda</a></main></body></html>');
+        // The primary .tech site has a defined set of public routes. Do not
+        // return the SPA shell with HTTP 200 for arbitrary, nonexistent URLs.
+        if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
+          const normalizedPath = req.path.replace(/\/+$/, '') || '/';
+          const knownLandingPaths = new Set([
+            '/',
+            '/dealer-honda-bandung',
+            '/kredit-motor-honda-bandung',
+            '/simulasi-kredit-honda',
+            '/harga-motor-honda-bandung',
+            '/honda-beat-bandung',
+            '/honda-scoopy-bandung',
+            '/honda-vario-bandung',
+            '/honda-pcx-bandung',
+            '/honda-adv-bandung',
+            '/honda-stylo-bandung',
+            '/owner-dashboard',
+            '/admin',
+            '/login',
+            '/masuk',
+            '/dashboard',
+          ]);
+          const isPublishedArticle = articlePath
+            && initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true);
+          if (!knownLandingPaths.has(normalizedPath) && !isPublishedArticle) {
+            return res.status(404).type('html').send('<!doctype html><html lang="id"><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Halaman tidak ditemukan | Kredit Motor Honda</title><body><main><h1>Halaman tidak ditemukan</h1><p>Halaman yang Anda cari tidak tersedia.</p><a href="/">Kembali ke beranda</a></main></body></html>');
+          }
+        }
+        return sendProductionPage(req, res, indexHtml, db, initialData);
+      } catch (error) {
+        console.error('Public page routing failed; serving the client-rendered app shell.', {
+          host: req.hostname,
+          url: req.originalUrl,
+          error,
+        });
+        try {
+          res.set('Cache-Control', 'no-cache');
+          res.set('X-SEO-Render-Fallback', 'client');
+          res.type('html').send(indexHtml);
+        } catch (fallbackError) {
+          next(fallbackError);
         }
       }
-      res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
     });
   }
 

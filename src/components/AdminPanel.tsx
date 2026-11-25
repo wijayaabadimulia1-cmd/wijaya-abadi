@@ -65,6 +65,20 @@ import { CustomizationPanel } from './CustomizationPanel';
 import { CatalogOrderPanel } from './CatalogOrderPanel';
 import { ArticleManager } from './ArticleManager';
 
+const scrollbarHideTimers = new WeakMap<HTMLElement, number>();
+
+function revealScrollbarTemporarily(event: React.UIEvent<HTMLElement>) {
+  const element = event.currentTarget;
+  const previousTimer = scrollbarHideTimers.get(element);
+  if (previousTimer !== undefined) window.clearTimeout(previousTimer);
+
+  element.classList.add('is-scrolling');
+  scrollbarHideTimers.set(element, window.setTimeout(() => {
+    element.classList.remove('is-scrolling');
+    scrollbarHideTimers.delete(element);
+  }, 900));
+}
+
 interface AdminPanelProps {
   onBackToWebsite: () => void;
   onRefreshData: () => void;
@@ -4501,7 +4515,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
               </button>
             </div>
 
-            <form onSubmit={handleSaveMotor} className="p-6 overflow-y-auto space-y-4 text-xs">
+            <form onSubmit={handleSaveMotor} onScroll={revealScrollbarTemporarily} className="motor-modal-form-scroll scrollbar-auto-hide min-h-0 flex-1 overscroll-contain p-6 overflow-y-auto space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-zinc-300 uppercase mb-1">Nama Motor *</label>
                 <input
@@ -4552,7 +4566,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                   <span className="ml-2 text-[10px] font-medium text-zinc-400">nilai ini ikut disimpan ke template Excel dan kalkulator</span>
                 </summary>
                 <p className="mt-2 text-[10px] text-zinc-400">Isi satu baris lengkap untuk setiap paket yang tersedia. Baris kosong boleh dilewati; cicilan tidak dibuat otomatis agar nominal tetap sesuai price list resmi.</p>
-                <div className="mt-3 max-h-[260px] overflow-auto rounded-lg border border-white/10">
+                <div onScroll={revealScrollbarTemporarily} className="scrollbar-auto-hide mt-3 max-h-[260px] overflow-auto rounded-lg border border-white/10">
                   <table className="min-w-[760px] w-full text-left text-[10px]">
                     <thead className="sticky top-0 z-10 bg-zinc-900 text-zinc-400">
                       <tr>
@@ -4598,7 +4612,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToWebsite, onRefre
                 </label>
                 <p className="mb-2 text-[11px] text-zinc-400">Unggah foto agar tersimpan di server dealer. Foto pertama menjadi cover katalog.</p>
                 <p className="mb-2 text-[10px] text-zinc-500">5 slot foto terlihat sekaligus; scroll untuk mengisi hingga {MAX_MOTOR_IMAGES} foto.</p>
-                <div className="max-h-[220px] space-y-2 overflow-y-auto overscroll-contain pr-1">
+                <div onScroll={revealScrollbarTemporarily} className="motor-photo-slots-scroll scrollbar-auto-hide max-h-[220px] space-y-2 overflow-y-auto overscroll-contain pr-1">
                   {Array.from({ length: MAX_MOTOR_IMAGES }, (_, imageIndex) => {
                     const images = editingMotor.images || [editingMotor.image || ''];
                     const imageValue = images[imageIndex] || '';

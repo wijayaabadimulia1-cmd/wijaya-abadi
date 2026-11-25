@@ -9,7 +9,7 @@ fi
 EXPECTED_VPS_IP="${EXPECTED_VPS_IP:-103.253.213.232}"
 DOMAIN="kreditmotorhonda.tech"
 SERVICE="kreditmotorhonda-tech.service"
-CATALOG_API_URL="http://127.0.0.1:3000"
+CATALOG_API_URL="https://kreditmotorhonda.tech"
 GSC_SITE_URLS="${GSC_SITE_URLS:-sc-domain:kreditmotorhonda.tech,sc-domain:solusikreditmotor.cloud}"
 ALLOW_EMPTY_CATALOG="${ALLOW_EMPTY_CATALOG:-false}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,6 +27,8 @@ DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
 SATELLITE_PORTS=(3001 3002)
+SATELLITE_HOSTS=("wijaya.kreditmotorhonda.tech" "solusikreditmotor.cloud")
+SATELLITE_PM2_APPS=("wijaya-kreditmotor" "solusi-kreditmotor")
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
@@ -34,6 +36,8 @@ SATELLITE_DROPIN_FILES=(
 SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
 SATELLITE_SERVICE_PRESENT=(0 0)
+SATELLITE_SERVICE_WAS_ACTIVE=(0 0)
+SATELLITE_PM2_WAS_ONLINE=(0 0)
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
   load_state="$(systemctl show "$service" --property=LoadState --value 2>/dev/null || true)"
@@ -61,6 +65,7 @@ PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
 SATELLITE_UPDATES_STARTED=0
+SATELLITE_PM2_STOPPED=0
 
 fail() {
   echo "$*" >&2
@@ -115,7 +120,19 @@ cleanup() {
         continue
       fi
       service="${SATELLITE_SERVICES[$index]}"
-      sudo systemctl restart "$service" || true
+      if [ "${SATELLITE_SERVICE_WAS_ACTIVE[$index]}" -eq 1 ]; then
+        sudo systemctl restart "$service" || true
+      else
+        sudo systemctl stop "$service" || true
+      fi
+    done
+  fi
+  if [ "$SATELLITE_PM2_STOPPED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    for index in "${!SATELLITE_PM2_APPS[@]}"; do
+      if [ "${SATELLITE_PM2_WAS_ONLINE[$index]}" -eq 1 ] \
+        && [ "${SATELLITE_SERVICE_WAS_ACTIVE[$index]}" -ne 1 ]; then
+        pm2 restart "${SATELLITE_PM2_APPS[$index]}" || true
+      fi
     done
   fi
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
@@ -240,7 +257,9 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     continue
   fi
   service="${SATELLITE_SERVICES[$index]}"
-  if ! systemctl is-active --quiet "$service"; then
+  if systemctl is-active --quiet "$service"; then
+    SATELLITE_SERVICE_WAS_ACTIVE[$index]=1
+  else
     echo "Notice: $service is currently inactive; proceeding with deployment and it will be restarted during cutover." >&2
     continue
   fi
@@ -348,6 +367,37 @@ fi
 
 if command -v pm2 >/dev/null 2>&1 && pm2 describe honda-wijaya-abadi >/dev/null 2>&1; then
   pm2 stop honda-wijaya-abadi
+fi
+if command -v pm2 >/dev/null 2>&1; then
+  pm2_process_json="$(pm2 jlist)" || fail "Could not read the PM2 process list before satellite cutover."
+  for index in "${!SATELLITE_PM2_APPS[@]}"; do
+    app="${SATELLITE_PM2_APPS[$index]}"
+    if printf '%s' "$pm2_process_json" | node -e '
+      let input = "";
+      process.stdin.on("data", (chunk) => input += chunk).on("end", () => {
+        let processes;
+        try {
+          processes = JSON.parse(input);
+        } catch {
+          process.exit(2);
+        }
+        if (!Array.isArray(processes)) process.exit(2);
+        const isOnline = processes.some((entry) =>
+          entry.name === process.argv[1] && entry.pm2_env && entry.pm2_env.status === "online"
+        );
+        process.exit(isOnline ? 0 : 1);
+      });
+    ' "$app"; then
+      SATELLITE_PM2_WAS_ONLINE[$index]=1
+      SATELLITE_PM2_STOPPED=1
+      pm2 stop "$app"
+    else
+      result=$?
+      if [ "$result" -ne 1 ]; then
+        fail "Could not determine whether the PM2 app $app is running."
+      fi
+    fi
+  done
 fi
 
 GSC_CREDENTIALS_DIR="/etc/wijaya-abadi"
@@ -458,13 +508,64 @@ EOF
 done
 sudo systemctl daemon-reload
 
+stop_orphaned_satellite_listener() {
+  local port="$1"
+  local listeners
+  local listener_pids
+  local listener_pid
+  local executable
+  local listener_cgroup
+  local listener_cwd
+  local command_line
+
+  listeners="$(sudo ss -H -ltnp "sport = :${port}")"
+  [ -n "$listeners" ] || return 0
+  listener_pids="$(printf '%s\n' "$listeners" | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | sort -u)"
+  if [ -z "$listener_pids" ]; then
+    printf '%s\n' "$listeners" >&2
+    fail "Port ${port} is occupied by a listener that cannot be safely identified."
+  fi
+
+  while IFS= read -r listener_pid; do
+    [ -n "$listener_pid" ] || continue
+    executable="$(sudo readlink -f "/proc/${listener_pid}/exe" 2>/dev/null || true)"
+    listener_cgroup="$(sudo cat "/proc/${listener_pid}/cgroup" 2>/dev/null || true)"
+    listener_cwd="$(sudo readlink -f "/proc/${listener_pid}/cwd" 2>/dev/null || true)"
+    command_line="$(sudo sh -c 'tr "\000" " " < "$1"' _ "/proc/${listener_pid}/cmdline" 2>/dev/null || true)"
+
+    if [ "$(basename "$executable")" != "node" ] \
+      || ! grep -Eq '^0::/user\.slice/user-[0-9]+\.slice/session-[^/]+\.scope$' <<< "$listener_cgroup" \
+      || ! [[ "$listener_cwd" =~ ^/opt/wijaya-abadi/releases/[0-9a-f]{12}-[0-9]{14}$ ]] \
+      || [[ "$command_line" != *server.cjs* ]]; then
+      printf 'Port %s listener PID %s was not stopped; executable=%s cwd=%s cgroup=%s\n' \
+        "$port" "$listener_pid" "$executable" "$listener_cwd" "$listener_cgroup" >&2
+      fail "Port ${port} is occupied by a process outside the managed satellite release; refusing to stop it."
+    fi
+
+    echo "Stopping orphaned satellite release server PID ${listener_pid} on port ${port}."
+    sudo kill -TERM "$listener_pid"
+  done <<< "$listener_pids"
+
+  for attempt in $(seq 1 10); do
+    listeners="$(sudo ss -H -ltnp "sport = :${port}")"
+    [ -z "$listeners" ] && return 0
+    sleep 1
+  done
+  printf '%s\n' "$listeners" >&2
+  fail "Port ${port} remains occupied after stopping its orphaned satellite release server."
+}
+
 for index in "${!SATELLITE_SERVICES[@]}"; do
   if [ "${SATELLITE_SERVICE_PRESENT[$index]}" -ne 1 ]; then
     continue
   fi
   service="${SATELLITE_SERVICES[$index]}"
   port="${SATELLITE_PORTS[$index]}"
-  sudo systemctl restart "$service"
+  if systemctl is-active --quiet "$service"; then
+    sudo systemctl stop "$service"
+  fi
+  stop_orphaned_satellite_listener "$port"
+  sudo systemctl start "$service"
   if ! systemctl is-active --quiet "$service" \
     || ! systemctl show "$service" --property=ExecStart --value | grep -F -- "$RELEASE_DIR/dist/server.cjs" > /dev/null; then
     systemctl show "$service" --property=FragmentPath --property=DropInPaths --property=ExecStart --no-pager >&2 || true
@@ -483,11 +584,62 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     fail "$service did not become healthy on port ${port}."
   fi
 
-  satellite_motors="$(curl --silent --show-error --fail --max-time 10 "http://127.0.0.1:${port}/api/motors" | node -e 'let body = ""; process.stdin.on("data", (chunk) => body += chunk).on("end", () => { const motors = JSON.parse(body); if (!Array.isArray(motors)) process.exit(2); console.log(motors.length); });')"
+  satellite_motors_response_file="$STAGING_DIR/satellite-${index}-motors.json"
+  satellite_motors_status="$(curl --silent --show-error --output "$satellite_motors_response_file" --write-out '%{http_code}' --max-time 10 "http://127.0.0.1:${port}/api/motors")" \
+    || {
+      sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 40 >&2 || true
+      fail "$service catalog API request failed on port ${port}."
+    }
+  if [ "$satellite_motors_status" != "200" ]; then
+    sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 40 >&2 || true
+    fail "$service catalog API returned HTTP $satellite_motors_status on port ${port}."
+  fi
+  satellite_motors="$(node -e '
+    const fs = require("node:fs");
+    let motors;
+    try {
+      motors = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    } catch {
+      console.error("Catalog API returned invalid JSON.");
+      process.exit(2);
+    }
+    if (!Array.isArray(motors)) {
+      console.error("Catalog API did not return a motor list.");
+      process.exit(2);
+    }
+    console.log(motors.length);
+  ' "$satellite_motors_response_file")" || fail "$service catalog API response could not be validated."
   if [ "$satellite_motors" != "$EXPECTED_MOTORS" ]; then
     fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
   fi
   echo "${service} catalog verified: ${satellite_motors} motors"
+
+  satellite_home_status="000"
+  for attempt in $(seq 1 10); do
+    satellite_home_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 \
+      -H "Host: ${SATELLITE_HOSTS[$index]}" "http://127.0.0.1:${port}/")" || satellite_home_status="000"
+    [ "$satellite_home_status" = "200" ] && break
+    sleep 1
+  done
+  if [ "$satellite_home_status" != "200" ]; then
+    sudo systemctl show "$service" \
+      --property=MainPID \
+      --property=ControlGroup \
+      --property=KillMode \
+      --property=ExecStart \
+      --property=Restart \
+      --no-pager >&2 || true
+    listener="$(sudo ss -ltnp "sport = :${port}" 2>/dev/null || true)"
+    printf '%s\n' "$listener" >&2
+    listener_pid="$(printf '%s\n' "$listener" | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -n 1)"
+    if [ -n "$listener_pid" ]; then
+      sudo readlink -f "/proc/${listener_pid}/exe" >&2 || true
+      sudo cat "/proc/${listener_pid}/cgroup" >&2 || true
+    fi
+    sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 80 >&2 || true
+    fail "$service homepage returned HTTP $satellite_home_status on port $port."
+  fi
+  echo "${service} homepage verified: HTTP $satellite_home_status"
 done
 
 if [ -f "$ID_UNIT_FILE" ]; then

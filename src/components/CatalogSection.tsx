@@ -344,17 +344,25 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-500">
               <Search className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-white">Tidak ada motor ditemukan</h3>
-            <p className="text-zinc-400 text-sm mt-1">Coba ganti kata kunci pencarian atau kategori filter.</p>
-            <button
-              onClick={() => {
-                setActiveCategory('Semua');
-                setSearchQuery('');
-              }}
-              className="mt-4 px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg"
-            >
-              Reset Filter
-            </button>
+            <h3 className="text-lg font-bold text-white">
+              {motors.length === 0 ? 'Katalog motor sedang kosong' : 'Tidak ada motor ditemukan'}
+            </h3>
+            <p className="text-zinc-400 text-sm mt-1">
+              {motors.length === 0
+                ? 'Motor akan ditampilkan kembali setelah katalog diperbarui.'
+                : 'Coba ganti kata kunci pencarian atau kategori filter.'}
+            </p>
+            {motors.length > 0 && (
+              <button
+                onClick={() => {
+                  setActiveCategory('Semua');
+                  setSearchQuery('');
+                }}
+                className="mt-4 px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg"
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
