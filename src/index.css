@@ -1839,11 +1839,16 @@ html[data-color-mode="dark"] body {
   color: #18181b !important;
 }
 
-.website-shell.site-mode-light button[class*="bg-red-"],
-.website-shell.site-mode-light a[class*="bg-red-"],
-.website-shell.site-mode-light button[class*="bg-emerald-"],
-.website-shell.site-mode-light a[class*="bg-emerald-"],
-.website-shell.site-mode-light [class*="bg-gradient-to-r"] {
+.website-shell.site-mode-light button[class^="bg-red-"],
+.website-shell.site-mode-light button[class*=" bg-red-"],
+.website-shell.site-mode-light a[class^="bg-red-"],
+.website-shell.site-mode-light a[class*=" bg-red-"],
+.website-shell.site-mode-light button[class^="bg-emerald-"],
+.website-shell.site-mode-light button[class*=" bg-emerald-"],
+.website-shell.site-mode-light a[class^="bg-emerald-"],
+.website-shell.site-mode-light a[class*=" bg-emerald-"],
+.website-shell.site-mode-light [class^="bg-gradient-to-r"],
+.website-shell.site-mode-light [class*=" bg-gradient-to-r"] {
   color: #ffffff !important;
 }
 
@@ -2182,10 +2187,14 @@ html[data-color-mode="dark"] body {
   background-color: color-mix(in srgb, var(--ui-accent) 8%, transparent) !important;
 }
 
-.website-shell.website-template-mulia-cerah button[class*="bg-red-"],
-.website-shell.website-template-mulia-cerah a[class*="bg-red-"],
-.website-shell.website-template-mulia-cerah button[class*="bg-gradient-to-r"],
-.website-shell.website-template-mulia-cerah a[class*="bg-gradient-to-r"] {
+.website-shell.website-template-mulia-cerah button[class^="bg-red-"],
+.website-shell.website-template-mulia-cerah button[class*=" bg-red-"],
+.website-shell.website-template-mulia-cerah a[class^="bg-red-"],
+.website-shell.website-template-mulia-cerah a[class*=" bg-red-"],
+.website-shell.website-template-mulia-cerah button[class^="bg-gradient-to-r"],
+.website-shell.website-template-mulia-cerah button[class*=" bg-gradient-to-r"],
+.website-shell.website-template-mulia-cerah a[class^="bg-gradient-to-r"],
+.website-shell.website-template-mulia-cerah a[class*=" bg-gradient-to-r"] {
   color: #ffffff !important;
 }
 

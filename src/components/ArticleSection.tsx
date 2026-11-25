@@ -131,7 +131,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
 
   return (
     <>
-      <section id="artikel" className={`relative overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24 ${isDirectArticlePage ? 'hidden' : ''}`}>
+      <section id="artikel" className={`relative scroll-mt-24 overflow-hidden border-y border-stone-200/80 bg-[#faf9f6] py-14 sm:py-20 lg:py-24 ${isDirectArticlePage ? 'hidden' : ''}`}>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 border-b border-stone-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
@@ -193,7 +193,7 @@ export function ArticleSection({ articles, whatsappNumber = '' }: ArticleSection
             ? 'relative mx-auto w-full max-w-4xl bg-[#fffefa] text-stone-900'
             : 'relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[1.5rem] border border-white/50 bg-[#fffefa] text-stone-900 shadow-[0_30px_100px_rgba(0,0,0,0.28)]'}
           >
-            <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/70 bg-stone-950/70 text-white shadow-lg backdrop-blur hover:bg-red-700" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
+            <button type="button" onClick={closeArticle} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/70 bg-stone-950/70 text-stone-100 shadow-lg backdrop-blur hover:bg-red-700" aria-label="Tutup artikel"><X className="h-5 w-5" /></button>
             {getArticleImages(selectedArticle).length > 0 && (
               <div className="relative mx-auto mt-8 w-fit max-w-full overflow-hidden bg-stone-100">
                 <img key={getArticleImages(selectedArticle)[selectedImageIndex]} src={getArticleImages(selectedArticle)[selectedImageIndex]} alt={`${selectedArticle.title}, gambar ${selectedImageIndex + 1}`} className="catalog-photo-animation mx-auto block max-h-[24rem] max-w-full object-contain" data-catalog-animation={selectedArticle.animation || DEFAULT_CATALOG_ANIMATION} style={getImageStyle(selectedArticle)} />
