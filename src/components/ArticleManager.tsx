@@ -127,7 +127,10 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
       setAnalyticsError(null);
     } else {
       setAnalytics(emptyAnalytics);
-      setAnalyticsError('Data pembaca artikel belum dapat dimuat.');
+      console.error('Failed to load article reader analytics:', analyticsResult.reason);
+      setAnalyticsError(analyticsResult.reason instanceof Error
+        ? `Data pembaca artikel belum dapat dimuat: ${analyticsResult.reason.message}`
+        : 'Data pembaca artikel belum dapat dimuat.');
     }
 
     if (aiStatusResult.status === 'fulfilled') setAiConfigured(aiStatusResult.value.configured);
@@ -404,7 +407,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
               </td>
               <td className="px-4 py-4 tabular-nums text-stone-600">{analyticsError ? '—' : analytics.readersBySlug[article.slug] || 0}</td>
               <td className="px-4 py-4">
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${article.published ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${article.published ? 'article-studio-status-published bg-emerald-50 text-emerald-700' : 'article-studio-status-draft bg-amber-50 text-amber-700'}`}>
                   {article.published ? 'Publish' : 'Draft'}
                 </span>
               </td>
@@ -437,14 +440,14 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
   );
 
   return (
-    <div className="space-y-6 text-stone-800">
+    <div className="article-management-studio space-y-6 text-stone-800">
       <header className="flex flex-col gap-5 rounded-3xl bg-gradient-to-r from-red-800 via-red-700 to-red-600 p-6 text-white shadow-lg shadow-red-900/10 sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-100">Honda Wijaya Abadi Mulia</p>
           <h2 className="mt-2 font-serif text-2xl font-semibold sm:text-3xl">Honda Article Management Studio</h2>
           <p className="mt-2 text-sm text-red-50">CMS Artikel · Kelola konten khusus untuk website yang sedang dibuka.</p>
         </div>
-        <button type="button" onClick={openNewArticle} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50">
+        <button type="button" onClick={openNewArticle} className="article-studio-cta inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-red-800 shadow-sm transition hover:bg-red-50">
           <Plus className="h-4 w-4" /> Tulis Artikel
         </button>
       </header>
@@ -508,7 +511,7 @@ export function ArticleManager({ onRefreshData }: ArticleManagerProps) {
                 <h3 className="font-bold text-stone-950">Template Artikel</h3>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {ARTICLE_TEMPLATES.map((template) => (
-                    <button key={template.value} type="button" onClick={() => { openNewArticle(); setEditingArticle((current) => current ? { ...current, template: template.value, category: template.category } : current); }} className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-800">
+                    <button key={template.value} type="button" onClick={() => { openNewArticle(); setEditingArticle((current) => current ? { ...current, template: template.value, category: template.category } : current); }} className="article-studio-template rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-800">
                       {template.label}
                     </button>
                   ))}

@@ -12,15 +12,18 @@ export function slugifySeoPost(value: string) {
 }
 
 export function getSeoLandingPosts(page: SeoLandingPage): SeoLandingPost[] {
-  const posts = Array.isArray(page.posts) ? page.posts : [];
-  if (!page.content?.trim() || posts.some((post) => post.id === page.id)) return posts;
+  const posts = Array.isArray(page.posts)
+    ? page.posts.filter((post): post is SeoLandingPost => Boolean(post && typeof post === 'object'))
+    : [];
+  const content = typeof page.content === 'string' ? page.content : '';
+  if (!content.trim() || posts.some((post) => post.id === page.id)) return posts;
 
   return [
     {
       id: page.id,
       slug: slugifySeoPost(page.title || page.seoTitle || page.subdomain),
       title: page.title || page.seoTitle || page.subdomain,
-      content: page.content,
+      content,
     },
     ...posts,
   ];
