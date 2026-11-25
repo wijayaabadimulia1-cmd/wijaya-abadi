@@ -28,6 +28,7 @@ DROPIN_FILE="${DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
 SATELLITE_PORTS=(3001 3002)
 SATELLITE_HOSTS=("wijaya.kreditmotorhonda.tech" "solusikreditmotor.cloud")
+SATELLITE_PM2_APPS=("wijaya-kreditmotor" "solusi-kreditmotor")
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
@@ -35,6 +36,8 @@ SATELLITE_DROPIN_FILES=(
 SATELLITE_DROPIN_EXISTED=(0 0)
 SATELLITE_DROPIN_BACKUPS=("" "")
 SATELLITE_SERVICE_PRESENT=(0 0)
+SATELLITE_SERVICE_WAS_ACTIVE=(0 0)
+SATELLITE_PM2_WAS_ONLINE=(0 0)
 for index in "${!SATELLITE_SERVICES[@]}"; do
   service="${SATELLITE_SERVICES[$index]}"
   load_state="$(systemctl show "$service" --property=LoadState --value 2>/dev/null || true)"
@@ -62,6 +65,7 @@ PREVIOUS_DROPIN_BACKUP=""
 CUTOVER_STARTED=0
 DEPLOY_SUCCEEDED=0
 SATELLITE_UPDATES_STARTED=0
+SATELLITE_PM2_STOPPED=0
 
 fail() {
   echo "$*" >&2
@@ -116,7 +120,19 @@ cleanup() {
         continue
       fi
       service="${SATELLITE_SERVICES[$index]}"
-      sudo systemctl restart "$service" || true
+      if [ "${SATELLITE_SERVICE_WAS_ACTIVE[$index]}" -eq 1 ]; then
+        sudo systemctl restart "$service" || true
+      else
+        sudo systemctl stop "$service" || true
+      fi
+    done
+  fi
+  if [ "$SATELLITE_PM2_STOPPED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
+    for index in "${!SATELLITE_PM2_APPS[@]}"; do
+      if [ "${SATELLITE_PM2_WAS_ONLINE[$index]}" -eq 1 ] \
+        && [ "${SATELLITE_SERVICE_WAS_ACTIVE[$index]}" -ne 1 ]; then
+        pm2 restart "${SATELLITE_PM2_APPS[$index]}" || true
+      fi
     done
   fi
   if [ "$CUTOVER_STARTED" -eq 1 ] && [ "$DEPLOY_SUCCEEDED" -ne 1 ]; then
@@ -241,7 +257,9 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     continue
   fi
   service="${SATELLITE_SERVICES[$index]}"
-  if ! systemctl is-active --quiet "$service"; then
+  if systemctl is-active --quiet "$service"; then
+    SATELLITE_SERVICE_WAS_ACTIVE[$index]=1
+  else
     echo "Notice: $service is currently inactive; proceeding with deployment and it will be restarted during cutover." >&2
     continue
   fi
@@ -349,6 +367,37 @@ fi
 
 if command -v pm2 >/dev/null 2>&1 && pm2 describe honda-wijaya-abadi >/dev/null 2>&1; then
   pm2 stop honda-wijaya-abadi
+fi
+if command -v pm2 >/dev/null 2>&1; then
+  pm2_process_json="$(pm2 jlist)" || fail "Could not read the PM2 process list before satellite cutover."
+  for index in "${!SATELLITE_PM2_APPS[@]}"; do
+    app="${SATELLITE_PM2_APPS[$index]}"
+    if printf '%s' "$pm2_process_json" | node -e '
+      let input = "";
+      process.stdin.on("data", (chunk) => input += chunk).on("end", () => {
+        let processes;
+        try {
+          processes = JSON.parse(input);
+        } catch {
+          process.exit(2);
+        }
+        if (!Array.isArray(processes)) process.exit(2);
+        const isOnline = processes.some((entry) =>
+          entry.name === process.argv[1] && entry.pm2_env && entry.pm2_env.status === "online"
+        );
+        process.exit(isOnline ? 0 : 1);
+      });
+    ' "$app"; then
+      SATELLITE_PM2_WAS_ONLINE[$index]=1
+      SATELLITE_PM2_STOPPED=1
+      pm2 stop "$app"
+    else
+      result=$?
+      if [ "$result" -ne 1 ]; then
+        fail "Could not determine whether the PM2 app $app is running."
+      fi
+    fi
+  done
 fi
 
 GSC_CREDENTIALS_DIR="/etc/wijaya-abadi"
