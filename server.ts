@@ -438,6 +438,27 @@ function createPublicInitialData(db: any, hostname?: string) {
   };
 }
 
+function sendProductionPage(
+  req: express.Request,
+  res: express.Response,
+  distPath: string,
+  db?: any,
+  initialData?: unknown
+) {
+  const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+  try {
+    const pageDb = db || readDb();
+    const pageInitialData = initialData || createPublicInitialData(pageDb, req.hostname);
+    res.set('Cache-Control', 'no-cache');
+    res.type('html').send(renderSeoMetadata(indexHtml, pageDb.settings || {}, req.path, pageInitialData, req.hostname));
+  } catch (error) {
+    console.error(`SEO page rendering failed for ${req.hostname}${req.originalUrl}; serving the client-rendered app shell.`, error);
+    res.set('Cache-Control', 'no-cache');
+    res.set('X-SEO-Render-Fallback', 'client');
+    res.type('html').send(indexHtml);
+  }
+}
+
 async function createSsrInitialData(db: any, hostname?: string) {
   if (!CATALOG_API_URL) return createPublicInitialData(readCatalogDb(), hostname);
 
@@ -605,6 +626,8 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
   const article = articleSlug
     ? (Array.isArray((initialData as any)?.articles) ? (initialData as any).articles : []).find((item: any) => item.slug === articleSlug && item.published === true)
     : undefined;
+  const articleContentDescription = typeof article?.content === 'string' ? article.content.trim().slice(0, 160) : '';
+  const hostPostDescription = typeof hostPost?.content === 'string' ? hostPost.content.trim().slice(0, 160) : '';
   const page = landingSeo[pathname.replace(/\/+$/, '') || '/'];
   const pageSettings = getSettingsForSeoPage(settings, hostPage);
   const isHostPost = Boolean(hostPost && hostPage && hostPost.id !== hostPage.id);
@@ -612,8 +635,8 @@ function renderSeoMetadata(html: string, settings: any = {}, pathname = '/', ini
     ? `${article.metaTitle || article.title} | ${pageSettings.name || 'Honda Wijaya Abadi Mulia'}`
     : isHostPost ? hostPost?.title : hostPage?.seoTitle || hostPage?.title || page?.title || pageSettings.seoTitle || DEFAULT_SEO_TITLE).trim();
   const description = String(article
-    ? article.metaDescription || article.excerpt || article.content.trim().slice(0, 160)
-    : isHostPost ? hostPost?.content.trim().slice(0, 160) : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || DEFAULT_SEO_DESCRIPTION).trim();
+    ? article.metaDescription || article.excerpt || articleContentDescription
+    : isHostPost ? hostPostDescription : hostPage?.seoDescription || page?.description || pageSettings.seoDescription || DEFAULT_SEO_DESCRIPTION).trim();
   const keywords = String(article
     ? article.metaKeywords || [article.title, article.category, pageSettings.seoKeywords].filter(Boolean).join(', ')
     : hostPage?.seoKeywords || page?.keywords || pageSettings.seoKeywords || 'dealer motor Honda Bandung, harga motor Honda Bandung, kredit motor Honda Bandung, simulasi kredit Honda, promo motor Honda Bandung, DP motor Honda, tenor motor Honda, Honda Beat Bandung, Honda Scoopy Bandung, Honda Vario Bandung, Honda PCX Bandung, Honda ADV Bandung, dealer Honda Bandung, Honda Wijaya Abadi Mulia Motor').trim();
@@ -794,6 +817,7 @@ function getSeoPageForHost(settings: any = {}, hostname: string) {
   const host = String(hostname || '').toLocaleLowerCase('en-US').replace(/:\d+$/, '');
   const pages = Array.isArray(settings.seoPages) ? settings.seoPages : [];
   return pages.find((page: any) => {
+    if (!page || typeof page !== 'object') return false;
     // Older SEO records may not have domainSuffix. In that case resolve the
     // suffix from the current request host so an .id admin does not fall back
     // to the historical .tech default.
@@ -1385,7 +1409,9 @@ function publicSettings(settings: any = {}) {
   const { ownerDashboard: _ownerDashboard, ...publicValues } = settings;
   return {
     ...publicValues,
-    seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : []).map(publicSeoPage),
+    seoPages: (Array.isArray(settings.seoPages) ? settings.seoPages : [])
+      .filter((page: any) => page && typeof page === 'object')
+      .map(publicSeoPage),
   };
 }
 
@@ -3218,10 +3244,12 @@ async function startServer() {
   app.get('/api/articles/analytics', requireAdmin, (req, res) => {
     const db = readSiteDb();
     const host = normalizeAnalyticsHost(req.hostname);
-    const logs = Array.isArray(db.articleReadLogs) ? db.articleReadLogs : [];
+    const logs = Array.isArray(db.articleReadLogs)
+      ? db.articleReadLogs.filter((entry: any) => entry && typeof entry === 'object')
+      : [];
     const readersBySlug: Record<string, number> = {};
 
-    for (const article of getSiteArticles(db, req.hostname)) {
+    for (const article of getSiteArticles(db, req.hostname).filter((item: any) => item && typeof item === 'object')) {
       const slug = String(article.slug || '').toLocaleLowerCase('id-ID');
       if (!slug) continue;
       const readers = new Set(logs
@@ -5021,10 +5049,7 @@ async function startServer() {
           }
         }
 
-        const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-        const db = readDb();
-        res.set('Cache-Control', 'no-cache');
-        res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, createPublicInitialData(db, req.hostname), req.hostname));
+        return sendProductionPage(req, res, distPath);
       } catch (error) {
         next(error);
       }
@@ -5048,47 +5073,56 @@ async function startServer() {
         res.setHeader('Cache-Control', cacheControl);
       },
     }));
-    app.get('*', (req, res) => {
+    app.get('*', (req, res, next) => {
       if (path.extname(req.path)) return res.sendStatus(404);
-      const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-      const db = readDb();
-      db.articles = getSiteArticles(readSiteDb(), req.hostname);
-      const initialData = createPublicInitialData(db, req.hostname);
-      const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
-      if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
-        return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
-      }
+      try {
+        const db = readDb();
+        const initialData = createPublicInitialData(db, req.hostname);
+        const articlePath = req.path.match(/^\/artikel\/([^/]+)\/?$/);
+        if (articlePath && !initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true)) {
+          return res.status(404).type('html').send('<!doctype html><html lang="id"><meta name="robots" content="noindex, follow"><title>Artikel tidak ditemukan</title><body><main><h1>Artikel tidak ditemukan</h1><a href="/#artikel">Lihat artikel</a></main></body></html>');
+        }
 
-      // The primary .tech site has a defined set of public routes. Do not
-      // return the SPA shell with HTTP 200 for arbitrary, nonexistent URLs.
-      if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
-        const normalizedPath = req.path.replace(/\/+$/, '') || '/';
-        const knownLandingPaths = new Set([
-          '/',
-          '/dealer-honda-bandung',
-          '/kredit-motor-honda-bandung',
-          '/simulasi-kredit-honda',
-          '/harga-motor-honda-bandung',
-          '/honda-beat-bandung',
-          '/honda-scoopy-bandung',
-          '/honda-vario-bandung',
-          '/honda-pcx-bandung',
-          '/honda-adv-bandung',
-          '/honda-stylo-bandung',
-          '/owner-dashboard',
-          '/admin',
-          '/login',
-          '/masuk',
-          '/dashboard',
-        ]);
-        const isPublishedArticle = articlePath
-          && initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true);
-        if (!knownLandingPaths.has(normalizedPath) && !isPublishedArticle) {
-          return res.status(404).type('html').send('<!doctype html><html lang="id"><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Halaman tidak ditemukan | Kredit Motor Honda</title><body><main><h1>Halaman tidak ditemukan</h1><p>Halaman yang Anda cari tidak tersedia.</p><a href="/">Kembali ke beranda</a></main></body></html>');
+        // The primary .tech site has a defined set of public routes. Do not
+        // return the SPA shell with HTTP 200 for arbitrary, nonexistent URLs.
+        if (normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech') {
+          const normalizedPath = req.path.replace(/\/+$/, '') || '/';
+          const knownLandingPaths = new Set([
+            '/',
+            '/dealer-honda-bandung',
+            '/kredit-motor-honda-bandung',
+            '/simulasi-kredit-honda',
+            '/harga-motor-honda-bandung',
+            '/honda-beat-bandung',
+            '/honda-scoopy-bandung',
+            '/honda-vario-bandung',
+            '/honda-pcx-bandung',
+            '/honda-adv-bandung',
+            '/honda-stylo-bandung',
+            '/owner-dashboard',
+            '/admin',
+            '/login',
+            '/masuk',
+            '/dashboard',
+          ]);
+          const isPublishedArticle = articlePath
+            && initialData.articles.some((item: any) => item.slug === articlePath[1] && item.published === true);
+          if (!knownLandingPaths.has(normalizedPath) && !isPublishedArticle) {
+            return res.status(404).type('html').send('<!doctype html><html lang="id"><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>Halaman tidak ditemukan | Kredit Motor Honda</title><body><main><h1>Halaman tidak ditemukan</h1><p>Halaman yang Anda cari tidak tersedia.</p><a href="/">Kembali ke beranda</a></main></body></html>');
+          }
+        }
+        return sendProductionPage(req, res, distPath, db, initialData);
+      } catch (error) {
+        console.error(`Public page routing failed for ${req.hostname}${req.originalUrl}; serving the client-rendered app shell.`, error);
+        try {
+          const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+          res.set('Cache-Control', 'no-cache');
+          res.set('X-SEO-Render-Fallback', 'client');
+          res.type('html').send(indexHtml);
+        } catch (fallbackError) {
+          next(fallbackError);
         }
       }
-      res.set('Cache-Control', 'no-cache');
-      res.type('html').send(renderSeoMetadata(indexHtml, db.settings || {}, req.path, initialData, req.hostname));
     });
   }
 

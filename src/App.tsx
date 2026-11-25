@@ -324,6 +324,7 @@ export default function App() {
 
     const intervalId = window.setInterval(refreshWhenVisible, 30_000);
     document.addEventListener('visibilitychange', refreshWhenVisible);
+    refreshWhenVisible();
 
     return () => {
       isCurrent = false;

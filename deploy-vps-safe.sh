@@ -27,6 +27,7 @@ DROPIN_DIR="/etc/systemd/system/${SERVICE}.d"
 DROPIN_FILE="${DROPIN_DIR}/zzzzzzzz-wijaya-abadi-deploy.conf"
 SATELLITE_SERVICES=("kreditmotorhonda.service" "solusikreditmotor.service")
 SATELLITE_PORTS=(3001 3002)
+SATELLITE_HOSTS=("wijaya.kreditmotorhonda.tech" "solusikreditmotor.cloud")
 SATELLITE_DROPIN_FILES=(
   "/etc/systemd/system/kreditmotorhonda.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
   "/etc/systemd/system/solusikreditmotor.service.d/zzzzzzzz-wijaya-abadi-catalog.conf"
@@ -486,6 +487,19 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     fail "$service catalog proxy returned $satellite_motors motors; expected $EXPECTED_MOTORS."
   fi
   echo "${service} catalog verified: ${satellite_motors} motors"
+
+  satellite_home_status="000"
+  for attempt in $(seq 1 10); do
+    satellite_home_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 \
+      -H "Host: ${SATELLITE_HOSTS[$index]}" "http://127.0.0.1:${port}/")" || satellite_home_status="000"
+    [ "$satellite_home_status" = "200" ] && break
+    sleep 1
+  done
+  if [ "$satellite_home_status" != "200" ]; then
+    sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 80 >&2 || true
+    fail "$service homepage returned HTTP $satellite_home_status on port $port."
+  fi
+  echo "${service} homepage verified: HTTP $satellite_home_status"
 done
 
 if [ -f "$ID_UNIT_FILE" ]; then
