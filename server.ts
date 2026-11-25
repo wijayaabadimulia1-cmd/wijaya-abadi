@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { execFile } from 'node:child_process';
 import { resolve4 } from 'node:dns/promises';
 import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { promisify } from 'node:util';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
@@ -2465,14 +2466,28 @@ async function startServer() {
       return res.status(403).json({ error: 'Edit katalog hanya tersedia di admin utama kreditmotorhonda.tech.' });
     }
 
-    let target: URL;
+    let catalogApi: URL;
+    let upstreamPath: string;
     try {
-      target = new URL(req.originalUrl, CATALOG_API_URL);
+      const requestUrl = new URL(req.originalUrl, 'http://localhost');
+      if (requestUrl.origin !== 'http://localhost') {
+        return res.status(400).json({ error: 'Path permintaan katalog bersama tidak valid.' });
+      }
+      catalogApi = new URL(CATALOG_API_URL);
+      upstreamPath = `${requestUrl.pathname}${requestUrl.search}`;
     } catch {
       return res.status(503).json({ error: 'URL layanan katalog bersama tidak valid.' });
     }
+    const makeUpstreamRequest = catalogApi.protocol === 'https:'
+      ? httpsRequest
+      : catalogApi.protocol === 'http:'
+        ? httpRequest
+        : null;
+    if (!makeUpstreamRequest) {
+      return res.status(503).json({ error: 'Protokol layanan katalog bersama tidak didukung.' });
+    }
 
-    const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: target.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
+    const headers: Record<string, string | string[] | undefined> = { ...req.headers, host: catalogApi.host, 'x-catalog-service-token': CATALOG_SERVICE_TOKEN };
     delete headers['x-admin-token'];
     delete headers['x-catalog-actor'];
     delete headers.connection;
@@ -2485,7 +2500,14 @@ async function startServer() {
       if (session) headers['x-catalog-actor'] = session.username;
     }
 
-    const upstream = httpRequest(target, { method: req.method, headers }, (upstreamResponse) => {
+    const upstream = makeUpstreamRequest({
+      protocol: catalogApi.protocol,
+      hostname: catalogApi.hostname,
+      port: catalogApi.port || undefined,
+      method: req.method,
+      path: upstreamPath,
+      headers,
+    }, (upstreamResponse) => {
       res.statusCode = upstreamResponse.statusCode || 502;
       for (const [name, value] of Object.entries(upstreamResponse.headers)) {
         if (value && !['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) {
