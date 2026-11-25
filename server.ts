@@ -1374,7 +1374,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
   const cached = googleSearchConsoleReportCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.report;
 
-  const responses = await Promise.all(sites.map(async (site) => {
+  const fetchRows = async (site: string, dimensions: string[]) => {
     try {
       const response = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(site)}/searchAnalytics/query`, {
         method: 'POST',
@@ -1382,7 +1382,7 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
         body: JSON.stringify({
           startDate: effectiveStartDate,
           endDate: effectiveEndDate,
-          dimensions: ['query'],
+          dimensions,
           rowLimit: 25_000,
           dataState: 'all',
         }),
@@ -1393,17 +1393,39 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
       };
       if (!response.ok) throw new Error(body.error?.message || `Gagal mengambil data untuk ${site}.`);
       return { site, rows: body.rows || [], error: '' };
-    } catch (error: any) {
-      return { site, rows: [], error: String(error?.message || `Gagal mengambil data untuk ${site}.`) };
+    } catch (error: unknown) {
+      return {
+        site,
+        rows: [],
+        error: error instanceof Error ? error.message : `Gagal mengambil data untuk ${site}.`,
+      };
     }
-  }));
+  };
+  const [queryResponses, landingPageResponses] = await Promise.all([
+    Promise.all(sites.map((site) => fetchRows(site, ['query']))),
+    Promise.all(sites.map((site) => fetchRows(site, ['query', 'page']))),
+  ]);
 
-  const keywordTotals = new Map<string, { keyword: string; clicks: number; impressions: number; positionWeight: number; positionTotal: number; sites: Set<string> }>();
-  for (const result of responses) {
+  const keywordTotals = new Map<string, {
+    keyword: string;
+    clicks: number;
+    impressions: number;
+    positionWeight: number;
+    positionTotal: number;
+    sites: Set<string>;
+  }>();
+  const landingPagesByKeyword = new Map<string, Map<string, { url: string; clicks: number; impressions: number }>>();
+  const siteLabel = (site: string) => site
+    .replace(/^sc-domain:/i, '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/.*$/, '')
+    .toLocaleLowerCase('en-US');
+  for (const result of queryResponses) {
     for (const row of result.rows) {
       const keyword = String(row.keys?.[0] || '').trim();
       const normalizedKeyword = normalizeSearchKeyword(keyword);
       if (!normalizedKeyword) continue;
+      const clicks = Number(row.clicks || 0);
       const impressions = Number(row.impressions || 0);
       const aggregate = keywordTotals.get(normalizedKeyword) || {
         keyword,
@@ -1413,13 +1435,46 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
         positionTotal: 0,
         sites: new Set<string>(),
       };
-      aggregate.clicks += Number(row.clicks || 0);
+      aggregate.clicks += clicks;
       aggregate.impressions += impressions;
       aggregate.positionWeight += impressions;
       aggregate.positionTotal += Number(row.position || 0) * impressions;
-      aggregate.sites.add(result.site.replace(/^sc-domain:/i, '').replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLocaleLowerCase('en-US'));
+      aggregate.sites.add(siteLabel(result.site));
       keywordTotals.set(normalizedKeyword, aggregate);
     }
+  }
+
+  let invalidLandingPageCount = 0;
+  for (const result of landingPageResponses) {
+    for (const row of result.rows) {
+      const keyword = String(row.keys?.[0] || '').trim();
+      const normalizedKeyword = normalizeSearchKeyword(keyword);
+      if (!normalizedKeyword) continue;
+      const clicks = Number(row.clicks || 0);
+      const impressions = Number(row.impressions || 0);
+      const rawPageUrl = String(row.keys?.[1] || '').trim();
+      if (rawPageUrl) {
+        try {
+          const pageUrl = new URL(rawPageUrl);
+          if (pageUrl.protocol === 'https:' || pageUrl.protocol === 'http:') {
+            const url = pageUrl.href;
+            const landingPages = landingPagesByKeyword.get(normalizedKeyword) || new Map();
+            const pageAggregate = landingPages.get(url) || { url, clicks: 0, impressions: 0 };
+            pageAggregate.clicks += clicks;
+            pageAggregate.impressions += impressions;
+            landingPages.set(url, pageAggregate);
+            landingPagesByKeyword.set(normalizedKeyword, landingPages);
+          } else {
+            invalidLandingPageCount += 1;
+          }
+        } catch {
+          invalidLandingPageCount += 1;
+        }
+      }
+    }
+  }
+  if (invalidLandingPageCount > 0) {
+    console.warn(`Ignored ${invalidLandingPageCount} invalid page URLs in Search Console results.`);
   }
 
   const rows = [...keywordTotals.values()]
@@ -1428,16 +1483,23 @@ async function getGoogleSearchConsoleKeywords(startDate?: string, endDate?: stri
       ctr: row.impressions ? row.clicks / row.impressions : 0,
       position: positionWeight ? positionTotal / positionWeight : 0,
       sites: [...matchedSites].sort((left, right) => left.localeCompare(right, 'en')), siteCount: matchedSites.size,
+      landingPages: [...(landingPagesByKeyword.get(normalizeSearchKeyword(row.keyword))?.values() || [])]
+        .sort((left, right) => right.impressions - left.impressions || right.clicks - left.clicks)
+        .slice(0, 3),
     }))
     .sort((left, right) => right.impressions - left.impressions || right.clicks - left.clicks)
-    .slice(0, 50);
+    .slice(0, 100);
   const report = {
     configured: true,
     startDate: effectiveStartDate,
     endDate: effectiveEndDate,
     sites,
     rows,
-    errors: [...siteSelection.errors, ...responses.filter((result) => result.error).map((result) => result.error)],
+    errors: [
+      ...siteSelection.errors,
+      ...queryResponses.filter((result) => result.error).map((result) => result.error),
+      ...landingPageResponses.filter((result) => result.error).map((result) => result.error),
+    ],
   };
   googleSearchConsoleReportCache.set(cacheKey, { report, expiresAt: Date.now() + 5 * 60 * 1000 });
   return report;
@@ -5132,6 +5194,7 @@ async function startServer() {
       const normalizedPath = req.path.endsWith('/') ? req.path.slice(0, -1) || '/' : req.path;
       if (
         normalizeAdminHost(req.hostname) === 'kreditmotorhonda.tech'
+        && normalizedPath !== '/'
         && staticSeoRouteSet.has(normalizedPath)
       ) {
         return staticFiles(req, res, next);
