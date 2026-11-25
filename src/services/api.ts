@@ -551,7 +551,7 @@ export const api = {
 
   // Interests / Leads
   async getInterests(): Promise<LeadInterest[]> {
-    const res = await fetch('/api/interests');
+    const res = await fetch('/api/interests', { headers: adminHeaders(), cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil data peminat');
     return res.json();
   },
