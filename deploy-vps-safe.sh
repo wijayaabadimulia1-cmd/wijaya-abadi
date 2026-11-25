@@ -496,6 +496,14 @@ for index in "${!SATELLITE_SERVICES[@]}"; do
     sleep 1
   done
   if [ "$satellite_home_status" != "200" ]; then
+    sudo systemctl show "$service" \
+      --property=MainPID \
+      --property=ControlGroup \
+      --property=KillMode \
+      --property=ExecStart \
+      --property=Restart \
+      --no-pager >&2 || true
+    sudo ss -ltnp "sport = :${port}" >&2 || true
     sudo journalctl -u "$service" --since "10 minutes ago" --no-pager -n 80 >&2 || true
     fail "$service homepage returned HTTP $satellite_home_status on port $port."
   fi
